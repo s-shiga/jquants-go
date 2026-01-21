@@ -1,3 +1,3 @@
-module github.com/S-Shiga/jquants-go
+module github.com/S-Shiga/jquants-go/v2
 
 go 1.24.2

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -13,34 +12,26 @@ import (
 	"time"
 )
 
-const BaseURL = "https://api.jquants.com/v1"
+const BaseURL = "https://api.jquants.com/v2"
 
 type Client struct {
 	HttpClient    *http.Client
 	BaseURL       string
-	MailAddress   string
-	Password      string
-	RefreshToken  string
-	IDToken       string
+	APIKey        string
 	RetryInterval time.Duration
 	LoopTimeout   time.Duration
 }
 
 func NewClient(ctx context.Context, httpClient *http.Client) (*Client, error) {
 	var err error
-	email, ok := os.LookupEnv("J_QUANTS_EMAIL_ADDRESS")
+	APIKey, ok := os.LookupEnv("JQUANTS_API_KEY")
 	if !ok {
-		return nil, errors.New("J_QUANTS_EMAIL_ADDRESS not set")
-	}
-	password, ok := os.LookupEnv("J_QUANTS_PASSWORD")
-	if !ok {
-		return nil, errors.New("J_QUANTS_PASSWORD not set")
+		return nil, errors.New("JQUANTS_API_KEY environment variable is not set")
 	}
 	client := &Client{
 		HttpClient:    httpClient,
 		BaseURL:       BaseURL,
-		MailAddress:   email,
-		Password:      password,
+		APIKey:        APIKey,
 		RetryInterval: 5 * time.Second,
 		LoopTimeout:   20 * time.Second,
 	}
@@ -54,35 +45,6 @@ func NewClient(ctx context.Context, httpClient *http.Client) (*Client, error) {
 		return nil, err
 	}
 	return client, nil
-}
-
-func (c *Client) sendPostRequest(ctx context.Context, u *url.URL, body io.Reader) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, "POST", u.String(), body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := c.HttpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
-}
-
-func (c *Client) SendGetRequest(ctx context.Context, u *url.URL) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build request: %w", err)
-	}
-	if c.IDToken == "" {
-		panic("ID Token is empty")
-	}
-	req.Header.Set("Authorization", "Bearer "+c.IDToken)
-	resp, err := c.HttpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
 }
 
 type parameters interface {
@@ -99,7 +61,17 @@ func (c *Client) sendRequest(ctx context.Context, urlPath string, param paramete
 		panic(err)
 	}
 	u.RawQuery = v.Encode()
-	return c.SendGetRequest(ctx, u)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build request: %w", err)
+	}
+	req.Header.Set("x-api-key", c.APIKey)
+	resp, err := c.HttpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 type BadRequest struct {
