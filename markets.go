@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-type MarginTradingBalance struct {
+type MarginTradingOutstanding struct {
 	Date                     string
 	Code                     string
 	TotalShortBalance        int64
@@ -23,7 +23,7 @@ type MarginTradingBalance struct {
 	IssueType                int8
 }
 
-func (mtv *MarginTradingBalance) UnmarshalJSON(b []byte) error {
+func (mtv *MarginTradingOutstanding) UnmarshalJSON(b []byte) error {
 	var raw struct {
 		Date                               string  `json:"Date"`
 		Code                               string  `json:"Code"`
@@ -55,19 +55,19 @@ func (mtv *MarginTradingBalance) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-type MarginTradingBalanceRequest struct {
+type MarginTradingOutstandingRequest struct {
 	Code *string
 	Date *string
 	From *string
 	To   *string
 }
 
-type marginTradingBalanceParameters struct {
-	MarginTradingBalanceRequest
+type marginTradingOutstandingParameters struct {
+	MarginTradingOutstandingRequest
 	PaginationKey *string
 }
 
-func (p marginTradingBalanceParameters) values() (url.Values, error) {
+func (p marginTradingOutstandingParameters) values() (url.Values, error) {
 	v := url.Values{}
 	if p.Date != nil {
 		v.Add("date", *p.Date)
@@ -89,13 +89,13 @@ func (p marginTradingBalanceParameters) values() (url.Values, error) {
 	return v, nil
 }
 
-type marginTradingBalanceResponse struct {
-	Data          []MarginTradingBalance `json:"data"`
-	PaginationKey *string                `json:"pagination_key"`
+type marginTradingOutstandingResponse struct {
+	Data          []MarginTradingOutstanding `json:"data"`
+	PaginationKey *string                    `json:"pagination_key"`
 }
 
-func (c *Client) sendMarginTradingBalanceRequest(ctx context.Context, param marginTradingBalanceParameters) (marginTradingBalanceResponse, error) {
-	var r marginTradingBalanceResponse
+func (c *Client) sendMarginTradingOutstandingRequest(ctx context.Context, param marginTradingOutstandingParameters) (marginTradingOutstandingResponse, error) {
+	var r marginTradingOutstandingResponse
 	resp, err := c.sendRequest(ctx, "/markets/margin-interest", param)
 	if err != nil {
 		return r, fmt.Errorf("failed to send GET request: %w", err)
@@ -109,16 +109,16 @@ func (c *Client) sendMarginTradingBalanceRequest(ctx context.Context, param marg
 	return r, nil
 }
 
-// MarginTradingBalance provides margin trading outstandings.
+// MarginTradingOutstanding provides margin trading outstandings.
 // https://jpx.gitbook.io/j-quants-en/api-reference/weekly_margin_interest
-func (c *Client) MarginTradingBalance(ctx context.Context, req MarginTradingBalanceRequest) ([]MarginTradingBalance, error) {
-	var data = make([]MarginTradingBalance, 0)
+func (c *Client) MarginTradingOutstanding(ctx context.Context, req MarginTradingOutstandingRequest) ([]MarginTradingOutstanding, error) {
+	var data = make([]MarginTradingOutstanding, 0)
 	var paginationKey *string
 	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
 	defer cancel()
 	for {
-		params := marginTradingBalanceParameters{MarginTradingBalanceRequest: req, PaginationKey: paginationKey}
-		resp, err := c.sendMarginTradingBalanceRequest(ctx, params)
+		params := marginTradingOutstandingParameters{MarginTradingOutstandingRequest: req, PaginationKey: paginationKey}
+		resp, err := c.sendMarginTradingOutstandingRequest(ctx, params)
 		if err != nil {
 			if errors.As(err, &InternalServerError{}) {
 				slog.Warn("Retrying HTTP request", "error", err.Error())

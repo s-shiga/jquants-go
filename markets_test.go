@@ -7,20 +7,20 @@ import (
 	"github.com/S-Shiga/jquants-go/v2/codes"
 )
 
-func TestClient_MarginTradingVolume(t *testing.T) {
+func TestClient_MarginTradingOutstanding(t *testing.T) {
 	var code = "13010"
 	ctx := context.Background()
 	client, err := setup()
 	if err != nil {
 		t.Fatalf("Failed to setup client: %v", err)
 	}
-	req := MarginTradingBalanceRequest{Code: &code}
-	res, err := client.MarginTradingBalance(ctx, req)
+	req := MarginTradingOutstandingRequest{Code: &code}
+	res, err := client.MarginTradingOutstanding(ctx, req)
 	if err != nil {
-		t.Errorf("Failed to get margin trading volume: %s", err)
+		t.Errorf("Failed to get margin trading outstanding: %s", err)
 	}
 	if len(res) == 0 {
-		t.Error("Empty margin trading volume")
+		t.Error("Empty margin trading outstanding")
 	}
 }
 
