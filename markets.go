@@ -14,8 +14,8 @@ import (
 type MarginTradingBalance struct {
 	Date                     string
 	Code                     string
-	NetShortBalance          int64
-	NetLongBalance           int64
+	TotalShortBalance        int64
+	TotalLongBalance         int64
 	ShortNegotiableBalance   int64
 	LongNegotiableBalance    int64
 	ShortStandardizedBalance int64
@@ -45,8 +45,8 @@ func (mtv *MarginTradingBalance) UnmarshalJSON(b []byte) error {
 		return fmt.Errorf("failed to decode margin trade volume error response: %w", err)
 	}
 	mtv.Code = raw.Code
-	mtv.NetShortBalance = int64(raw.ShortMarginTradeVolume)
-	mtv.NetLongBalance = int64(raw.LongMarginTradeVolume)
+	mtv.TotalShortBalance = int64(raw.ShortMarginTradeVolume)
+	mtv.TotalLongBalance = int64(raw.LongMarginTradeVolume)
 	mtv.ShortNegotiableBalance = int64(raw.ShortNegotiableMarginTradeVolume)
 	mtv.LongNegotiableBalance = int64(raw.LongNegotiableMarginTradeVolume)
 	mtv.ShortStandardizedBalance = int64(raw.ShortStandardizedMarginTradeVolume)
@@ -255,14 +255,14 @@ func (c *Client) ShortSellingValue(ctx context.Context, req ShortSellingValueReq
 // Breakdown Trading not implemented
 
 type TradingCalendar struct {
-	Date            string `json:"Date"`
-	HolidayDivision int8   `json:"HolidayDivision"`
+	Date    string
+	DayType int8
 }
 
 func (tc *TradingCalendar) UnmarshalJSON(b []byte) error {
 	var raw struct {
 		Date            string `json:"Date"`
-		HolidayDivision string `json:"HolidayDivision"`
+		HolidayDivision string `json:"HolDiv"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to decode holiday division error response: %w", err)
@@ -272,7 +272,7 @@ func (tc *TradingCalendar) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return fmt.Errorf("failed to decode holiday division error response: %w", err)
 	}
-	tc.HolidayDivision = int8(hd)
+	tc.DayType = int8(hd)
 	return nil
 }
 
@@ -289,7 +289,7 @@ type tradingCalendarParameters struct {
 func (p tradingCalendarParameters) values() (url.Values, error) {
 	v := url.Values{}
 	if p.HolidayDivision != nil {
-		v.Add("holidaydivision", strconv.Itoa(int(*p.HolidayDivision)))
+		v.Add("hol_div", strconv.Itoa(int(*p.HolidayDivision)))
 	}
 	if p.From != nil {
 		v.Add("from", *p.From)
@@ -301,13 +301,13 @@ func (p tradingCalendarParameters) values() (url.Values, error) {
 }
 
 type tradingCalendarResponse struct {
-	TradingCalendar []TradingCalendar `json:"trading_calendar"`
+	Data []TradingCalendar `json:"data"`
 }
 
 func (c *Client) TradingCalendar(ctx context.Context, req TradingCalendarRequest) ([]TradingCalendar, error) {
 	var r tradingCalendarResponse
 	params := tradingCalendarParameters{TradingCalendarRequest: req}
-	resp, err := c.sendRequest(ctx, "/markets/trading_calendar", params)
+	resp, err := c.sendRequest(ctx, "/markets/calendar", params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send GET request: %w", err)
 	}
@@ -317,5 +317,5 @@ func (c *Client) TradingCalendar(ctx context.Context, req TradingCalendarRequest
 	if err = decodeResponse(resp, &r); err != nil {
 		return nil, fmt.Errorf("failed to decode HTTP Response: %w", err)
 	}
-	return r.TradingCalendar, nil
+	return r.Data, nil
 }

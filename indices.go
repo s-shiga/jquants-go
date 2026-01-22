@@ -11,22 +11,22 @@ import (
 )
 
 type IndexPrice struct {
-	Date  string      `json:"Date"`
-	Code  string      `json:"Code"`
-	Open  json.Number `json:"Open"`
-	High  json.Number `json:"High"`
-	Low   json.Number `json:"Low"`
-	Close json.Number `json:"Close"`
+	Date  string
+	Code  string
+	Open  json.Number
+	High  json.Number
+	Low   json.Number
+	Close json.Number
 }
 
 func (ip *IndexPrice) UnmarshalJSON(b []byte) error {
 	var raw struct {
 		Date  string      `json:"Date"`
 		Code  string      `json:"Code"`
-		Open  json.Number `json:"Open"`
-		High  json.Number `json:"High"`
-		Low   json.Number `json:"Low"`
-		Close json.Number `json:"Close"`
+		Open  json.Number `json:"O"`
+		High  json.Number `json:"H"`
+		Low   json.Number `json:"L"`
+		Close json.Number `json:"C"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to decode index price error response: %w", err)
@@ -75,13 +75,13 @@ func (p indexPriceParameters) values() (url.Values, error) {
 }
 
 type indexPriceResponse struct {
-	Data          []IndexPrice `json:"indices"`
+	Data          []IndexPrice `json:"data"`
 	PaginationKey *string      `json:"pagination_key"`
 }
 
 func (c *Client) sendIndexPriceRequest(ctx context.Context, params indexPriceParameters) (indexPriceResponse, error) {
 	var r indexPriceResponse
-	resp, err := c.sendRequest(ctx, "/indices", params)
+	resp, err := c.sendRequest(ctx, "/indices/bars/daily", params)
 	if err != nil {
 		return r, fmt.Errorf("failed to send GET request: %w", err)
 	}
@@ -121,20 +121,20 @@ func (c *Client) IndexPrice(ctx context.Context, req IndexPriceRequest) ([]Index
 }
 
 type TopixPrice struct {
-	Date  string      `json:"Date"`
-	Open  json.Number `json:"Open"`
-	High  json.Number `json:"High"`
-	Low   json.Number `json:"Low"`
-	Close json.Number `json:"Close"`
+	Date  string
+	Open  json.Number
+	High  json.Number
+	Low   json.Number
+	Close json.Number
 }
 
 func (p *TopixPrice) UnmarshalJSON(b []byte) error {
 	var raw struct {
 		Date  string      `json:"Date"`
-		Open  json.Number `json:"Open"`
-		High  json.Number `json:"High"`
-		Low   json.Number `json:"Low"`
-		Close json.Number `json:"Close"`
+		Open  json.Number `json:"O"`
+		High  json.Number `json:"H"`
+		Low   json.Number `json:"L"`
+		Close json.Number `json:"C"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal topix price: %w", err)
@@ -172,13 +172,13 @@ func (p topixPriceParameters) values() (url.Values, error) {
 }
 
 type topixPriceResponse struct {
-	Topix         []TopixPrice `json:"topix"`
+	Data          []TopixPrice `json:"data"`
 	PaginationKey *string      `json:"pagination_key"`
 }
 
 func (c *Client) sendTopixPriceRequest(ctx context.Context, params topixPriceParameters) (topixPriceResponse, error) {
 	var r topixPriceResponse
-	resp, err := c.sendRequest(ctx, "/indices/topix", params)
+	resp, err := c.sendRequest(ctx, "/indices/bars/daily/topix", params)
 	if err != nil {
 		return r, fmt.Errorf("failed to send GET request: %w", err)
 	}
@@ -208,7 +208,7 @@ func (c *Client) TopixPrices(ctx context.Context, req TopixPriceRequest) ([]Topi
 				return nil, fmt.Errorf("failed to send topix price request: %w", err)
 			}
 		}
-		data = append(data, resp.Topix...)
+		data = append(data, resp.Data...)
 		paginationKey = resp.PaginationKey
 		if paginationKey == nil {
 			break

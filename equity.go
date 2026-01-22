@@ -318,20 +318,20 @@ func (c *Client) StockPriceWithChannel(ctx context.Context, req StockPriceReques
 // Morning Session Stock Prices not implemented
 
 type TradingBalance struct {
-	Sales     int64
-	Purchases int64
-	Total     int64
-	Balance   int64
+	Sell    int64
+	Buy     int64
+	Total   int64
+	Balance int64
 }
 
-type StockTradingValue struct {
+type InvestorType struct {
 	PublishedDate              string
 	StartDate                  string
 	EndDate                    string
 	Section                    string
 	Proprietary                TradingBalance
 	Brokerage                  TradingBalance
-	Net                        TradingBalance
+	Total                      TradingBalance
 	Individuals                TradingBalance
 	Foreigners                 TradingBalance
 	SecuritiesCos              TradingBalance
@@ -344,165 +344,165 @@ type StockTradingValue struct {
 	OtherFinancialInstitutions TradingBalance
 }
 
-func (stv *StockTradingValue) UnmarshalJSON(b []byte) error {
+func (it *InvestorType) UnmarshalJSON(b []byte) error {
 	var raw struct {
-		PublishedDate                       string  `json:"PublishedDate"`
-		StartDate                           string  `json:"StartDate"`
-		EndDate                             string  `json:"EndDate"`
-		Section                             string  `json:"Section"`
-		ProprietarySales                    float64 `json:"ProprietarySales"`
-		ProprietaryPurchases                float64 `json:"ProprietaryPurchases"`
-		ProprietaryTotal                    float64 `json:"ProprietaryTotal"`
-		ProprietaryBalance                  float64 `json:"ProprietaryBalance"`
-		BrokerageSales                      float64 `json:"BrokerageSales"`
-		BrokeragePurchases                  float64 `json:"BrokeragePurchases"`
-		BrokerageTotal                      float64 `json:"BrokerageTotal"`
-		BrokerageBalance                    float64 `json:"BrokerageBalance"`
-		TotalSales                          float64 `json:"TotalSales"`
-		TotalPurchases                      float64 `json:"TotalPurchases"`
-		TotalTotal                          float64 `json:"TotalTotal"`
-		TotalBalance                        float64 `json:"TotalBalance"`
-		IndividualsSales                    float64 `json:"IndividualsSales"`
-		IndividualsPurchases                float64 `json:"IndividualsPurchases"`
-		IndividualsTotal                    float64 `json:"IndividualsTotal"`
-		IndividualsBalance                  float64 `json:"IndividualsBalance"`
-		ForeignersSales                     float64 `json:"ForeignersSales"`
-		ForeignersPurchases                 float64 `json:"ForeignersPurchases"`
-		ForeignersTotal                     float64 `json:"ForeignersTotal"`
-		ForeignersBalance                   float64 `json:"ForeignersBalance"`
-		SecuritiesCosSales                  float64 `json:"SecuritiesCosSales"`
-		SecuritiesCosPurchases              float64 `json:"SecuritiesCosPurchases"`
-		SecuritiesCosTotal                  float64 `json:"SecuritiesCosTotal"`
-		SecuritiesCosBalance                float64 `json:"SecuritiesCosBalance"`
-		InvestmentTrustsSales               float64 `json:"InvestmentTrustsSales"`
-		InvestmentTrustsPurchases           float64 `json:"InvestmentTrustsPurchases"`
-		InvestmentTrustsTotal               float64 `json:"InvestmentTrustsTotal"`
-		InvestmentTrustsBalance             float64 `json:"InvestmentTrustsBalance"`
-		BusinessCosSales                    float64 `json:"BusinessCosSales"`
-		BusinessCosPurchases                float64 `json:"BusinessCosPurchases"`
-		BusinessCosTotal                    float64 `json:"BusinessCosTotal"`
-		BusinessCosBalance                  float64 `json:"BusinessCosBalance"`
-		OtherCosSales                       float64 `json:"OtherCosSales"`
-		OtherCosPurchases                   float64 `json:"OtherCosPurchases"`
-		OtherCosTotal                       float64 `json:"OtherCosTotal"`
-		OtherCosBalance                     float64 `json:"OtherCosBalance"`
-		InsuranceCosSales                   float64 `json:"InsuranceCosSales"`
-		InsuranceCosPurchases               float64 `json:"InsuranceCosPurchases"`
-		InsuranceCosTotal                   float64 `json:"InsuranceCosTotal"`
-		InsuranceCosBalance                 float64 `json:"InsuranceCosBalance"`
-		CityBKsRegionalBKsEtcSales          float64 `json:"CityBKsRegionalBKsEtcSales"`
-		CityBKsRegionalBKsEtcPurchases      float64 `json:"CityBKsRegionalBKsEtcPurchases"`
-		CityBKsRegionalBKsEtcTotal          float64 `json:"CityBKsRegionalBKsEtcTotal"`
-		CityBKsRegionalBKsEtcBalance        float64 `json:"CityBKsRegionalBKsEtcBalance"`
-		TrustBanksSales                     float64 `json:"TrustBanksSales"`
-		TrustBanksPurchases                 float64 `json:"TrustBanksPurchases"`
-		TrustBanksTotal                     float64 `json:"TrustBanksTotal"`
-		TrustBanksBalance                   float64 `json:"TrustBanksBalance"`
-		OtherFinancialInstitutionsSales     float64 `json:"OtherFinancialInstitutionsSales"`
-		OtherFinancialInstitutionsPurchases float64 `json:"OtherFinancialInstitutionsPurchases"`
-		OtherFinancialInstitutionsTotal     float64 `json:"OtherFinancialInstitutionsTotal"`
-		OtherFinancialInstitutionsBalance   float64 `json:"OtherFinancialInstitutionsBalance"`
+		PubDate     string  `json:"PubDate"`
+		StDate      string  `json:"StDate"`
+		EnDate      string  `json:"EnDate"`
+		Section     string  `json:"Section"`
+		PropSell    float64 `json:"PropSell"`
+		PropBuy     float64 `json:"PropBuy"`
+		PropTot     float64 `json:"PropTot"`
+		PropBal     float64 `json:"PropBal"`
+		BrkSell     float64 `json:"BrkSell"`
+		BrkBuy      float64 `json:"BrkBuy"`
+		BrkTot      float64 `json:"BrkTot"`
+		BrkBal      float64 `json:"BrkBal"`
+		TotSell     float64 `json:"TotSell"`
+		TotBuy      float64 `json:"TotBuy"`
+		TotTot      float64 `json:"TotTot"`
+		TotBal      float64 `json:"TotBal"`
+		IndSell     float64 `json:"IndSell"`
+		IndBuy      float64 `json:"IndBuy"`
+		IndTot      float64 `json:"IndTot"`
+		IndBal      float64 `json:"IndBal"`
+		FrgnSell    float64 `json:"FrgnSell"`
+		FrgnBuy     float64 `json:"FrgnBuy"`
+		FrgnTot     float64 `json:"FrgnTot"`
+		FrgnBal     float64 `json:"FrgnBal"`
+		SecCoSell   float64 `json:"SecCoSell"`
+		SecCoBuy    float64 `json:"SecCoBuy"`
+		SecCoTot    float64 `json:"SecCoTot"`
+		SecCoBal    float64 `json:"SecCoBal"`
+		InvTrSell   float64 `json:"InvTrSell"`
+		InvTrBuy    float64 `json:"InvTrBuy"`
+		InvTrTot    float64 `json:"InvTrTot"`
+		InvTrBal    float64 `json:"InvTrBal"`
+		BusCoSell   float64 `json:"BusCoSell"`
+		BusCoBuy    float64 `json:"BusCoBuy"`
+		BusCoTot    float64 `json:"BusCoTot"`
+		BusCoBal    float64 `json:"BusCoBal"`
+		OthCoSell   float64 `json:"OthCoSell"`
+		OthCoBuy    float64 `json:"OthCoBuy"`
+		OthCoTot    float64 `json:"OthCoTot"`
+		OthCoBal    float64 `json:"OthCoBal"`
+		InsCoSell   float64 `json:"InsCoSell"`
+		InsCoBuy    float64 `json:"InsCoBuy"`
+		InsCoTot    float64 `json:"InsCoTot"`
+		InsCoBal    float64 `json:"InsCoBal"`
+		BankSell    float64 `json:"BankSell"`
+		BankBuy     float64 `json:"BankBuy"`
+		BankTot     float64 `json:"BankTot"`
+		BankBal     float64 `json:"BankBal"`
+		TrstBnkSell float64 `json:"TrstBnkSell"`
+		TrstBnkBuy  float64 `json:"TrstBnkBuy"`
+		TrstBnkTot  float64 `json:"TrstBnkTot"`
+		TrstBnkBal  float64 `json:"TrstBnkBal"`
+		OthFinSell  float64 `json:"OthFinSell"`
+		OthFinBuy   float64 `json:"OthFinBuy"`
+		OthFinTot   float64 `json:"OthFinTot"`
+		OthFinBal   float64 `json:"OthFinBal"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return err
 	}
-	stv.PublishedDate = raw.PublishedDate
-	stv.StartDate = raw.StartDate
-	stv.EndDate = raw.EndDate
-	stv.Section = raw.Section
-	stv.Proprietary = TradingBalance{
-		Sales:     int64(raw.ProprietarySales),
-		Purchases: int64(raw.ProprietaryPurchases),
-		Total:     int64(raw.ProprietaryTotal),
-		Balance:   int64(raw.ProprietaryBalance),
+	it.PublishedDate = raw.PubDate
+	it.StartDate = raw.StDate
+	it.EndDate = raw.EnDate
+	it.Section = raw.Section
+	it.Proprietary = TradingBalance{
+		Sell:    int64(raw.PropSell),
+		Buy:     int64(raw.PropBuy),
+		Total:   int64(raw.PropTot),
+		Balance: int64(raw.PropBal),
 	}
-	stv.Brokerage = TradingBalance{
-		Sales:     int64(raw.BrokerageSales),
-		Purchases: int64(raw.BrokeragePurchases),
-		Total:     int64(raw.BrokerageTotal),
-		Balance:   int64(raw.BrokerageBalance),
+	it.Brokerage = TradingBalance{
+		Sell:    int64(raw.BrkSell),
+		Buy:     int64(raw.BrkBuy),
+		Total:   int64(raw.BrkTot),
+		Balance: int64(raw.BrkBal),
 	}
-	stv.Net = TradingBalance{
-		Sales:     int64(raw.TotalSales),
-		Purchases: int64(raw.TotalPurchases),
-		Total:     int64(raw.TotalTotal),
-		Balance:   int64(raw.TotalBalance),
+	it.Total = TradingBalance{
+		Sell:    int64(raw.TotSell),
+		Buy:     int64(raw.TotBuy),
+		Total:   int64(raw.TotTot),
+		Balance: int64(raw.TotBal),
 	}
-	stv.Individuals = TradingBalance{
-		Sales:     int64(raw.IndividualsSales),
-		Purchases: int64(raw.IndividualsPurchases),
-		Total:     int64(raw.IndividualsTotal),
-		Balance:   int64(raw.IndividualsBalance),
+	it.Individuals = TradingBalance{
+		Sell:    int64(raw.IndSell),
+		Buy:     int64(raw.IndBuy),
+		Total:   int64(raw.IndTot),
+		Balance: int64(raw.IndBal),
 	}
-	stv.Foreigners = TradingBalance{
-		Sales:     int64(raw.ForeignersSales),
-		Purchases: int64(raw.ForeignersPurchases),
-		Total:     int64(raw.ForeignersTotal),
-		Balance:   int64(raw.ForeignersBalance),
+	it.Foreigners = TradingBalance{
+		Sell:    int64(raw.FrgnSell),
+		Buy:     int64(raw.FrgnBuy),
+		Total:   int64(raw.FrgnTot),
+		Balance: int64(raw.FrgnBal),
 	}
-	stv.SecuritiesCos = TradingBalance{
-		Sales:     int64(raw.SecuritiesCosSales),
-		Purchases: int64(raw.SecuritiesCosPurchases),
-		Total:     int64(raw.SecuritiesCosTotal),
-		Balance:   int64(raw.SecuritiesCosBalance),
+	it.SecuritiesCos = TradingBalance{
+		Sell:    int64(raw.SecCoSell),
+		Buy:     int64(raw.SecCoBuy),
+		Total:   int64(raw.SecCoTot),
+		Balance: int64(raw.SecCoBal),
 	}
-	stv.InvestmentTrusts = TradingBalance{
-		Sales:     int64(raw.InvestmentTrustsSales),
-		Purchases: int64(raw.InvestmentTrustsPurchases),
-		Total:     int64(raw.InvestmentTrustsTotal),
-		Balance:   int64(raw.InvestmentTrustsBalance),
+	it.InvestmentTrusts = TradingBalance{
+		Sell:    int64(raw.InvTrSell),
+		Buy:     int64(raw.InvTrBuy),
+		Total:   int64(raw.InvTrTot),
+		Balance: int64(raw.InvTrBal),
 	}
-	stv.BusinessCos = TradingBalance{
-		Sales:     int64(raw.BusinessCosSales),
-		Purchases: int64(raw.BusinessCosPurchases),
-		Total:     int64(raw.BusinessCosTotal),
-		Balance:   int64(raw.BusinessCosBalance),
+	it.BusinessCos = TradingBalance{
+		Sell:    int64(raw.BusCoSell),
+		Buy:     int64(raw.BusCoBuy),
+		Total:   int64(raw.BusCoTot),
+		Balance: int64(raw.BusCoBal),
 	}
-	stv.OtherCos = TradingBalance{
-		Sales:     int64(raw.OtherCosSales),
-		Purchases: int64(raw.OtherCosPurchases),
-		Total:     int64(raw.OtherCosTotal),
-		Balance:   int64(raw.OtherCosBalance),
+	it.OtherCos = TradingBalance{
+		Sell:    int64(raw.OthCoSell),
+		Buy:     int64(raw.OthCoBuy),
+		Total:   int64(raw.OthCoTot),
+		Balance: int64(raw.OthCoBal),
 	}
-	stv.InsuranceCos = TradingBalance{
-		Sales:     int64(raw.InsuranceCosSales),
-		Purchases: int64(raw.InsuranceCosPurchases),
-		Total:     int64(raw.InsuranceCosTotal),
-		Balance:   int64(raw.InsuranceCosBalance),
+	it.InsuranceCos = TradingBalance{
+		Sell:    int64(raw.InsCoSell),
+		Buy:     int64(raw.InsCoBuy),
+		Total:   int64(raw.InsCoTot),
+		Balance: int64(raw.InsCoBal),
 	}
-	stv.Banks = TradingBalance{
-		Sales:     int64(raw.CityBKsRegionalBKsEtcSales),
-		Purchases: int64(raw.CityBKsRegionalBKsEtcPurchases),
-		Total:     int64(raw.CityBKsRegionalBKsEtcTotal),
-		Balance:   int64(raw.CityBKsRegionalBKsEtcBalance),
+	it.Banks = TradingBalance{
+		Sell:    int64(raw.BankSell),
+		Buy:     int64(raw.BankBuy),
+		Total:   int64(raw.BankTot),
+		Balance: int64(raw.BankBal),
 	}
-	stv.TrustBanks = TradingBalance{
-		Sales:     int64(raw.TrustBanksSales),
-		Purchases: int64(raw.TrustBanksPurchases),
-		Total:     int64(raw.TrustBanksTotal),
-		Balance:   int64(raw.TrustBanksBalance),
+	it.TrustBanks = TradingBalance{
+		Sell:    int64(raw.TrstBnkSell),
+		Buy:     int64(raw.TrstBnkBuy),
+		Total:   int64(raw.TrstBnkTot),
+		Balance: int64(raw.TrstBnkBal),
 	}
-	stv.OtherFinancialInstitutions = TradingBalance{
-		Sales:     int64(raw.OtherFinancialInstitutionsSales),
-		Purchases: int64(raw.OtherFinancialInstitutionsPurchases),
-		Total:     int64(raw.OtherFinancialInstitutionsTotal),
-		Balance:   int64(raw.OtherFinancialInstitutionsBalance),
+	it.OtherFinancialInstitutions = TradingBalance{
+		Sell:    int64(raw.OthFinSell),
+		Buy:     int64(raw.OthFinBuy),
+		Total:   int64(raw.OthFinTot),
+		Balance: int64(raw.OthFinBal),
 	}
 	return nil
 }
 
-type StockTradingValueRequest struct {
+type InvestorTypeRequest struct {
 	Section *string
 	From    *string
 	To      *string
 }
 
-type stockTradingValueParameters struct {
-	StockTradingValueRequest
+type investorTypeParameters struct {
+	InvestorTypeRequest
 	PaginationKey *string
 }
 
-func (p stockTradingValueParameters) values() (url.Values, error) {
+func (p investorTypeParameters) values() (url.Values, error) {
 	v := url.Values{}
 	if p.Section != nil {
 		v.Add("section", *p.Section)
@@ -519,13 +519,13 @@ func (p stockTradingValueParameters) values() (url.Values, error) {
 	return v, nil
 }
 
-type stockTradingValueResponse struct {
-	Data          []StockTradingValue `json:"data"`
-	PaginationKey *string             `json:"pagination_key"`
+type investorTypeResponse struct {
+	Data          []InvestorType `json:"data"`
+	PaginationKey *string        `json:"pagination_key"`
 }
 
-func (c *Client) sendStockTradingValueRequest(ctx context.Context, param stockTradingValueParameters) (stockTradingValueResponse, error) {
-	var r stockTradingValueResponse
+func (c *Client) sendInvestorTypeRequest(ctx context.Context, param investorTypeParameters) (investorTypeResponse, error) {
+	var r investorTypeResponse
 	resp, err := c.sendRequest(ctx, "/equities/investor-types", param)
 	if err != nil {
 		return r, fmt.Errorf("failed to send GET request: %w", err)
@@ -539,23 +539,23 @@ func (c *Client) sendStockTradingValueRequest(ctx context.Context, param stockTr
 	return r, nil
 }
 
-// StockTradingValue provides trading by type of investors.
-// https://jpx.gitbook.io/j-quants-en/api-reference/trades_spec
-func (c *Client) StockTradingValue(ctx context.Context, req StockTradingValueRequest) ([]StockTradingValue, error) {
-	var data = make([]StockTradingValue, 0)
+// InvestorType provides trading by type of investors.
+// https://jpx-jquants.com/en/spec/eq-investor-types
+func (c *Client) InvestorType(ctx context.Context, req InvestorTypeRequest) ([]InvestorType, error) {
+	var data = make([]InvestorType, 0)
 	var paginationKey *string
 	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
 	defer cancel()
 	for {
-		params := stockTradingValueParameters{StockTradingValueRequest: req, PaginationKey: paginationKey}
-		resp, err := c.sendStockTradingValueRequest(ctx, params)
+		params := investorTypeParameters{InvestorTypeRequest: req, PaginationKey: paginationKey}
+		resp, err := c.sendInvestorTypeRequest(ctx, params)
 		if err != nil {
 			if errors.As(err, &InternalServerError{}) {
 				slog.Warn("Retrying HTTP request", "error", err.Error())
 				time.Sleep(c.RetryInterval)
 				continue
 			} else {
-				return nil, fmt.Errorf("failed to send stock trading value request: %w", err)
+				return nil, fmt.Errorf("failed to send investor type request: %w", err)
 			}
 		}
 		data = append(data, resp.Data...)

@@ -155,7 +155,6 @@ func unmarshalJSONNumber(value interface{}) *json.Number {
 		return nil
 	default:
 		panic(fmt.Errorf("unknown type %T\n", value))
-		return nil
 	}
 }
 
@@ -186,13 +185,13 @@ func (p indexOptionPriceParameters) values() (url.Values, error) {
 }
 
 type indexOptionPriceResponse struct {
-	Data          []IndexOptionPrice `json:"index_option"`
+	Data          []IndexOptionPrice `json:"data"`
 	PaginationKey *string            `json:"pagination_key"`
 }
 
 func (c *Client) sendIndexOptionPriceRequest(ctx context.Context, params indexOptionPriceParameters) (indexOptionPriceResponse, error) {
 	var r indexOptionPriceResponse
-	resp, err := c.sendRequest(ctx, "/option/index_option", params)
+	resp, err := c.sendRequest(ctx, "/derivatives/bars/daily/options/225", params)
 	if err != nil {
 		return r, fmt.Errorf("failed to send GET request: %w", err)
 	}

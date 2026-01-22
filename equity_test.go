@@ -61,18 +61,18 @@ func TestClient_StockPriceWithChannel(t *testing.T) {
 	}
 }
 
-func TestClient_StockTradingValue(t *testing.T) {
+func TestClient_InvestorType(t *testing.T) {
 	var code = codes.SectionPrime
 	client, err := setup()
 	if err != nil {
 		t.Fatalf("Failed to setup client: %v", err)
 	}
-	req := StockTradingValueRequest{Section: &code}
-	res, err := client.StockTradingValue(t.Context(), req)
+	req := InvestorTypeRequest{Section: &code}
+	res, err := client.InvestorType(t.Context(), req)
 	if err != nil {
-		t.Errorf("Failed to get stock trading value: %s", err)
+		t.Errorf("Failed to get investor type: %s", err)
 	}
 	if len(res) == 0 {
-		t.Error("Empty stock trading value")
+		t.Error("Empty investor type")
 	}
 }
