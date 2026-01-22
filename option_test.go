@@ -1,5 +1,3 @@
-//go:build fulltest
-
 package jquants
 
 import (
@@ -9,12 +7,12 @@ import (
 
 func TestClient_IndexOptionPrice(t *testing.T) {
 	date := "2025-01-06"
-	ctx := context.Background()
-	if err := setup(ctx); err != nil {
+	client, err := setup()
+	if err != nil {
 		t.Fatalf("Failed to setup client: %v", err)
 	}
 	req := IndexOptionPriceRequest{Date: date}
-	resp, err := testClient.IndexOptionPrice(ctx, req)
+	resp, err := client.IndexOptionPrice(t.Context(), req)
 	if err != nil {
 		t.Errorf("Failed to get index option price: %v", err)
 	}
@@ -25,16 +23,16 @@ func TestClient_IndexOptionPrice(t *testing.T) {
 
 func TestClient_IndexOptionPriceWithChannel(t *testing.T) {
 	date := "2025-01-06"
-	ctx := context.Background()
-	if err := setup(ctx); err != nil {
+	client, err := setup()
+	if err != nil {
 		t.Fatalf("Failed to setup client: %v", err)
 	}
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	req := IndexOptionPriceRequest{Date: date}
 	ch := make(chan IndexOptionPrice)
 	go func() {
-		if e := testClient.IndexOptionPriceWithChannel(ctx, req, ch); e != nil {
+		if e := client.IndexOptionPriceWithChannel(ctx, req, ch); e != nil {
 			t.Errorf("Failed to get index option price: %v", e)
 		}
 	}()

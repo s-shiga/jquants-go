@@ -67,13 +67,13 @@ func (iop *IndexOptionPrice) UnmarshalJSON(b []byte) error {
 		StrikePrice                    float64     `json:"Strike"`
 		VolumeOnlyAuction              interface{} `json:"VoOA"`
 		EmergencyMarginTriggerDivision string      `json:"EmMrgnTrgDiv"`
-		PutCallDivision                string      `json:"PC"`
+		PutCallDivision                string      `json:"PCDiv"`
 		LastTradingDay                 string      `json:"LTD"`
 		SpecialQuotationDay            string      `json:"SQD"`
 		SettlementPrice                interface{} `json:"Settle"`
 		TheoreticalPrice               interface{} `json:"Theo"`
-		BaseVolatility                 interface{} `json:"BV"`
-		UnderlyingPrice                interface{} `json:"UP"`
+		BaseVolatility                 interface{} `json:"BaseVol"`
+		UnderlyingPrice                interface{} `json:"UnderPx"`
 		ImpliedVolatility              interface{} `json:"IV"`
 		InterestRate                   interface{} `json:"IR"`
 	}
@@ -127,8 +127,7 @@ func unmarshalPrice(value interface{}) *int16 {
 	case string:
 		return nil
 	default:
-		fmt.Printf("unknown type %T\n", value)
-		return nil
+		panic(fmt.Errorf("unknown type %T", value))
 	}
 }
 
@@ -140,8 +139,7 @@ func unmarshalVolume(value interface{}) *int64 {
 	case string:
 		return nil
 	default:
-		fmt.Printf("unknown type %T\n", value)
-		return nil
+		panic(fmt.Errorf("unknown type %T", value))
 	}
 }
 
@@ -161,9 +159,8 @@ func unmarshalJSONNumber(value interface{}) *json.Number {
 func unmarshalTime(value string) *string {
 	if value == "" {
 		return nil
-	} else {
-		return &value
 	}
+	return &value
 }
 
 type IndexOptionPriceRequest struct {
