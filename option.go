@@ -12,70 +12,70 @@ import (
 )
 
 type IndexOptionPrice struct {
-	Date                           string       `json:"Date"`
-	Code                           string       `json:"Code"`
-	WholeDayOpen                   *int16       `json:"WholeDayOpen"`
-	WholeDayHigh                   *int16       `json:"WholeDayHigh"`
-	WholeDayLow                    *int16       `json:"WholeDayLow"`
-	WholeDayClose                  *int16       `json:"WholeDayClose"`
-	NightSessionOpen               *int16       `json:"NightSessionOpen"`
-	NightSessionHigh               *int16       `json:"NightSessionHigh"`
-	NightSessionLow                *int16       `json:"NightSessionLow"`
-	NightSessionClose              *int16       `json:"NightSessionClose"`
-	DaySessionOpen                 *int16       `json:"DaySessionOpen"`
-	DaySessionHigh                 *int16       `json:"DaySessionHigh"`
-	DaySessionLow                  *int16       `json:"DaySessionLow"`
-	DaySessionClose                *int16       `json:"DaySessionClose"`
-	Volume                         int64        `json:"Volume"`
-	OpenInterest                   int64        `json:"OpenInterest"`
-	TurnoverValue                  int64        `json:"TurnoverValue"`
-	ContractMonth                  string       `json:"ContractMonth"`
-	StrikePrice                    int16        `json:"StrikePrice"`
-	VolumeOnlyAuction              *int64       `json:"Volume(OnlyAuction)"`
-	EmergencyMarginTriggerDivision string       `json:"EmergencyMarginTriggerDivision"`
-	PutCallDivision                int8         `json:"PutCallDivision"`
-	LastTradingDay                 *string      `json:"LastTradingDay"`
-	SpecialQuotationDay            *string      `json:"SpecialQuotationDay"`
-	SettlementPrice                *int16       `json:"SettlementPrice"`
-	TheoreticalPrice               *json.Number `json:"TheoreticalPrice"`
-	BaseVolatility                 *json.Number `json:"BaseVolatility"`
-	UnderlyingPrice                *json.Number `json:"UnderlyingPrice"`
-	ImpliedVolatility              *json.Number `json:"ImpliedVolatility"`
-	InterestRate                   *json.Number `json:"InterestRate"`
+	Date                           string
+	Code                           string
+	WholeDayOpen                   *int16
+	WholeDayHigh                   *int16
+	WholeDayLow                    *int16
+	WholeDayClose                  *int16
+	NightSessionOpen               *int16
+	NightSessionHigh               *int16
+	NightSessionLow                *int16
+	NightSessionClose              *int16
+	DaySessionOpen                 *int16
+	DaySessionHigh                 *int16
+	DaySessionLow                  *int16
+	DaySessionClose                *int16
+	Volume                         int64
+	OpenInterest                   int64
+	TurnoverValue                  int64
+	ContractMonth                  string
+	StrikePrice                    int16
+	VolumeOnlyAuction              *int64
+	EmergencyMarginTriggerDivision string
+	PutCallDivision                int8
+	LastTradingDay                 *string
+	SpecialQuotationDay            *string
+	SettlementPrice                *int16
+	TheoreticalPrice               *json.Number
+	BaseVolatility                 *json.Number
+	UnderlyingPrice                *json.Number
+	ImpliedVolatility              *json.Number
+	InterestRate                   *json.Number
 }
 
 func (iop *IndexOptionPrice) UnmarshalJSON(b []byte) error {
 	var raw struct {
 		Date                           string      `json:"Date"`
 		Code                           string      `json:"Code"`
-		WholeDayOpen                   interface{} `json:"WholeDayOpen"`
-		WholeDayHigh                   interface{} `json:"WholeDayHigh"`
-		WholeDayLow                    interface{} `json:"WholeDayLow"`
-		WholeDayClose                  interface{} `json:"WholeDayClose"`
-		NightSessionOpen               interface{} `json:"NightSessionOpen"`
-		NightSessionHigh               interface{} `json:"NightSessionHigh"`
-		NightSessionLow                interface{} `json:"NightSessionLow"`
-		NightSessionClose              interface{} `json:"NightSessionClose"`
-		DaySessionOpen                 interface{} `json:"DaySessionOpen"`
-		DaySessionHigh                 interface{} `json:"DaySessionHigh"`
-		DaySessionLow                  interface{} `json:"DaySessionLow"`
-		DaySessionClose                interface{} `json:"DaySessionClose"`
-		Volume                         float64     `json:"Volume"`
-		OpenInterest                   float64     `json:"OpenInterest"`
-		TurnoverValue                  float64     `json:"TurnoverValue"`
-		ContractMonth                  string      `json:"ContractMonth"`
-		StrikePrice                    float64     `json:"StrikePrice"`
-		VolumeOnlyAuction              interface{} `json:"Volume(OnlyAuction)"`
-		EmergencyMarginTriggerDivision string      `json:"EmergencyMarginTriggerDivision"`
-		PutCallDivision                string      `json:"PutCallDivision"`
-		LastTradingDay                 string      `json:"LastTradingDay"`
-		SpecialQuotationDay            string      `json:"SpecialQuotationDay"`
-		SettlementPrice                interface{} `json:"SettlementPrice"`
-		TheoreticalPrice               interface{} `json:"TheoreticalPrice"`
-		BaseVolatility                 interface{} `json:"BaseVolatility"`
-		UnderlyingPrice                interface{} `json:"UnderlyingPrice"`
-		ImpliedVolatility              interface{} `json:"ImpliedVolatility"`
-		InterestRate                   interface{} `json:"InterestRate"`
+		WholeDayOpen                   interface{} `json:"O"`
+		WholeDayHigh                   interface{} `json:"H"`
+		WholeDayLow                    interface{} `json:"L"`
+		WholeDayClose                  interface{} `json:"C"`
+		NightSessionOpen               interface{} `json:"EO"`
+		NightSessionHigh               interface{} `json:"EH"`
+		NightSessionLow                interface{} `json:"EL"`
+		NightSessionClose              interface{} `json:"EC"`
+		DaySessionOpen                 interface{} `json:"AO"`
+		DaySessionHigh                 interface{} `json:"AH"`
+		DaySessionLow                  interface{} `json:"AL"`
+		DaySessionClose                interface{} `json:"AC"`
+		Volume                         float64     `json:"Vo"`
+		OpenInterest                   float64     `json:"OI"`
+		TurnoverValue                  float64     `json:"Va"`
+		ContractMonth                  string      `json:"CM"`
+		StrikePrice                    float64     `json:"Strike"`
+		VolumeOnlyAuction              interface{} `json:"VoOA"`
+		EmergencyMarginTriggerDivision string      `json:"EmMrgnTrgDiv"`
+		PutCallDivision                string      `json:"PC"`
+		LastTradingDay                 string      `json:"LTD"`
+		SpecialQuotationDay            string      `json:"SQD"`
+		SettlementPrice                interface{} `json:"Settle"`
+		TheoreticalPrice               interface{} `json:"Theo"`
+		BaseVolatility                 interface{} `json:"BV"`
+		UnderlyingPrice                interface{} `json:"UP"`
+		ImpliedVolatility              interface{} `json:"IV"`
+		InterestRate                   interface{} `json:"IR"`
 	}
 	var err error
 	if err = json.Unmarshal(b, &raw); err != nil {
