@@ -3,6 +3,8 @@ package jquants
 import (
 	"context"
 	"testing"
+
+	"github.com/S-Shiga/jquants-go/v2/codes"
 )
 
 func TestClient_IssueInformation(t *testing.T) {
@@ -56,5 +58,21 @@ func TestClient_StockPriceWithChannel(t *testing.T) {
 	}
 	if !found {
 		t.Error("Empty stock price")
+	}
+}
+
+func TestClient_StockTradingValue(t *testing.T) {
+	var code = codes.SectionPrime
+	client, err := setup()
+	if err != nil {
+		t.Fatalf("Failed to setup client: %v", err)
+	}
+	req := StockTradingValueRequest{Section: &code}
+	res, err := client.StockTradingValue(t.Context(), req)
+	if err != nil {
+		t.Errorf("Failed to get stock trading value: %s", err)
+	}
+	if len(res) == 0 {
+		t.Error("Empty stock trading value")
 	}
 }
