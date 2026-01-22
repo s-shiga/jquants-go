@@ -22,11 +22,10 @@ type Client struct {
 	LoopTimeout   time.Duration
 }
 
-func NewClient(ctx context.Context, httpClient *http.Client) (*Client, error) {
-	var err error
-	APIKey, ok := os.LookupEnv("JQUANTS_API_KEY")
+func NewClient(httpClient *http.Client) (*Client, error) {
+	APIKey, ok := os.LookupEnv("J_QUANTS_API_KEY")
 	if !ok {
-		return nil, errors.New("JQUANTS_API_KEY environment variable is not set")
+		return nil, errors.New("J_QUANTS_API_KEY environment variable is not set")
 	}
 	client := &Client{
 		HttpClient:    httpClient,
@@ -34,15 +33,6 @@ func NewClient(ctx context.Context, httpClient *http.Client) (*Client, error) {
 		APIKey:        APIKey,
 		RetryInterval: 5 * time.Second,
 		LoopTimeout:   20 * time.Second,
-	}
-	refreshToken := os.Getenv("J_QUANTS_REFRESH_TOKEN")
-	if refreshToken == "" {
-		if err = client.resetRefreshToken(ctx); err != nil {
-			return nil, err
-		}
-	}
-	if err = client.resetIDToken(ctx); err != nil {
-		return nil, err
 	}
 	return client, nil
 }
