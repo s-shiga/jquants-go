@@ -138,29 +138,29 @@ func (c *Client) MarginTradingBalance(ctx context.Context, req MarginTradingBala
 }
 
 type ShortSellingValue struct {
-	Date                                         string `json:"Date"`
-	Sector33Code                                 string `json:"Sector33Code"`
-	SellingExcludingShortSellingTurnoverValue    int64  `json:"SellingExcludingShortSellingTurnoverValue"`
-	ShortSellingWithRestrictionsTurnoverValue    int64  `json:"ShortSellingWithRestrictionsTurnoverValue"`
-	ShortSellingWithoutRestrictionsTurnoverValue int64  `json:"ShortSellingWithoutRestrictionsTurnoverValue"`
+	Date            string
+	Sector33Code    string
+	SellingPosition int64
+	Restricted      int64
+	Exempt          int64
 }
 
-func (ssv *ShortSellingValue) UnmarshalJSON(b []byte) error {
+func (sst *ShortSellingValue) UnmarshalJSON(b []byte) error {
 	var raw struct {
 		Date                                         string  `json:"Date"`
-		Sector33Code                                 string  `json:"Sector33Code"`
-		SellingExcludingShortSellingTurnoverValue    float64 `json:"SellingExcludingShortSellingTurnoverValue"`
-		ShortSellingWithRestrictionsTurnoverValue    float64 `json:"ShortSellingWithRestrictionsTurnoverValue"`
-		ShortSellingWithoutRestrictionsTurnoverValue float64 `json:"ShortSellingWithoutRestrictionsTurnoverValue"`
+		Sector33Code                                 string  `json:"S33"`
+		SellingExcludingShortSellingTurnoverValue    float64 `json:"SellExShortVa"`
+		ShortSellingWithRestrictionsTurnoverValue    float64 `json:"ShrtWithResVa"`
+		ShortSellingWithoutRestrictionsTurnoverValue float64 `json:"ShrtNoResVa"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to decode short selling value error response: %w", err)
 	}
-	ssv.Date = raw.Date
-	ssv.Sector33Code = raw.Sector33Code
-	ssv.SellingExcludingShortSellingTurnoverValue = int64(raw.SellingExcludingShortSellingTurnoverValue)
-	ssv.ShortSellingWithRestrictionsTurnoverValue = int64(raw.ShortSellingWithRestrictionsTurnoverValue)
-	ssv.ShortSellingWithoutRestrictionsTurnoverValue = int64(raw.ShortSellingWithoutRestrictionsTurnoverValue)
+	sst.Date = raw.Date
+	sst.Sector33Code = raw.Sector33Code
+	sst.SellingPosition = int64(raw.SellingExcludingShortSellingTurnoverValue)
+	sst.Restricted = int64(raw.ShortSellingWithRestrictionsTurnoverValue)
+	sst.Exempt = int64(raw.ShortSellingWithoutRestrictionsTurnoverValue)
 	return nil
 }
 
@@ -179,7 +179,7 @@ type shortSellingValueParameters struct {
 func (p shortSellingValueParameters) values() (url.Values, error) {
 	v := url.Values{}
 	if p.Sector33Code != nil {
-		v.Add("sector33code", *p.Sector33Code)
+		v.Add("s33", *p.Sector33Code)
 		if p.Date != nil {
 			v.Add("date", *p.Date)
 		} else {
@@ -203,13 +203,13 @@ func (p shortSellingValueParameters) values() (url.Values, error) {
 }
 
 type shortSellingValueResponse struct {
-	Data          []ShortSellingValue `json:"short_selling"`
+	Data          []ShortSellingValue `json:"data"`
 	PaginationKey *string             `json:"pagination_key"`
 }
 
 func (c *Client) sendShortSellingValueRequest(ctx context.Context, req shortSellingValueParameters) (shortSellingValueResponse, error) {
 	var r shortSellingValueResponse
-	resp, err := c.sendRequest(ctx, "/markets/short_selling", req)
+	resp, err := c.sendRequest(ctx, "/markets/short-ratio", req)
 	if err != nil {
 		return r, fmt.Errorf("failed to send GET request: %w", err)
 	}
