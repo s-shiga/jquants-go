@@ -110,7 +110,7 @@ func (c *Client) sendMarginTradingOutstandingRequest(ctx context.Context, params
 }
 
 // MarginTradingOutstanding provides margin trading outstandings.
-// https://jpx.gitbook.io/j-quants-en/api-reference/weekly_margin_interest
+// https://jpx-jquants.com/en/spec/mkt-margin-int
 func (c *Client) MarginTradingOutstanding(ctx context.Context, req MarginTradingOutstandingRequest) ([]MarginTradingOutstanding, error) {
 	var data = make([]MarginTradingOutstanding, 0)
 	var paginationKey *string
