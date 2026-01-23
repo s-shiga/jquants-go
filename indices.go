@@ -89,7 +89,7 @@ func (c *Client) sendIndexPriceRequest(ctx context.Context, params indexPricePar
 		return r, handleErrorResponse(resp)
 	}
 	if err = decodeResponse(resp, &r); err != nil {
-		return r, fmt.Errorf("failed to decode HTTP reaponse: %w", err)
+		return r, fmt.Errorf("failed to decode HTTP response: %w", err)
 	}
 	return r, nil
 }
@@ -186,7 +186,7 @@ func (c *Client) sendTopixPriceRequest(ctx context.Context, params topixPricePar
 		return r, handleErrorResponse(resp)
 	}
 	if err = decodeResponse(resp, &r); err != nil {
-		return r, fmt.Errorf("failed to decode HTTP reaponse: %w", err)
+		return r, fmt.Errorf("failed to decode HTTP response: %w", err)
 	}
 	return r, nil
 }

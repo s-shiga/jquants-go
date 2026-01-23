@@ -246,19 +246,19 @@ type stockPriceResponse struct {
 	PaginationKey *string      `json:"pagination_key"`
 }
 
-func (c *Client) sendStockPriceRequest(ctx context.Context, param stockPriceParameters) (*stockPriceResponse, error) {
+func (c *Client) sendStockPriceRequest(ctx context.Context, params stockPriceParameters) (stockPriceResponse, error) {
 	var r stockPriceResponse
-	resp, err := c.sendRequest(ctx, "/equities/bars/daily", param)
+	resp, err := c.sendRequest(ctx, "/equities/bars/daily", params)
 	if err != nil {
-		return nil, fmt.Errorf("failed to send GET request: %w", err)
+		return r, fmt.Errorf("failed to send GET request: %w", err)
 	}
 	if resp.StatusCode != 200 {
-		return nil, handleErrorResponse(resp)
+		return r, handleErrorResponse(resp)
 	}
 	if err = decodeResponse(resp, &r); err != nil {
-		return nil, fmt.Errorf("failed to decode HTTP response: %w", err)
+		return r, fmt.Errorf("failed to decode HTTP response: %w", err)
 	}
-	return &r, nil
+	return r, nil
 }
 
 func (c *Client) StockPrice(ctx context.Context, req StockPriceRequest) ([]StockPrice, error) {
@@ -524,9 +524,9 @@ type investorTypeResponse struct {
 	PaginationKey *string        `json:"pagination_key"`
 }
 
-func (c *Client) sendInvestorTypeRequest(ctx context.Context, param investorTypeParameters) (investorTypeResponse, error) {
+func (c *Client) sendInvestorTypeRequest(ctx context.Context, params investorTypeParameters) (investorTypeResponse, error) {
 	var r investorTypeResponse
-	resp, err := c.sendRequest(ctx, "/equities/investor-types", param)
+	resp, err := c.sendRequest(ctx, "/equities/investor-types", params)
 	if err != nil {
 		return r, fmt.Errorf("failed to send GET request: %w", err)
 	}

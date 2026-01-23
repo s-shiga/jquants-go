@@ -94,9 +94,9 @@ type marginTradingOutstandingResponse struct {
 	PaginationKey *string                    `json:"pagination_key"`
 }
 
-func (c *Client) sendMarginTradingOutstandingRequest(ctx context.Context, param marginTradingOutstandingParameters) (marginTradingOutstandingResponse, error) {
+func (c *Client) sendMarginTradingOutstandingRequest(ctx context.Context, params marginTradingOutstandingParameters) (marginTradingOutstandingResponse, error) {
 	var r marginTradingOutstandingResponse
-	resp, err := c.sendRequest(ctx, "/markets/margin-interest", param)
+	resp, err := c.sendRequest(ctx, "/markets/margin-interest", params)
 	if err != nil {
 		return r, fmt.Errorf("failed to send GET request: %w", err)
 	}
@@ -207,9 +207,9 @@ type shortSellingValueResponse struct {
 	PaginationKey *string             `json:"pagination_key"`
 }
 
-func (c *Client) sendShortSellingValueRequest(ctx context.Context, req shortSellingValueParameters) (shortSellingValueResponse, error) {
+func (c *Client) sendShortSellingValueRequest(ctx context.Context, params shortSellingValueParameters) (shortSellingValueResponse, error) {
 	var r shortSellingValueResponse
-	resp, err := c.sendRequest(ctx, "/markets/short-ratio", req)
+	resp, err := c.sendRequest(ctx, "/markets/short-ratio", params)
 	if err != nil {
 		return r, fmt.Errorf("failed to send GET request: %w", err)
 	}
