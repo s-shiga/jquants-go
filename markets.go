@@ -138,11 +138,11 @@ func (c *Client) MarginTradingOutstanding(ctx context.Context, req MarginTrading
 }
 
 type ShortSellingValue struct {
-	Date            string
-	Sector33Code    string
-	SellingPosition int64
-	Restricted      int64
-	Exempt          int64
+	Date                            string
+	Sector33Code                    string
+	LongSellingValue                int64
+	ShortSellingWithRestrictions    int64
+	ShortSellingWithoutRestrictions int64
 }
 
 func (sst *ShortSellingValue) UnmarshalJSON(b []byte) error {
@@ -158,9 +158,9 @@ func (sst *ShortSellingValue) UnmarshalJSON(b []byte) error {
 	}
 	sst.Date = raw.Date
 	sst.Sector33Code = raw.Sector33Code
-	sst.SellingPosition = int64(raw.SellingExcludingShortSellingTurnoverValue)
-	sst.Restricted = int64(raw.ShortSellingWithRestrictionsTurnoverValue)
-	sst.Exempt = int64(raw.ShortSellingWithoutRestrictionsTurnoverValue)
+	sst.LongSellingValue = int64(raw.SellingExcludingShortSellingTurnoverValue)
+	sst.ShortSellingWithRestrictions = int64(raw.ShortSellingWithRestrictionsTurnoverValue)
+	sst.ShortSellingWithoutRestrictions = int64(raw.ShortSellingWithoutRestrictionsTurnoverValue)
 	return nil
 }
 
