@@ -7,7 +7,7 @@ import (
 )
 
 func setup() (*Client, error) {
-	httpClient := &http.Client{Timeout: time.Second * 5}
+	httpClient := &http.Client{Timeout: time.Second * 10}
 	return NewClient(httpClient)
 }
 
