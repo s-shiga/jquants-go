@@ -107,7 +107,7 @@ func (iop *IndexOptionPrice) UnmarshalJSON(b []byte) error {
 		InterestRate                   interface{} `json:"IR"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
-		return fmt.Errorf("failed to decode index option price: %w", err)
+		return fmt.Errorf("failed to unmarshal index option price: %w", err)
 	}
 	putCallDivision, err := strconv.ParseInt(raw.PutCallDivision, 10, 8)
 	if err != nil {

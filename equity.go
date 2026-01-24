@@ -3,6 +3,7 @@ package jquants
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -222,7 +223,7 @@ func (p stockPriceParameters) values() (url.Values, error) {
 		v.Add("date", *p.Date)
 	} else {
 		if p.Code == nil {
-			return nil, fmt.Errorf("code or date is required")
+			return nil, errors.New("code or date is required")
 		}
 		v.Add("code", *p.Code)
 		if p.From != nil {

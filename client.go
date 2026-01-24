@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -90,7 +89,7 @@ func decodeResponse(resp *http.Response, body any) error {
 	defer func() {
 		closeErr := resp.Body.Close()
 		if closeErr != nil {
-			log.Printf("failed to close response body: %s", closeErr.Error())
+			slog.Warn("failed to close response body", "error", closeErr)
 		}
 	}()
 	if err := json.NewDecoder(resp.Body).Decode(body); err != nil {

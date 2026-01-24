@@ -27,7 +27,7 @@ func (ip *IndexPrice) UnmarshalJSON(b []byte) error {
 		Close json.Number `json:"C"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
-		return fmt.Errorf("failed to decode index price error response: %w", err)
+		return fmt.Errorf("failed to unmarshal index price: %w", err)
 	}
 	ip.Date = raw.Date
 	ip.Code = raw.Code

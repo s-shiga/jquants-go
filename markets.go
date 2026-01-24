@@ -34,13 +34,13 @@ func (mtv *MarginTradingOutstanding) UnmarshalJSON(b []byte) error {
 		IssueType                          string  `json:"IssType"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
-		return fmt.Errorf("failed to decode margin trade volume error response: %w", err)
+		return fmt.Errorf("failed to unmarshal margin trading outstanding: %w", err)
 	}
 	var err error
 	mtv.Date = raw.Date
 	issueType, err := strconv.ParseInt(raw.IssueType, 10, 8)
 	if err != nil {
-		return fmt.Errorf("failed to decode margin trade volume error response: %w", err)
+		return fmt.Errorf("failed to unmarshal margin trading outstanding: %w", err)
 	}
 	mtv.Code = raw.Code
 	mtv.TotalShortBalance = int64(raw.ShortMarginTradeVolume)
@@ -136,7 +136,7 @@ func (sst *ShortSellingValue) UnmarshalJSON(b []byte) error {
 		ShortSellingWithoutRestrictionsTurnoverValue float64 `json:"ShrtNoResVa"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
-		return fmt.Errorf("failed to decode short selling value error response: %w", err)
+		return fmt.Errorf("failed to unmarshal short selling value: %w", err)
 	}
 	sst.Date = raw.Date
 	sst.Sector33Code = raw.Sector33Code
@@ -231,12 +231,12 @@ func (tc *TradingCalendar) UnmarshalJSON(b []byte) error {
 		HolidayDivision string `json:"HolDiv"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
-		return fmt.Errorf("failed to decode holiday division error response: %w", err)
+		return fmt.Errorf("failed to unmarshal trading calendar: %w", err)
 	}
 	tc.Date = raw.Date
 	hd, err := strconv.ParseInt(raw.HolidayDivision, 10, 8)
 	if err != nil {
-		return fmt.Errorf("failed to decode holiday division error response: %w", err)
+		return fmt.Errorf("failed to unmarshal trading calendar: %w", err)
 	}
 	tc.DayType = int8(hd)
 	return nil
@@ -281,7 +281,7 @@ func (c *Client) TradingCalendar(ctx context.Context, req TradingCalendarRequest
 		return nil, handleErrorResponse(resp)
 	}
 	if err = decodeResponse(resp, &r); err != nil {
-		return nil, fmt.Errorf("failed to decode HTTP Response: %w", err)
+		return nil, fmt.Errorf("failed to decode HTTP response: %w", err)
 	}
 	return r.Data, nil
 }
