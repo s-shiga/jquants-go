@@ -65,65 +65,26 @@ func (c *Client) sendRequest(ctx context.Context, urlPath string, param paramete
 	return resp, nil
 }
 
-type BadRequest struct {
-	err error
+// HTTPError is the base type for HTTP error responses.
+type HTTPError struct {
+	StatusCode int
+	Message    string
+	Err        error
 }
 
-func (e BadRequest) Error() string {
-	return fmt.Sprintf("400 bad request: %v", e.err)
+func (e HTTPError) Error() string {
+	return fmt.Sprintf("%d %s: %v", e.StatusCode, e.Message, e.Err)
 }
 
-func (e BadRequest) Unwrap() error {
-	return e.err
+func (e HTTPError) Unwrap() error {
+	return e.Err
 }
 
-type Unauthorized struct {
-	err error
-}
-
-func (e Unauthorized) Error() string {
-	return fmt.Sprintf("401 unauthorized: %v", e.err)
-}
-
-func (e Unauthorized) Unwrap() error {
-	return e.err
-}
-
-type Forbidden struct {
-	err error
-}
-
-func (e Forbidden) Error() string {
-	return fmt.Sprintf("403 forbidden: %v", e.err)
-}
-
-func (e Forbidden) Unwrap() error {
-	return e.err
-}
-
-type PayloadTooLarge struct {
-	err error
-}
-
-func (e PayloadTooLarge) Error() string {
-	return fmt.Sprintf("413 payload too large: %v", e.err)
-}
-
-func (e PayloadTooLarge) Unwrap() error {
-	return e.err
-}
-
-type InternalServerError struct {
-	err error
-}
-
-func (e InternalServerError) Error() string {
-	return fmt.Sprintf("500 internal server error: %v", e.err)
-}
-
-func (e InternalServerError) Unwrap() error {
-	return e.err
-}
+type BadRequest struct{ HTTPError }
+type Unauthorized struct{ HTTPError }
+type Forbidden struct{ HTTPError }
+type PayloadTooLarge struct{ HTTPError }
+type InternalServerError struct{ HTTPError }
 
 func decodeResponse(resp *http.Response, body any) error {
 	defer func() {
@@ -143,18 +104,20 @@ type ErrResponse struct {
 }
 
 func handleErrorResponse(resp *http.Response) error {
-	if resp.StatusCode == 400 {
-		return BadRequest{decodeErrorResponse(resp)}
-	} else if resp.StatusCode == 401 {
-		return Unauthorized{decodeErrorResponse(resp)}
-	} else if resp.StatusCode == 403 {
-		return Forbidden{decodeErrorResponse(resp)}
-	} else if resp.StatusCode == 413 {
-		return PayloadTooLarge{decodeErrorResponse(resp)}
-	} else if resp.StatusCode == 500 {
-		return InternalServerError{decodeErrorResponse(resp)}
-	} else {
-		return decodeErrorResponse(resp)
+	err := decodeErrorResponse(resp)
+	switch resp.StatusCode {
+	case 400:
+		return BadRequest{HTTPError{400, "bad request", err}}
+	case 401:
+		return Unauthorized{HTTPError{401, "unauthorized", err}}
+	case 403:
+		return Forbidden{HTTPError{403, "forbidden", err}}
+	case 413:
+		return PayloadTooLarge{HTTPError{413, "payload too large", err}}
+	case 500:
+		return InternalServerError{HTTPError{500, "internal server error", err}}
+	default:
+		return err
 	}
 }
 
