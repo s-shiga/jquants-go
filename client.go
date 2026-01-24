@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -44,11 +45,11 @@ type parameters interface {
 func (c *Client) sendRequest(ctx context.Context, urlPath string, param parameters) (*http.Response, error) {
 	u, err := url.Parse(c.BaseURL + urlPath)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to parse URL: %w", err)
 	}
 	v, err := param.values()
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to build query parameters: %w", err)
 	}
 	u.RawQuery = v.Encode()
 
@@ -163,4 +164,71 @@ func decodeErrorResponse(resp *http.Response) error {
 		return fmt.Errorf("failed to decode error response: %w", err)
 	}
 	return errors.New(errResp.Message)
+}
+
+// paginatedResponse is an interface for API responses that support pagination.
+type paginatedResponse[T any] interface {
+	getData() []T
+	getPaginationKey() *string
+}
+
+// fetchAllPages fetches all pages of a paginated API endpoint.
+func fetchAllPages[T any, R paginatedResponse[T]](
+	ctx context.Context,
+	c *Client,
+	fetchPage func(ctx context.Context, paginationKey *string) (R, error),
+) ([]T, error) {
+	data := make([]T, 0)
+	var paginationKey *string
+	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
+	defer cancel()
+	for {
+		resp, err := fetchPage(ctx, paginationKey)
+		if err != nil {
+			if errors.As(err, &InternalServerError{}) {
+				slog.Warn("Retrying HTTP request", "error", err.Error())
+				time.Sleep(c.RetryInterval)
+				continue
+			}
+			return nil, err
+		}
+		data = append(data, resp.getData()...)
+		paginationKey = resp.getPaginationKey()
+		if paginationKey == nil {
+			break
+		}
+	}
+	return data, nil
+}
+
+// fetchAllPagesWithChannel fetches all pages and sends each item to a channel.
+func fetchAllPagesWithChannel[T any, R paginatedResponse[T]](
+	ctx context.Context,
+	c *Client,
+	ch chan<- T,
+	fetchPage func(ctx context.Context, paginationKey *string) (R, error),
+) error {
+	var paginationKey *string
+	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
+	defer cancel()
+	for {
+		resp, err := fetchPage(ctx, paginationKey)
+		if err != nil {
+			if errors.As(err, &InternalServerError{}) {
+				slog.Warn("Retrying HTTP request", "error", err.Error())
+				time.Sleep(c.RetryInterval)
+				continue
+			}
+			return err
+		}
+		for _, item := range resp.getData() {
+			ch <- item
+		}
+		paginationKey = resp.getPaginationKey()
+		if paginationKey == nil {
+			break
+		}
+	}
+	close(ch)
+	return nil
 }

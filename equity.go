@@ -3,12 +3,9 @@ package jquants
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"log/slog"
 	"net/url"
 	"strconv"
-	"time"
 )
 
 type IssueInformation struct {
@@ -246,6 +243,9 @@ type stockPriceResponse struct {
 	PaginationKey *string      `json:"pagination_key"`
 }
 
+func (r stockPriceResponse) getData() []StockPrice   { return r.Data }
+func (r stockPriceResponse) getPaginationKey() *string { return r.PaginationKey }
+
 func (c *Client) sendStockPriceRequest(ctx context.Context, params stockPriceParameters) (stockPriceResponse, error) {
 	var r stockPriceResponse
 	resp, err := c.sendRequest(ctx, "/equities/bars/daily", params)
@@ -262,57 +262,17 @@ func (c *Client) sendStockPriceRequest(ctx context.Context, params stockPricePar
 }
 
 func (c *Client) StockPrice(ctx context.Context, req StockPriceRequest) ([]StockPrice, error) {
-	var data = make([]StockPrice, 0)
-	var paginationKey *string
-	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
-	defer cancel()
-	for {
-		params := stockPriceParameters{req, paginationKey}
-		resp, err := c.sendStockPriceRequest(ctx, params)
-		if err != nil {
-			if errors.As(err, &InternalServerError{}) {
-				slog.Warn("Retrying HTTP request", "error", err.Error())
-				time.Sleep(c.RetryInterval)
-				continue
-			} else {
-				return nil, fmt.Errorf("failed to send stock price request: %w", err)
-			}
-		}
-		data = append(data, resp.Data...)
-		paginationKey = resp.PaginationKey
-		if resp.PaginationKey == nil {
-			break
-		}
-	}
-	return data, nil
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (stockPriceResponse, error) {
+		params := stockPriceParameters{StockPriceRequest: req, PaginationKey: paginationKey}
+		return c.sendStockPriceRequest(ctx, params)
+	})
 }
 
 func (c *Client) StockPriceWithChannel(ctx context.Context, req StockPriceRequest, ch chan<- StockPrice) error {
-	var paginationKey *string
-	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
-	defer cancel()
-	for {
+	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (stockPriceResponse, error) {
 		params := stockPriceParameters{StockPriceRequest: req, PaginationKey: paginationKey}
-		resp, err := c.sendStockPriceRequest(ctx, params)
-		if err != nil {
-			if errors.As(err, &InternalServerError{}) {
-				slog.Warn("Retrying HTTP request", "error", err.Error())
-				time.Sleep(c.RetryInterval)
-				continue
-			} else {
-				return fmt.Errorf("failed to send stock price request: %w", err)
-			}
-		}
-		for _, d := range resp.Data {
-			ch <- d
-		}
-		paginationKey = resp.PaginationKey
-		if resp.PaginationKey == nil {
-			break
-		}
-	}
-	close(ch)
-	return nil
+		return c.sendStockPriceRequest(ctx, params)
+	})
 }
 
 // Morning Session Stock Prices not implemented
@@ -524,6 +484,9 @@ type investorTypeResponse struct {
 	PaginationKey *string        `json:"pagination_key"`
 }
 
+func (r investorTypeResponse) getData() []InvestorType { return r.Data }
+func (r investorTypeResponse) getPaginationKey() *string { return r.PaginationKey }
+
 func (c *Client) sendInvestorTypeRequest(ctx context.Context, params investorTypeParameters) (investorTypeResponse, error) {
 	var r investorTypeResponse
 	resp, err := c.sendRequest(ctx, "/equities/investor-types", params)
@@ -542,27 +505,8 @@ func (c *Client) sendInvestorTypeRequest(ctx context.Context, params investorTyp
 // InvestorType provides trading by type of investors.
 // https://jpx-jquants.com/en/spec/eq-investor-types
 func (c *Client) InvestorType(ctx context.Context, req InvestorTypeRequest) ([]InvestorType, error) {
-	var data = make([]InvestorType, 0)
-	var paginationKey *string
-	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
-	defer cancel()
-	for {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (investorTypeResponse, error) {
 		params := investorTypeParameters{InvestorTypeRequest: req, PaginationKey: paginationKey}
-		resp, err := c.sendInvestorTypeRequest(ctx, params)
-		if err != nil {
-			if errors.As(err, &InternalServerError{}) {
-				slog.Warn("Retrying HTTP request", "error", err.Error())
-				time.Sleep(c.RetryInterval)
-				continue
-			} else {
-				return nil, fmt.Errorf("failed to send investor type request: %w", err)
-			}
-		}
-		data = append(data, resp.Data...)
-		paginationKey = resp.PaginationKey
-		if resp.PaginationKey == nil {
-			break
-		}
-	}
-	return data, nil
+		return c.sendInvestorTypeRequest(ctx, params)
+	})
 }

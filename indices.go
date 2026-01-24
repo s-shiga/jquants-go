@@ -5,9 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/url"
-	"time"
 )
 
 type IndexPrice struct {
@@ -79,6 +77,9 @@ type indexPriceResponse struct {
 	PaginationKey *string      `json:"pagination_key"`
 }
 
+func (r indexPriceResponse) getData() []IndexPrice   { return r.Data }
+func (r indexPriceResponse) getPaginationKey() *string { return r.PaginationKey }
+
 func (c *Client) sendIndexPriceRequest(ctx context.Context, params indexPriceParameters) (indexPriceResponse, error) {
 	var r indexPriceResponse
 	resp, err := c.sendRequest(ctx, "/indices/bars/daily", params)
@@ -95,29 +96,10 @@ func (c *Client) sendIndexPriceRequest(ctx context.Context, params indexPricePar
 }
 
 func (c *Client) IndexPrice(ctx context.Context, req IndexPriceRequest) ([]IndexPrice, error) {
-	var data = make([]IndexPrice, 0)
-	var paginationKey *string
-	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
-	defer cancel()
-	for {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (indexPriceResponse, error) {
 		params := indexPriceParameters{IndexPriceRequest: req, PaginationKey: paginationKey}
-		resp, err := c.sendIndexPriceRequest(ctx, params)
-		if err != nil {
-			if errors.As(err, &InternalServerError{}) {
-				slog.Warn("Retrying HTTP request", "error", err.Error())
-				time.Sleep(c.RetryInterval)
-				continue
-			} else {
-				return nil, err
-			}
-		}
-		data = append(data, resp.Data...)
-		paginationKey = resp.PaginationKey
-		if paginationKey == nil {
-			break
-		}
-	}
-	return data, nil
+		return c.sendIndexPriceRequest(ctx, params)
+	})
 }
 
 type TopixPrice struct {
@@ -176,6 +158,9 @@ type topixPriceResponse struct {
 	PaginationKey *string      `json:"pagination_key"`
 }
 
+func (r topixPriceResponse) getData() []TopixPrice   { return r.Data }
+func (r topixPriceResponse) getPaginationKey() *string { return r.PaginationKey }
+
 func (c *Client) sendTopixPriceRequest(ctx context.Context, params topixPriceParameters) (topixPriceResponse, error) {
 	var r topixPriceResponse
 	resp, err := c.sendRequest(ctx, "/indices/bars/daily/topix", params)
@@ -192,27 +177,8 @@ func (c *Client) sendTopixPriceRequest(ctx context.Context, params topixPricePar
 }
 
 func (c *Client) TopixPrices(ctx context.Context, req TopixPriceRequest) ([]TopixPrice, error) {
-	var data = make([]TopixPrice, 0)
-	var paginationKey *string
-	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
-	defer cancel()
-	for {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (topixPriceResponse, error) {
 		params := topixPriceParameters{TopixPriceRequest: req, PaginationKey: paginationKey}
-		resp, err := c.sendTopixPriceRequest(ctx, params)
-		if err != nil {
-			if errors.As(err, &InternalServerError{}) {
-				slog.Warn("Retrying HTTP request", "error", err.Error())
-				time.Sleep(c.RetryInterval)
-				continue
-			} else {
-				return nil, fmt.Errorf("failed to send topix price request: %w", err)
-			}
-		}
-		data = append(data, resp.Data...)
-		paginationKey = resp.PaginationKey
-		if paginationKey == nil {
-			break
-		}
-	}
-	return data, nil
+		return c.sendTopixPriceRequest(ctx, params)
+	})
 }

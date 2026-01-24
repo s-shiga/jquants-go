@@ -5,10 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/url"
 	"strconv"
-	"time"
 )
 
 type MarginTradingOutstanding struct {
@@ -94,6 +92,9 @@ type marginTradingOutstandingResponse struct {
 	PaginationKey *string                    `json:"pagination_key"`
 }
 
+func (r marginTradingOutstandingResponse) getData() []MarginTradingOutstanding { return r.Data }
+func (r marginTradingOutstandingResponse) getPaginationKey() *string            { return r.PaginationKey }
+
 func (c *Client) sendMarginTradingOutstandingRequest(ctx context.Context, params marginTradingOutstandingParameters) (marginTradingOutstandingResponse, error) {
 	var r marginTradingOutstandingResponse
 	resp, err := c.sendRequest(ctx, "/markets/margin-interest", params)
@@ -112,29 +113,10 @@ func (c *Client) sendMarginTradingOutstandingRequest(ctx context.Context, params
 // MarginTradingOutstanding provides margin trading outstandings.
 // https://jpx-jquants.com/en/spec/mkt-margin-int
 func (c *Client) MarginTradingOutstanding(ctx context.Context, req MarginTradingOutstandingRequest) ([]MarginTradingOutstanding, error) {
-	var data = make([]MarginTradingOutstanding, 0)
-	var paginationKey *string
-	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
-	defer cancel()
-	for {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (marginTradingOutstandingResponse, error) {
 		params := marginTradingOutstandingParameters{MarginTradingOutstandingRequest: req, PaginationKey: paginationKey}
-		resp, err := c.sendMarginTradingOutstandingRequest(ctx, params)
-		if err != nil {
-			if errors.As(err, &InternalServerError{}) {
-				slog.Warn("Retrying HTTP request", "error", err.Error())
-				time.Sleep(c.RetryInterval)
-				continue
-			} else {
-				return nil, fmt.Errorf("failed to send margin trading volume request: %w", err)
-			}
-		}
-		data = append(data, resp.Data...)
-		paginationKey = resp.PaginationKey
-		if resp.PaginationKey == nil {
-			break
-		}
-	}
-	return data, nil
+		return c.sendMarginTradingOutstandingRequest(ctx, params)
+	})
 }
 
 type ShortSellingValue struct {
@@ -207,6 +189,9 @@ type shortSellingValueResponse struct {
 	PaginationKey *string             `json:"pagination_key"`
 }
 
+func (r shortSellingValueResponse) getData() []ShortSellingValue { return r.Data }
+func (r shortSellingValueResponse) getPaginationKey() *string    { return r.PaginationKey }
+
 func (c *Client) sendShortSellingValueRequest(ctx context.Context, params shortSellingValueParameters) (shortSellingValueResponse, error) {
 	var r shortSellingValueResponse
 	resp, err := c.sendRequest(ctx, "/markets/short-ratio", params)
@@ -223,29 +208,10 @@ func (c *Client) sendShortSellingValueRequest(ctx context.Context, params shortS
 }
 
 func (c *Client) ShortSellingValue(ctx context.Context, req ShortSellingValueRequest) ([]ShortSellingValue, error) {
-	var data = make([]ShortSellingValue, 0)
-	var paginationKey *string
-	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
-	defer cancel()
-	for {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (shortSellingValueResponse, error) {
 		params := shortSellingValueParameters{ShortSellingValueRequest: req, PaginationKey: paginationKey}
-		resp, err := c.sendShortSellingValueRequest(ctx, params)
-		if err != nil {
-			if errors.As(err, &InternalServerError{}) {
-				slog.Warn("Retrying HTTP request", "error", err.Error())
-				time.Sleep(c.RetryInterval)
-				continue
-			} else {
-				return nil, err
-			}
-		}
-		data = append(data, resp.Data...)
-		paginationKey = resp.PaginationKey
-		if resp.PaginationKey == nil {
-			break
-		}
-	}
-	return data, nil
+		return c.sendShortSellingValueRequest(ctx, params)
+	})
 }
 
 // Outstanding Short Selling Positions Reported not implemented

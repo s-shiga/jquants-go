@@ -3,12 +3,9 @@ package jquants
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"log/slog"
 	"net/url"
 	"strconv"
-	"time"
 )
 
 type IndexOptionPrice struct {
@@ -44,6 +41,38 @@ type IndexOptionPrice struct {
 	InterestRate                   *json.Number
 }
 
+// unmarshaler accumulates errors during unmarshaling, allowing cleaner code flow.
+type unmarshaler struct {
+	err error
+}
+
+func (u *unmarshaler) price(v interface{}) *int16 {
+	if u.err != nil {
+		return nil
+	}
+	result, err := unmarshalPrice(v)
+	u.err = err
+	return result
+}
+
+func (u *unmarshaler) volume(v interface{}) *int64 {
+	if u.err != nil {
+		return nil
+	}
+	result, err := unmarshalVolume(v)
+	u.err = err
+	return result
+}
+
+func (u *unmarshaler) jsonNumber(v interface{}) *json.Number {
+	if u.err != nil {
+		return nil
+	}
+	result, err := unmarshalJSONNumber(v)
+	u.err = err
+	return result
+}
+
 func (iop *IndexOptionPrice) UnmarshalJSON(b []byte) error {
 	var raw struct {
 		Date                           string      `json:"Date"`
@@ -77,82 +106,91 @@ func (iop *IndexOptionPrice) UnmarshalJSON(b []byte) error {
 		ImpliedVolatility              interface{} `json:"IV"`
 		InterestRate                   interface{} `json:"IR"`
 	}
-	var err error
-	if err = json.Unmarshal(b, &raw); err != nil {
-		return fmt.Errorf("failed to decode index option price error response: %w", err)
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return fmt.Errorf("failed to decode index option price: %w", err)
 	}
 	putCallDivision, err := strconv.ParseInt(raw.PutCallDivision, 10, 8)
 	if err != nil {
-		return fmt.Errorf("failed to decode index option price error response: %w", err)
+		return fmt.Errorf("failed to parse put/call division: %w", err)
 	}
+
+	u := &unmarshaler{}
+
 	iop.Date = *unmarshalTime(raw.Date)
 	iop.Code = raw.Code
-	iop.WholeDayOpen = unmarshalPrice(raw.WholeDayOpen)
-	iop.WholeDayHigh = unmarshalPrice(raw.WholeDayHigh)
-	iop.WholeDayLow = unmarshalPrice(raw.WholeDayLow)
-	iop.WholeDayClose = unmarshalPrice(raw.WholeDayClose)
-	iop.NightSessionOpen = unmarshalPrice(raw.NightSessionOpen)
-	iop.NightSessionHigh = unmarshalPrice(raw.NightSessionHigh)
-	iop.NightSessionLow = unmarshalPrice(raw.NightSessionLow)
-	iop.NightSessionClose = unmarshalPrice(raw.NightSessionClose)
-	iop.DaySessionOpen = unmarshalPrice(raw.DaySessionOpen)
-	iop.DaySessionHigh = unmarshalPrice(raw.DaySessionHigh)
-	iop.DaySessionLow = unmarshalPrice(raw.DaySessionLow)
-	iop.DaySessionClose = unmarshalPrice(raw.DaySessionClose)
+	iop.WholeDayOpen = u.price(raw.WholeDayOpen)
+	iop.WholeDayHigh = u.price(raw.WholeDayHigh)
+	iop.WholeDayLow = u.price(raw.WholeDayLow)
+	iop.WholeDayClose = u.price(raw.WholeDayClose)
+	iop.NightSessionOpen = u.price(raw.NightSessionOpen)
+	iop.NightSessionHigh = u.price(raw.NightSessionHigh)
+	iop.NightSessionLow = u.price(raw.NightSessionLow)
+	iop.NightSessionClose = u.price(raw.NightSessionClose)
+	iop.DaySessionOpen = u.price(raw.DaySessionOpen)
+	iop.DaySessionHigh = u.price(raw.DaySessionHigh)
+	iop.DaySessionLow = u.price(raw.DaySessionLow)
+	iop.DaySessionClose = u.price(raw.DaySessionClose)
 	iop.Volume = int64(raw.Volume)
 	iop.OpenInterest = int64(raw.OpenInterest)
 	iop.TurnoverValue = int64(raw.TurnoverValue)
 	iop.ContractMonth = raw.ContractMonth
 	iop.StrikePrice = int16(raw.StrikePrice)
-	iop.VolumeOnlyAuction = unmarshalVolume(raw.VolumeOnlyAuction)
+	iop.VolumeOnlyAuction = u.volume(raw.VolumeOnlyAuction)
 	iop.EmergencyMarginTriggerDivision = raw.EmergencyMarginTriggerDivision
 	iop.PutCallDivision = int8(putCallDivision)
 	iop.LastTradingDay = unmarshalTime(raw.LastTradingDay)
 	iop.SpecialQuotationDay = unmarshalTime(raw.SpecialQuotationDay)
-	iop.SettlementPrice = unmarshalPrice(raw.SettlementPrice)
-	iop.TheoreticalPrice = unmarshalJSONNumber(raw.TheoreticalPrice)
-	iop.BaseVolatility = unmarshalJSONNumber(raw.BaseVolatility)
-	iop.UnderlyingPrice = unmarshalJSONNumber(raw.UnderlyingPrice)
-	iop.ImpliedVolatility = unmarshalJSONNumber(raw.ImpliedVolatility)
-	iop.InterestRate = unmarshalJSONNumber(raw.InterestRate)
-	return nil
+	iop.SettlementPrice = u.price(raw.SettlementPrice)
+	iop.TheoreticalPrice = u.jsonNumber(raw.TheoreticalPrice)
+	iop.BaseVolatility = u.jsonNumber(raw.BaseVolatility)
+	iop.UnderlyingPrice = u.jsonNumber(raw.UnderlyingPrice)
+	iop.ImpliedVolatility = u.jsonNumber(raw.ImpliedVolatility)
+	iop.InterestRate = u.jsonNumber(raw.InterestRate)
+
+	return u.err
 }
 
-func unmarshalPrice(value interface{}) *int16 {
+func unmarshalPrice(value interface{}) (*int16, error) {
 	switch v := value.(type) {
 	case float64:
 		f := float32(v)
 		i := int16(f)
-		return &i
+		return &i, nil
 	case string:
-		return nil
+		return nil, nil
+	case nil:
+		return nil, nil
 	default:
-		panic(fmt.Errorf("unknown type %T", value))
+		return nil, fmt.Errorf("unmarshalPrice: unknown type %T", v)
 	}
 }
 
-func unmarshalVolume(value interface{}) *int64 {
+func unmarshalVolume(value interface{}) (*int64, error) {
 	switch v := value.(type) {
 	case float64:
 		i := int64(v)
-		return &i
+		return &i, nil
 	case string:
-		return nil
+		return nil, nil
+	case nil:
+		return nil, nil
 	default:
-		panic(fmt.Errorf("unknown type %T", value))
+		return nil, fmt.Errorf("unmarshalVolume: unknown type %T", v)
 	}
 }
 
-func unmarshalJSONNumber(value interface{}) *json.Number {
+func unmarshalJSONNumber(value interface{}) (*json.Number, error) {
 	switch v := value.(type) {
 	case float64:
 		s := strconv.FormatFloat(v, 'f', -1, 64)
 		n := json.Number(s)
-		return &n
+		return &n, nil
 	case string:
-		return nil
+		return nil, nil
+	case nil:
+		return nil, nil
 	default:
-		panic(fmt.Errorf("unknown type %T\n", value))
+		return nil, fmt.Errorf("unmarshalJSONNumber: unknown type %T", v)
 	}
 }
 
@@ -186,6 +224,9 @@ type indexOptionPriceResponse struct {
 	PaginationKey *string            `json:"pagination_key"`
 }
 
+func (r indexOptionPriceResponse) getData() []IndexOptionPrice { return r.Data }
+func (r indexOptionPriceResponse) getPaginationKey() *string   { return r.PaginationKey }
+
 func (c *Client) sendIndexOptionPriceRequest(ctx context.Context, params indexOptionPriceParameters) (indexOptionPriceResponse, error) {
 	var r indexOptionPriceResponse
 	resp, err := c.sendRequest(ctx, "/derivatives/bars/daily/options/225", params)
@@ -202,55 +243,15 @@ func (c *Client) sendIndexOptionPriceRequest(ctx context.Context, params indexOp
 }
 
 func (c *Client) IndexOptionPrice(ctx context.Context, req IndexOptionPriceRequest) ([]IndexOptionPrice, error) {
-	var data = make([]IndexOptionPrice, 0)
-	var paginationKey *string
-	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
-	defer cancel()
-	for {
-		param := indexOptionPriceParameters{IndexOptionPriceRequest: req, PaginationKey: paginationKey}
-		resp, err := c.sendIndexOptionPriceRequest(ctx, param)
-		if err != nil {
-			if errors.As(err, &InternalServerError{}) {
-				slog.Warn("Retrying HTTP request", "error", err.Error())
-				time.Sleep(c.RetryInterval)
-				continue
-			} else {
-				return nil, err
-			}
-		}
-		data = append(data, resp.Data...)
-		paginationKey = resp.PaginationKey
-		if resp.PaginationKey == nil {
-			break
-		}
-	}
-	return data, nil
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (indexOptionPriceResponse, error) {
+		params := indexOptionPriceParameters{IndexOptionPriceRequest: req, PaginationKey: paginationKey}
+		return c.sendIndexOptionPriceRequest(ctx, params)
+	})
 }
 
 func (c *Client) IndexOptionPriceWithChannel(ctx context.Context, req IndexOptionPriceRequest, ch chan<- IndexOptionPrice) error {
-	var paginationKey *string
-	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
-	defer cancel()
-	for {
-		param := indexOptionPriceParameters{IndexOptionPriceRequest: req, PaginationKey: paginationKey}
-		resp, err := c.sendIndexOptionPriceRequest(ctx, param)
-		if err != nil {
-			if errors.As(err, &InternalServerError{}) {
-				slog.Warn("Retrying HTTP request", "error", err.Error())
-				time.Sleep(c.RetryInterval)
-				continue
-			} else {
-				return err
-			}
-		}
-		for _, d := range resp.Data {
-			ch <- d
-		}
-		paginationKey = resp.PaginationKey
-		if resp.PaginationKey == nil {
-			break
-		}
-	}
-	close(ch)
-	return nil
+	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (indexOptionPriceResponse, error) {
+		params := indexOptionPriceParameters{IndexOptionPriceRequest: req, PaginationKey: paginationKey}
+		return c.sendIndexOptionPriceRequest(ctx, params)
+	})
 }
