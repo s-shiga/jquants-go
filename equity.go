@@ -285,6 +285,15 @@ type TradingBalance struct {
 	Balance   int64
 }
 
+func newTradingBalance(sell, buy, total, balance float64) TradingBalance {
+	return TradingBalance{
+		Sales:     int64(sell),
+		Purchases: int64(buy),
+		Total:     int64(total),
+		Balance:   int64(balance),
+	}
+}
+
 type InvestorType struct {
 	PublishedDate              string
 	StartDate                  string
@@ -371,84 +380,19 @@ func (it *InvestorType) UnmarshalJSON(b []byte) error {
 	it.StartDate = raw.StDate
 	it.EndDate = raw.EnDate
 	it.Section = raw.Section
-	it.Proprietary = TradingBalance{
-		Sales:     int64(raw.PropSell),
-		Purchases: int64(raw.PropBuy),
-		Total:     int64(raw.PropTot),
-		Balance:   int64(raw.PropBal),
-	}
-	it.Brokerage = TradingBalance{
-		Sales:     int64(raw.BrkSell),
-		Purchases: int64(raw.BrkBuy),
-		Total:     int64(raw.BrkTot),
-		Balance:   int64(raw.BrkBal),
-	}
-	it.Total = TradingBalance{
-		Sales:     int64(raw.TotSell),
-		Purchases: int64(raw.TotBuy),
-		Total:     int64(raw.TotTot),
-		Balance:   int64(raw.TotBal),
-	}
-	it.Individuals = TradingBalance{
-		Sales:     int64(raw.IndSell),
-		Purchases: int64(raw.IndBuy),
-		Total:     int64(raw.IndTot),
-		Balance:   int64(raw.IndBal),
-	}
-	it.Foreigners = TradingBalance{
-		Sales:     int64(raw.FrgnSell),
-		Purchases: int64(raw.FrgnBuy),
-		Total:     int64(raw.FrgnTot),
-		Balance:   int64(raw.FrgnBal),
-	}
-	it.SecuritiesCos = TradingBalance{
-		Sales:     int64(raw.SecCoSell),
-		Purchases: int64(raw.SecCoBuy),
-		Total:     int64(raw.SecCoTot),
-		Balance:   int64(raw.SecCoBal),
-	}
-	it.InvestmentTrusts = TradingBalance{
-		Sales:     int64(raw.InvTrSell),
-		Purchases: int64(raw.InvTrBuy),
-		Total:     int64(raw.InvTrTot),
-		Balance:   int64(raw.InvTrBal),
-	}
-	it.BusinessCos = TradingBalance{
-		Sales:     int64(raw.BusCoSell),
-		Purchases: int64(raw.BusCoBuy),
-		Total:     int64(raw.BusCoTot),
-		Balance:   int64(raw.BusCoBal),
-	}
-	it.OtherCos = TradingBalance{
-		Sales:     int64(raw.OthCoSell),
-		Purchases: int64(raw.OthCoBuy),
-		Total:     int64(raw.OthCoTot),
-		Balance:   int64(raw.OthCoBal),
-	}
-	it.InsuranceCos = TradingBalance{
-		Sales:     int64(raw.InsCoSell),
-		Purchases: int64(raw.InsCoBuy),
-		Total:     int64(raw.InsCoTot),
-		Balance:   int64(raw.InsCoBal),
-	}
-	it.Banks = TradingBalance{
-		Sales:     int64(raw.BankSell),
-		Purchases: int64(raw.BankBuy),
-		Total:     int64(raw.BankTot),
-		Balance:   int64(raw.BankBal),
-	}
-	it.TrustBanks = TradingBalance{
-		Sales:     int64(raw.TrstBnkSell),
-		Purchases: int64(raw.TrstBnkBuy),
-		Total:     int64(raw.TrstBnkTot),
-		Balance:   int64(raw.TrstBnkBal),
-	}
-	it.OtherFinancialInstitutions = TradingBalance{
-		Sales:     int64(raw.OthFinSell),
-		Purchases: int64(raw.OthFinBuy),
-		Total:     int64(raw.OthFinTot),
-		Balance:   int64(raw.OthFinBal),
-	}
+	it.Proprietary = newTradingBalance(raw.PropSell, raw.PropBuy, raw.PropTot, raw.PropBal)
+	it.Brokerage = newTradingBalance(raw.BrkSell, raw.BrkBuy, raw.BrkTot, raw.BrkBal)
+	it.Total = newTradingBalance(raw.TotSell, raw.TotBuy, raw.TotTot, raw.TotBal)
+	it.Individuals = newTradingBalance(raw.IndSell, raw.IndBuy, raw.IndTot, raw.IndBal)
+	it.Foreigners = newTradingBalance(raw.FrgnSell, raw.FrgnBuy, raw.FrgnTot, raw.FrgnBal)
+	it.SecuritiesCos = newTradingBalance(raw.SecCoSell, raw.SecCoBuy, raw.SecCoTot, raw.SecCoBal)
+	it.InvestmentTrusts = newTradingBalance(raw.InvTrSell, raw.InvTrBuy, raw.InvTrTot, raw.InvTrBal)
+	it.BusinessCos = newTradingBalance(raw.BusCoSell, raw.BusCoBuy, raw.BusCoTot, raw.BusCoBal)
+	it.OtherCos = newTradingBalance(raw.OthCoSell, raw.OthCoBuy, raw.OthCoTot, raw.OthCoBal)
+	it.InsuranceCos = newTradingBalance(raw.InsCoSell, raw.InsCoBuy, raw.InsCoTot, raw.InsCoBal)
+	it.Banks = newTradingBalance(raw.BankSell, raw.BankBuy, raw.BankTot, raw.BankBal)
+	it.TrustBanks = newTradingBalance(raw.TrstBnkSell, raw.TrstBnkBuy, raw.TrstBnkTot, raw.TrstBnkBal)
+	it.OtherFinancialInstitutions = newTradingBalance(raw.OthFinSell, raw.OthFinBuy, raw.OthFinTot, raw.OthFinBal)
 	return nil
 }
 
