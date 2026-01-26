@@ -90,8 +90,8 @@ type indexPriceResponse struct {
 	PaginationKey *string      `json:"pagination_key"`
 }
 
-func (r indexPriceResponse) getData() []IndexPrice   { return r.Data }
-func (r indexPriceResponse) getPaginationKey() *string { return r.PaginationKey }
+func (r indexPriceResponse) Items() []IndexPrice    { return r.Data }
+func (r indexPriceResponse) NextPageKey() *string { return r.PaginationKey }
 
 func (c *Client) sendIndexPriceRequest(ctx context.Context, params indexPriceParameters) (indexPriceResponse, error) {
 	var r indexPriceResponse
@@ -182,8 +182,8 @@ type topixPriceResponse struct {
 	PaginationKey *string      `json:"pagination_key"`
 }
 
-func (r topixPriceResponse) getData() []TopixPrice   { return r.Data }
-func (r topixPriceResponse) getPaginationKey() *string { return r.PaginationKey }
+func (r topixPriceResponse) Items() []TopixPrice    { return r.Data }
+func (r topixPriceResponse) NextPageKey() *string { return r.PaginationKey }
 
 func (c *Client) sendTopixPriceRequest(ctx context.Context, params topixPriceParameters) (topixPriceResponse, error) {
 	var r topixPriceResponse

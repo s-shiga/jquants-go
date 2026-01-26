@@ -109,8 +109,8 @@ type marginTradingOutstandingResponse struct {
 	PaginationKey *string                    `json:"pagination_key"`
 }
 
-func (r marginTradingOutstandingResponse) getData() []MarginTradingOutstanding { return r.Data }
-func (r marginTradingOutstandingResponse) getPaginationKey() *string            { return r.PaginationKey }
+func (r marginTradingOutstandingResponse) Items() []MarginTradingOutstanding { return r.Data }
+func (r marginTradingOutstandingResponse) NextPageKey() *string              { return r.PaginationKey }
 
 func (c *Client) sendMarginTradingOutstandingRequest(ctx context.Context, params marginTradingOutstandingParameters) (marginTradingOutstandingResponse, error) {
 	var r marginTradingOutstandingResponse
@@ -220,8 +220,8 @@ type shortSellingValueResponse struct {
 	PaginationKey *string             `json:"pagination_key"`
 }
 
-func (r shortSellingValueResponse) getData() []ShortSellingValue { return r.Data }
-func (r shortSellingValueResponse) getPaginationKey() *string    { return r.PaginationKey }
+func (r shortSellingValueResponse) Items() []ShortSellingValue { return r.Data }
+func (r shortSellingValueResponse) NextPageKey() *string       { return r.PaginationKey }
 
 func (c *Client) sendShortSellingValueRequest(ctx context.Context, params shortSellingValueParameters) (shortSellingValueResponse, error) {
 	var r shortSellingValueResponse

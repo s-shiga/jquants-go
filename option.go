@@ -259,8 +259,8 @@ type indexOptionPriceResponse struct {
 	PaginationKey *string            `json:"pagination_key"`
 }
 
-func (r indexOptionPriceResponse) getData() []IndexOptionPrice { return r.Data }
-func (r indexOptionPriceResponse) getPaginationKey() *string   { return r.PaginationKey }
+func (r indexOptionPriceResponse) Items() []IndexOptionPrice { return r.Data }
+func (r indexOptionPriceResponse) NextPageKey() *string      { return r.PaginationKey }
 
 func (c *Client) sendIndexOptionPriceRequest(ctx context.Context, params indexOptionPriceParameters) (indexOptionPriceResponse, error) {
 	var r indexOptionPriceResponse

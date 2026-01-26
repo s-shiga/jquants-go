@@ -179,14 +179,8 @@ func decodeErrorResponse(resp *http.Response) error {
 	return errors.New(errResp.Message)
 }
 
-// paginatedResponse is an interface for API responses that support pagination.
-type paginatedResponse[T any] interface {
-	getData() []T
-	getPaginationKey() *string
-}
-
 // fetchAllPages fetches all pages of a paginated API endpoint.
-func fetchAllPages[T any, R paginatedResponse[T]](
+func fetchAllPages[T any, R Response[T]](
 	ctx context.Context,
 	c *Client,
 	fetchPage func(ctx context.Context, paginationKey *string) (R, error),
@@ -205,8 +199,8 @@ func fetchAllPages[T any, R paginatedResponse[T]](
 			}
 			return nil, err
 		}
-		data = append(data, resp.getData()...)
-		paginationKey = resp.getPaginationKey()
+		data = append(data, resp.Items()...)
+		paginationKey = resp.NextPageKey()
 		if paginationKey == nil {
 			break
 		}
@@ -215,7 +209,7 @@ func fetchAllPages[T any, R paginatedResponse[T]](
 }
 
 // fetchAllPagesWithChannel fetches all pages and sends each item to a channel.
-func fetchAllPagesWithChannel[T any, R paginatedResponse[T]](
+func fetchAllPagesWithChannel[T any, R Response[T]](
 	ctx context.Context,
 	c *Client,
 	ch chan<- T,
@@ -234,10 +228,10 @@ func fetchAllPagesWithChannel[T any, R paginatedResponse[T]](
 			}
 			return err
 		}
-		for _, item := range resp.getData() {
+		for _, item := range resp.Items() {
 			ch <- item
 		}
-		paginationKey = resp.getPaginationKey()
+		paginationKey = resp.NextPageKey()
 		if paginationKey == nil {
 			break
 		}
