@@ -8,37 +8,70 @@ import (
 	"strconv"
 )
 
+// IndexOptionPrice represents daily price data for Nikkei 225 index options.
+// It includes prices for whole day, night session, and day session, along with
+// volume, open interest, and option Greeks.
 type IndexOptionPrice struct {
-	Date                           string
-	Code                           string
-	WholeDayOpen                   *int16
-	WholeDayHigh                   *int16
-	WholeDayLow                    *int16
-	WholeDayClose                  *int16
-	NightSessionOpen               *int16
-	NightSessionHigh               *int16
-	NightSessionLow                *int16
-	NightSessionClose              *int16
-	DaySessionOpen                 *int16
-	DaySessionHigh                 *int16
-	DaySessionLow                  *int16
-	DaySessionClose                *int16
-	Volume                         int64
-	OpenInterest                   int64
-	TurnoverValue                  int64
-	ContractMonth                  string
-	StrikePrice                    int16
-	VolumeOnlyAuction              *int64
+	// Date is the trading date in YYYY-MM-DD format.
+	Date string
+	// Code is the option contract code.
+	Code string
+	// WholeDayOpen is the opening price for the whole trading day.
+	WholeDayOpen *int16
+	// WholeDayHigh is the highest price for the whole trading day.
+	WholeDayHigh *int16
+	// WholeDayLow is the lowest price for the whole trading day.
+	WholeDayLow *int16
+	// WholeDayClose is the closing price for the whole trading day.
+	WholeDayClose *int16
+	// NightSessionOpen is the opening price for the night session.
+	NightSessionOpen *int16
+	// NightSessionHigh is the highest price for the night session.
+	NightSessionHigh *int16
+	// NightSessionLow is the lowest price for the night session.
+	NightSessionLow *int16
+	// NightSessionClose is the closing price for the night session.
+	NightSessionClose *int16
+	// DaySessionOpen is the opening price for the day session.
+	DaySessionOpen *int16
+	// DaySessionHigh is the highest price for the day session.
+	DaySessionHigh *int16
+	// DaySessionLow is the lowest price for the day session.
+	DaySessionLow *int16
+	// DaySessionClose is the closing price for the day session.
+	DaySessionClose *int16
+	// Volume is the total trading volume in contracts.
+	Volume int64
+	// OpenInterest is the number of outstanding contracts.
+	OpenInterest int64
+	// TurnoverValue is the total trading value in yen.
+	TurnoverValue int64
+	// ContractMonth is the contract expiration month in YYYYMM format.
+	ContractMonth string
+	// StrikePrice is the option strike price.
+	StrikePrice int16
+	// VolumeOnlyAuction is the volume from auction-only trades.
+	VolumeOnlyAuction *int64
+	// EmergencyMarginTriggerDivision indicates emergency margin status.
 	EmergencyMarginTriggerDivision string
-	PutCallDivision                int8
-	LastTradingDay                 *string
-	SpecialQuotationDay            *string
-	SettlementPrice                *int16
-	TheoreticalPrice               *json.Number
-	BaseVolatility                 *json.Number
-	UnderlyingPrice                *json.Number
-	ImpliedVolatility              *json.Number
-	InterestRate                   *json.Number
+	// PutCallDivision indicates the option type (1: Put, 2: Call).
+	PutCallDivision int8
+	// LastTradingDay is the last trading day for this contract.
+	LastTradingDay *string
+	// SpecialQuotationDay is the special quotation day (SQ day).
+	SpecialQuotationDay *string
+	// SettlementPrice is the daily settlement price.
+	SettlementPrice *int16
+	// TheoreticalPrice is the theoretical option price.
+	TheoreticalPrice *json.Number
+	// BaseVolatility is the base volatility used for theoretical price calculation.
+	BaseVolatility *json.Number
+	// UnderlyingPrice is the price of the underlying index.
+	UnderlyingPrice *json.Number
+	// ImpliedVolatility is the implied volatility derived from market price.
+	ImpliedVolatility *json.Number
+	// InterestRate is the interest rate used for pricing.
+	InterestRate *json.Number
 }
 
 // unmarshaler accumulates errors during unmarshaling, allowing cleaner code flow.
@@ -201,7 +234,9 @@ func unmarshalTime(value string) *string {
 	return &value
 }
 
+// IndexOptionPriceRequest specifies filter parameters for the IndexOptionPrice API.
 type IndexOptionPriceRequest struct {
+	// Date is the trading date to query in YYYY-MM-DD format. Required.
 	Date string
 }
 
@@ -242,6 +277,8 @@ func (c *Client) sendIndexOptionPriceRequest(ctx context.Context, params indexOp
 	return r, nil
 }
 
+// IndexOptionPrice retrieves Nikkei 225 index option prices from the /derivatives/bars/daily/options/225 endpoint.
+// It automatically handles pagination to fetch all matching records.
 func (c *Client) IndexOptionPrice(ctx context.Context, req IndexOptionPriceRequest) ([]IndexOptionPrice, error) {
 	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (indexOptionPriceResponse, error) {
 		params := indexOptionPriceParameters{IndexOptionPriceRequest: req, PaginationKey: paginationKey}
@@ -249,6 +286,8 @@ func (c *Client) IndexOptionPrice(ctx context.Context, req IndexOptionPriceReque
 	})
 }
 
+// IndexOptionPriceWithChannel retrieves Nikkei 225 index option prices and streams each record to the provided channel.
+// The channel is closed when all records have been sent or an error occurs.
 func (c *Client) IndexOptionPriceWithChannel(ctx context.Context, req IndexOptionPriceRequest, ch chan<- IndexOptionPrice) error {
 	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (indexOptionPriceResponse, error) {
 		params := indexOptionPriceParameters{IndexOptionPriceRequest: req, PaginationKey: paginationKey}
