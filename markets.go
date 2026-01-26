@@ -9,16 +9,27 @@ import (
 	"strconv"
 )
 
+// MarginTradingOutstanding represents margin trading balance data for a security.
+// It shows the outstanding short and long positions broken down by trade type.
 type MarginTradingOutstanding struct {
-	Date                     string
-	Code                     string
-	TotalShortBalance        int64
-	TotalLongBalance         int64
-	ShortNegotiableBalance   int64
-	LongNegotiableBalance    int64
+	// Date is the data date in YYYY-MM-DD format.
+	Date string
+	// Code is the security code (ticker symbol).
+	Code string
+	// TotalShortBalance is the total short margin trading balance in shares.
+	TotalShortBalance int64
+	// TotalLongBalance is the total long margin trading balance in shares.
+	TotalLongBalance int64
+	// ShortNegotiableBalance is the short balance for negotiable margin trades.
+	ShortNegotiableBalance int64
+	// LongNegotiableBalance is the long balance for negotiable margin trades.
+	LongNegotiableBalance int64
+	// ShortStandardizedBalance is the short balance for standardized margin trades.
 	ShortStandardizedBalance int64
-	LongStandardizedBalance  int64
-	IssueType                int8
+	// LongStandardizedBalance is the long balance for standardized margin trades.
+	LongStandardizedBalance int64
+	// IssueType indicates the type of issue (1: Prime, 2: Standard, 3: Growth).
+	IssueType int8
 }
 
 func (mtv *MarginTradingOutstanding) UnmarshalJSON(b []byte) error {
@@ -53,11 +64,17 @@ func (mtv *MarginTradingOutstanding) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// MarginTradingOutstandingRequest specifies filter parameters for the MarginTradingOutstanding API.
+// Either Code or Date must be provided.
 type MarginTradingOutstandingRequest struct {
+	// Code filters by security code. Required if Date is not specified.
 	Code *string
+	// Date filters by a specific date in YYYY-MM-DD format. If specified, Code is ignored.
 	Date *string
+	// From specifies the start date for a date range query (used with Code).
 	From *string
-	To   *string
+	// To specifies the end date for a date range query (used with Code).
+	To *string
 }
 
 type marginTradingOutstandingParameters struct {
@@ -110,8 +127,9 @@ func (c *Client) sendMarginTradingOutstandingRequest(ctx context.Context, params
 	return r, nil
 }
 
-// MarginTradingOutstanding provides margin trading outstandings.
-// https://jpx-jquants.com/en/spec/mkt-margin-int
+// MarginTradingOutstanding retrieves margin trading balance data from the /markets/margin-interest endpoint.
+// It automatically handles pagination to fetch all matching records.
+// See https://jpx-jquants.com/en/spec/mkt-margin-int for API details.
 func (c *Client) MarginTradingOutstanding(ctx context.Context, req MarginTradingOutstandingRequest) ([]MarginTradingOutstanding, error) {
 	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (marginTradingOutstandingResponse, error) {
 		params := marginTradingOutstandingParameters{MarginTradingOutstandingRequest: req, PaginationKey: paginationKey}
@@ -119,11 +137,18 @@ func (c *Client) MarginTradingOutstanding(ctx context.Context, req MarginTrading
 	})
 }
 
+// ShortSellingValue represents short selling turnover data by sector.
+// Values are broken down by selling type (long, short with/without restrictions).
 type ShortSellingValue struct {
-	Date                            string
-	Sector33Code                    string
-	LongSellingValue                int64
-	ShortSellingWithRestrictions    int64
+	// Date is the trading date in YYYY-MM-DD format.
+	Date string
+	// Sector33Code is the 33-sector classification code.
+	Sector33Code string
+	// LongSellingValue is the turnover value of long selling (non-short) in yen.
+	LongSellingValue int64
+	// ShortSellingWithRestrictions is the turnover value of short selling with price restrictions in yen.
+	ShortSellingWithRestrictions int64
+	// ShortSellingWithoutRestrictions is the turnover value of short selling without price restrictions in yen.
 	ShortSellingWithoutRestrictions int64
 }
 
@@ -146,11 +171,17 @@ func (sst *ShortSellingValue) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// ShortSellingValueRequest specifies filter parameters for the ShortSellingValue API.
+// Either Sector33Code or Date must be provided.
 type ShortSellingValueRequest struct {
+	// Sector33Code filters by 33-sector classification code.
 	Sector33Code *string
-	Date         *string
-	From         *string
-	To           *string
+	// Date filters by a specific date in YYYY-MM-DD format.
+	Date *string
+	// From specifies the start date for a date range query (used with Sector33Code).
+	From *string
+	// To specifies the end date for a date range query (used with Sector33Code).
+	To *string
 }
 
 type shortSellingValueParameters struct {
@@ -207,6 +238,8 @@ func (c *Client) sendShortSellingValueRequest(ctx context.Context, params shortS
 	return r, nil
 }
 
+// ShortSellingValue retrieves short selling turnover data from the /markets/short-ratio endpoint.
+// It automatically handles pagination to fetch all matching records.
 func (c *Client) ShortSellingValue(ctx context.Context, req ShortSellingValueRequest) ([]ShortSellingValue, error) {
 	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (shortSellingValueResponse, error) {
 		params := shortSellingValueParameters{ShortSellingValueRequest: req, PaginationKey: paginationKey}
@@ -220,8 +253,11 @@ func (c *Client) ShortSellingValue(ctx context.Context, req ShortSellingValueReq
 
 // Breakdown Trading not implemented
 
+// TradingCalendar represents a trading calendar entry indicating whether a date is a trading day.
 type TradingCalendar struct {
-	Date    string
+	// Date is the calendar date in YYYY-MM-DD format.
+	Date string
+	// DayType indicates the day type (0: holiday/non-trading day, 1: trading day, 2: half-day, 3: non-trading day).
 	DayType int8
 }
 
@@ -242,10 +278,14 @@ func (tc *TradingCalendar) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// TradingCalendarRequest specifies filter parameters for the TradingCalendar API.
 type TradingCalendarRequest struct {
+	// HolidayDivision filters by day type (0: holiday, 1: trading day, 2: half-day, 3: non-trading day).
 	HolidayDivision *int8
-	From            *string
-	To              *string
+	// From specifies the start date for the query in YYYY-MM-DD format.
+	From *string
+	// To specifies the end date for the query in YYYY-MM-DD format.
+	To *string
 }
 
 type tradingCalendarParameters struct {
@@ -270,6 +310,7 @@ type tradingCalendarResponse struct {
 	Data []TradingCalendar `json:"data"`
 }
 
+// TradingCalendar retrieves the TSE trading calendar from the /markets/calendar endpoint.
 func (c *Client) TradingCalendar(ctx context.Context, req TradingCalendarRequest) ([]TradingCalendar, error) {
 	var r tradingCalendarResponse
 	params := tradingCalendarParameters{TradingCalendarRequest: req}
