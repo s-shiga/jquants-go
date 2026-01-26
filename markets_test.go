@@ -1,7 +1,6 @@
 package jquants
 
 import (
-	"context"
 	"testing"
 
 	"github.com/S-Shiga/jquants-go/v2/codes"
@@ -9,13 +8,12 @@ import (
 
 func TestClient_MarginTradingOutstanding(t *testing.T) {
 	var code = "13010"
-	ctx := context.Background()
 	client, err := setup()
 	if err != nil {
 		t.Fatalf("Failed to setup client: %v", err)
 	}
 	req := MarginTradingOutstandingRequest{Code: &code}
-	res, err := client.MarginTradingOutstanding(ctx, req)
+	res, err := client.MarginTradingOutstanding(t.Context(), req)
 	if err != nil {
 		t.Errorf("Failed to get margin trading outstanding: %s", err)
 	}
@@ -26,13 +24,12 @@ func TestClient_MarginTradingOutstanding(t *testing.T) {
 
 func TestClient_ShortSellingValue(t *testing.T) {
 	var sector33Code = codes.Sector33FisheryAgricultureAndForestry
-	ctx := context.Background()
 	client, err := setup()
 	if err != nil {
 		t.Fatalf("Failed to setup client: %v", err)
 	}
 	req := ShortSellingValueRequest{Sector33Code: &sector33Code}
-	res, err := client.ShortSellingValue(ctx, req)
+	res, err := client.ShortSellingValue(t.Context(), req)
 	if err != nil {
 		t.Errorf("Failed to get short selling value: %s", err)
 	}
@@ -42,12 +39,11 @@ func TestClient_ShortSellingValue(t *testing.T) {
 }
 
 func TestClient_TradingCalendar(t *testing.T) {
-	ctx := context.Background()
 	client, err := setup()
 	if err != nil {
 		t.Fatalf("Failed to setup client: %v", err)
 	}
-	res, err := client.TradingCalendar(ctx, TradingCalendarRequest{})
+	res, err := client.TradingCalendar(t.Context(), TradingCalendarRequest{})
 	if err != nil {
 		t.Errorf("Failed to get trading calendar: %s", err)
 	}
