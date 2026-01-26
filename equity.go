@@ -9,20 +9,35 @@ import (
 	"strconv"
 )
 
+// IssueInformation represents master data for a listed security.
+// It contains company information, sector classifications, and market details.
 type IssueInformation struct {
-	Date               string
-	Code               string
-	CompanyName        string
+	// Date is the date of the information in YYYY-MM-DD format.
+	Date string
+	// Code is the security code (ticker symbol).
+	Code string
+	// CompanyName is the company name in Japanese.
+	CompanyName string
+	// CompanyNameEnglish is the company name in English.
 	CompanyNameEnglish string
-	Sector17Code       int8
-	Sector17Name       string
-	Sector33Code       string
-	Sector33Name       string
-	ScaleCategory      string
-	MarketCode         string
-	MarketName         string
-	MarginCode         *int8
-	MarginName         *string
+	// Sector17Code is the 17-sector classification code.
+	Sector17Code int8
+	// Sector17Name is the name of the 17-sector classification.
+	Sector17Name string
+	// Sector33Code is the 33-sector classification code.
+	Sector33Code string
+	// Sector33Name is the name of the 33-sector classification.
+	Sector33Name string
+	// ScaleCategory is the market capitalization scale category.
+	ScaleCategory string
+	// MarketCode is the market section code.
+	MarketCode string
+	// MarketName is the name of the market section.
+	MarketName string
+	// MarginCode is the margin trading classification code (nil if not applicable).
+	MarginCode *int8
+	// MarginName is the name of the margin trading classification.
+	MarginName *string
 }
 
 func (ii *IssueInformation) UnmarshalJSON(b []byte) error {
@@ -71,8 +86,11 @@ func (ii *IssueInformation) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// IssueInformationRequest specifies filter parameters for the IssueInformation API.
 type IssueInformationRequest struct {
+	// Code filters by security code. If nil, returns all securities.
 	Code *string
+	// Date filters by date in YYYY-MM-DD format. If nil, returns the latest data.
 	Date *string
 }
 
@@ -95,6 +113,8 @@ type issueInformationResponse struct {
 	Information []IssueInformation `json:"data"`
 }
 
+// IssueInformation retrieves master data for listed securities from the /equities/master endpoint.
+// It returns company information, sector classifications, and market details.
 func (c *Client) IssueInformation(ctx context.Context, req IssueInformationRequest) ([]IssueInformation, error) {
 	var r issueInformationResponse
 	params := issueInformationParameters{req}
@@ -112,23 +132,41 @@ func (c *Client) IssueInformation(ctx context.Context, req IssueInformationReque
 	return r.Information, nil
 }
 
+// StockPrice represents daily OHLCV (Open, High, Low, Close, Volume) data for a security.
+// It includes both unadjusted and split-adjusted price data.
 type StockPrice struct {
-	Date             string
-	Code             string
-	Open             *json.Number
-	High             *json.Number
-	Low              *json.Number
-	Close            *json.Number
-	UpperLimit       bool
-	LowerLimit       bool
-	Volume           *int64
-	TurnoverValue    *int64
+	// Date is the trading date in YYYY-MM-DD format.
+	Date string
+	// Code is the security code (ticker symbol).
+	Code string
+	// Open is the opening price (nil if no trading occurred).
+	Open *json.Number
+	// High is the highest price of the day (nil if no trading occurred).
+	High *json.Number
+	// Low is the lowest price of the day (nil if no trading occurred).
+	Low *json.Number
+	// Close is the closing price (nil if no trading occurred).
+	Close *json.Number
+	// UpperLimit indicates whether the stock hit the daily price limit up.
+	UpperLimit bool
+	// LowerLimit indicates whether the stock hit the daily price limit down.
+	LowerLimit bool
+	// Volume is the trading volume in shares (nil if no trading occurred).
+	Volume *int64
+	// TurnoverValue is the total trading value in yen (nil if no trading occurred).
+	TurnoverValue *int64
+	// AdjustmentFactor is the cumulative adjustment factor for stock splits.
 	AdjustmentFactor json.Number
-	AdjustedOpen     *json.Number
-	AdjustedHigh     *json.Number
-	AdjustedLow      *json.Number
-	AdjustedClose    *json.Number
-	AdjustedVolume   *int64
+	// AdjustedOpen is the split-adjusted opening price.
+	AdjustedOpen *json.Number
+	// AdjustedHigh is the split-adjusted highest price.
+	AdjustedHigh *json.Number
+	// AdjustedLow is the split-adjusted lowest price.
+	AdjustedLow *json.Number
+	// AdjustedClose is the split-adjusted closing price.
+	AdjustedClose *json.Number
+	// AdjustedVolume is the split-adjusted trading volume.
+	AdjustedVolume *int64
 }
 
 func (sp *StockPrice) UnmarshalJSON(b []byte) error {
@@ -205,11 +243,17 @@ func unmarshalLimit(s string) (bool, error) {
 	}
 }
 
+// StockPriceRequest specifies filter parameters for the StockPrice API.
+// Either Code or Date must be provided.
 type StockPriceRequest struct {
+	// Code filters by security code. Required if Date is not specified.
 	Code *string
+	// Date filters by a specific date in YYYY-MM-DD format. If specified, Code is ignored.
 	Date *string
+	// From specifies the start date for a date range query (used with Code).
 	From *string
-	To   *string
+	// To specifies the end date for a date range query (used with Code).
+	To *string
 }
 
 type stockPriceParameters struct {
@@ -262,6 +306,8 @@ func (c *Client) sendStockPriceRequest(ctx context.Context, params stockPricePar
 	return r, nil
 }
 
+// StockPrice retrieves daily stock prices from the /equities/bars/daily endpoint.
+// It automatically handles pagination to fetch all matching records.
 func (c *Client) StockPrice(ctx context.Context, req StockPriceRequest) ([]StockPrice, error) {
 	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (stockPriceResponse, error) {
 		params := stockPriceParameters{StockPriceRequest: req, PaginationKey: paginationKey}
@@ -269,6 +315,8 @@ func (c *Client) StockPrice(ctx context.Context, req StockPriceRequest) ([]Stock
 	})
 }
 
+// StockPriceWithChannel retrieves daily stock prices and streams each record to the provided channel.
+// The channel is closed when all records have been sent or an error occurs.
 func (c *Client) StockPriceWithChannel(ctx context.Context, req StockPriceRequest, ch chan<- StockPrice) error {
 	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (stockPriceResponse, error) {
 		params := stockPriceParameters{StockPriceRequest: req, PaginationKey: paginationKey}
@@ -278,11 +326,17 @@ func (c *Client) StockPriceWithChannel(ctx context.Context, req StockPriceReques
 
 // Morning Session Stock Prices not implemented
 
+// TradingBalance represents trading activity metrics for a specific investor type.
+// All values are in units of 1,000 shares.
 type TradingBalance struct {
-	Sales     int64
+	// Sales is the total sell volume.
+	Sales int64
+	// Purchases is the total buy volume.
 	Purchases int64
-	Total     int64
-	Balance   int64
+	// Total is the sum of sales and purchases.
+	Total int64
+	// Balance is the net position (Purchases - Sales).
+	Balance int64
 }
 
 func newTradingBalance(sell, buy, total, balance float64) TradingBalance {
@@ -294,23 +348,42 @@ func newTradingBalance(sell, buy, total, balance float64) TradingBalance {
 	}
 }
 
+// InvestorType represents weekly trading data broken down by investor category.
+// It shows the buying and selling activity of different market participants.
 type InvestorType struct {
-	PublishedDate              string
-	StartDate                  string
-	EndDate                    string
-	Section                    string
-	Proprietary                TradingBalance
-	Brokerage                  TradingBalance
-	Total                      TradingBalance
-	Individuals                TradingBalance
-	Foreigners                 TradingBalance
-	SecuritiesCos              TradingBalance
-	InvestmentTrusts           TradingBalance
-	BusinessCos                TradingBalance
-	OtherCos                   TradingBalance
-	InsuranceCos               TradingBalance
-	Banks                      TradingBalance
-	TrustBanks                 TradingBalance
+	// PublishedDate is the publication date of the data.
+	PublishedDate string
+	// StartDate is the start of the reporting period.
+	StartDate string
+	// EndDate is the end of the reporting period.
+	EndDate string
+	// Section is the market section (e.g., "TSE1st", "TSE2nd").
+	Section string
+	// Proprietary is trading by securities companies for their own account.
+	Proprietary TradingBalance
+	// Brokerage is trading by securities companies on behalf of clients.
+	Brokerage TradingBalance
+	// Total is the aggregate trading across all investor types.
+	Total TradingBalance
+	// Individuals is trading by retail investors.
+	Individuals TradingBalance
+	// Foreigners is trading by foreign investors.
+	Foreigners TradingBalance
+	// SecuritiesCos is trading by securities companies.
+	SecuritiesCos TradingBalance
+	// InvestmentTrusts is trading by investment trusts.
+	InvestmentTrusts TradingBalance
+	// BusinessCos is trading by business corporations.
+	BusinessCos TradingBalance
+	// OtherCos is trading by other corporations.
+	OtherCos TradingBalance
+	// InsuranceCos is trading by insurance companies.
+	InsuranceCos TradingBalance
+	// Banks is trading by banks.
+	Banks TradingBalance
+	// TrustBanks is trading by trust banks.
+	TrustBanks TradingBalance
+	// OtherFinancialInstitutions is trading by other financial institutions.
 	OtherFinancialInstitutions TradingBalance
 }
 
@@ -396,10 +469,14 @@ func (it *InvestorType) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// InvestorTypeRequest specifies filter parameters for the InvestorType API.
 type InvestorTypeRequest struct {
+	// Section filters by market section (e.g., "TSE1st", "TSE2nd").
 	Section *string
-	From    *string
-	To      *string
+	// From specifies the start date for the query in YYYY-MM-DD format.
+	From *string
+	// To specifies the end date for the query in YYYY-MM-DD format.
+	To *string
 }
 
 type investorTypeParameters struct {
@@ -447,8 +524,9 @@ func (c *Client) sendInvestorTypeRequest(ctx context.Context, params investorTyp
 	return r, nil
 }
 
-// InvestorType provides trading by type of investors.
-// https://jpx-jquants.com/en/spec/eq-investor-types
+// InvestorType retrieves weekly trading data by investor type from the /equities/investor-types endpoint.
+// It automatically handles pagination to fetch all matching records.
+// See https://jpx-jquants.com/en/spec/eq-investor-types for API details.
 func (c *Client) InvestorType(ctx context.Context, req InvestorTypeRequest) ([]InvestorType, error) {
 	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (investorTypeResponse, error) {
 		params := investorTypeParameters{InvestorTypeRequest: req, PaginationKey: paginationKey}
