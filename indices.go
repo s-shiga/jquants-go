@@ -8,12 +8,19 @@ import (
 	"net/url"
 )
 
+// IndexPrice represents daily OHLC (Open, High, Low, Close) data for a market index.
 type IndexPrice struct {
-	Date  string
-	Code  string
-	Open  json.Number
-	High  json.Number
-	Low   json.Number
+	// Date is the trading date in YYYY-MM-DD format.
+	Date string
+	// Code is the index code (e.g., "0000" for TOPIX, "0001" for TOPIX Core30).
+	Code string
+	// Open is the opening value of the index.
+	Open json.Number
+	// High is the highest value of the index for the day.
+	High json.Number
+	// Low is the lowest value of the index for the day.
+	Low json.Number
+	// Close is the closing value of the index.
 	Close json.Number
 }
 
@@ -38,11 +45,17 @@ func (ip *IndexPrice) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// IndexPriceRequest specifies filter parameters for the IndexPrice API.
+// Either Code or Date must be provided.
 type IndexPriceRequest struct {
+	// Code filters by index code. Required if Date is not specified.
 	Code *string
+	// Date filters by a specific date in YYYY-MM-DD format. If specified, Code is ignored.
 	Date *string
+	// From specifies the start date for a date range query (used with Code).
 	From *string
-	To   *string
+	// To specifies the end date for a date range query (used with Code).
+	To *string
 }
 
 type indexPriceParameters struct {
@@ -95,6 +108,8 @@ func (c *Client) sendIndexPriceRequest(ctx context.Context, params indexPricePar
 	return r, nil
 }
 
+// IndexPrice retrieves daily index prices from the /indices/bars/daily endpoint.
+// It automatically handles pagination to fetch all matching records.
 func (c *Client) IndexPrice(ctx context.Context, req IndexPriceRequest) ([]IndexPrice, error) {
 	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (indexPriceResponse, error) {
 		params := indexPriceParameters{IndexPriceRequest: req, PaginationKey: paginationKey}
@@ -102,11 +117,17 @@ func (c *Client) IndexPrice(ctx context.Context, req IndexPriceRequest) ([]Index
 	})
 }
 
+// TopixPrice represents daily OHLC (Open, High, Low, Close) data for the TOPIX index.
 type TopixPrice struct {
-	Date  string
-	Open  json.Number
-	High  json.Number
-	Low   json.Number
+	// Date is the trading date in YYYY-MM-DD format.
+	Date string
+	// Open is the opening value of TOPIX.
+	Open json.Number
+	// High is the highest value of TOPIX for the day.
+	High json.Number
+	// Low is the lowest value of TOPIX for the day.
+	Low json.Number
+	// Close is the closing value of TOPIX.
 	Close json.Number
 }
 
@@ -129,9 +150,12 @@ func (p *TopixPrice) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// TopixPriceRequest specifies filter parameters for the TopixPrices API.
 type TopixPriceRequest struct {
+	// From specifies the start date for the query in YYYY-MM-DD format.
 	From *string
-	To   *string
+	// To specifies the end date for the query in YYYY-MM-DD format.
+	To *string
 }
 
 type topixPriceParameters struct {
@@ -176,6 +200,8 @@ func (c *Client) sendTopixPriceRequest(ctx context.Context, params topixPricePar
 	return r, nil
 }
 
+// TopixPrices retrieves daily TOPIX index prices from the /indices/bars/daily/topix endpoint.
+// It automatically handles pagination to fetch all matching records.
 func (c *Client) TopixPrices(ctx context.Context, req TopixPriceRequest) ([]TopixPrice, error) {
 	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (topixPriceResponse, error) {
 		params := topixPriceParameters{TopixPriceRequest: req, PaginationKey: paginationKey}
