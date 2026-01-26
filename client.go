@@ -1,3 +1,20 @@
+// Package jquants provides a Go client for the J-Quants API.
+//
+// J-Quants API provides access to Japanese stock market data from the
+// Tokyo Stock Exchange (TSE), including stock prices, trading volumes,
+// market indices, and other financial data.
+//
+// Basic usage:
+//
+//	client, err := jquants.NewClient(http.DefaultClient)
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//
+//	issues, err := client.IssueInformation(ctx, nil)
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
 package jquants
 
 import (
@@ -12,16 +29,36 @@ import (
 	"time"
 )
 
+// BaseURL is the default base URL for the J-Quants API v2.
 const BaseURL = "https://api.jquants.com/v2"
 
+// Client is the J-Quants API client.
+// It holds the HTTP client, authentication credentials, and configuration
+// for making requests to the J-Quants API.
 type Client struct {
-	HttpClient    *http.Client
-	BaseURL       string
-	APIKey        string
+	// HttpClient is the HTTP client used for making requests.
+	// If nil is passed to NewClient, http.DefaultClient should be used.
+	HttpClient *http.Client
+
+	// BaseURL is the base URL for API requests. Defaults to BaseURL constant.
+	BaseURL string
+
+	// APIKey is the J-Quants API key for authentication.
+	APIKey string
+
+	// RetryInterval is the duration to wait before retrying after a 500 error.
+	// Defaults to 5 seconds.
 	RetryInterval time.Duration
-	LoopTimeout   time.Duration
+
+	// LoopTimeout is the maximum duration for paginated requests.
+	// If fetching all pages takes longer than this, the request will be cancelled.
+	// Defaults to 20 seconds.
+	LoopTimeout time.Duration
 }
 
+// NewClient creates a new J-Quants API client.
+// It reads the API key from the J_QUANTS_API_KEY environment variable.
+// Returns an error if the environment variable is not set.
 func NewClient(httpClient *http.Client) (*Client, error) {
 	APIKey, ok := os.LookupEnv("J_QUANTS_API_KEY")
 	if !ok {
@@ -79,10 +116,23 @@ func (e HTTPError) Unwrap() error {
 	return e.Err
 }
 
+// BadRequest represents an HTTP 400 error response.
 type BadRequest struct{ HTTPError }
+
+// Unauthorized represents an HTTP 401 error response.
+// This typically indicates an invalid or missing API key.
 type Unauthorized struct{ HTTPError }
+
+// Forbidden represents an HTTP 403 error response.
+// This typically indicates the API key does not have permission for the requested resource.
 type Forbidden struct{ HTTPError }
+
+// PayloadTooLarge represents an HTTP 413 error response.
+// This occurs when the request parameters would result in too much data.
 type PayloadTooLarge struct{ HTTPError }
+
+// InternalServerError represents an HTTP 500 error response.
+// The client automatically retries requests that receive this error.
 type InternalServerError struct{ HTTPError }
 
 func decodeResponse(resp *http.Response, body any) error {
@@ -98,6 +148,7 @@ func decodeResponse(resp *http.Response, body any) error {
 	return nil
 }
 
+// ErrResponse represents the error response body from the J-Quants API.
 type ErrResponse struct {
 	Message string `json:"message"`
 }
