@@ -8,7 +8,7 @@ import (
 )
 
 func TestClient_IssueInformation(t *testing.T) {
-	client, err := setup()
+	client, err := NewClientWithRateLimit(Standard)
 	if err != nil {
 		t.Fatalf("Failed to setup client: %v", err)
 	}
@@ -23,7 +23,7 @@ func TestClient_IssueInformation(t *testing.T) {
 
 func TestClient_StockPrice(t *testing.T) {
 	var code = "13010"
-	client, err := setup()
+	client, err := NewClientWithRateLimit(Standard)
 	if err != nil {
 		t.Fatalf("Failed to setup client: %v", err)
 	}
@@ -39,7 +39,7 @@ func TestClient_StockPrice(t *testing.T) {
 
 func TestClient_StockPriceWithChannel(t *testing.T) {
 	var code = "13010"
-	client, err := setup()
+	client, err := NewClientWithRateLimit(Standard)
 	if err != nil {
 		t.Fatalf("Failed to setup client: %v", err)
 	}
@@ -63,7 +63,7 @@ func TestClient_StockPriceWithChannel(t *testing.T) {
 
 func TestClient_InvestorType(t *testing.T) {
 	var code = codes.SectionPrime
-	client, err := setup()
+	client, err := NewClientWithRateLimit(Standard)
 	if err != nil {
 		t.Fatalf("Failed to setup client: %v", err)
 	}

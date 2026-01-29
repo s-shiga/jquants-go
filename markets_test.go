@@ -8,7 +8,7 @@ import (
 
 func TestClient_MarginTradingOutstanding(t *testing.T) {
 	var code = "13010"
-	client, err := setup()
+	client, err := NewClientWithRateLimit(Standard)
 	if err != nil {
 		t.Fatalf("Failed to setup client: %v", err)
 	}
@@ -24,7 +24,7 @@ func TestClient_MarginTradingOutstanding(t *testing.T) {
 
 func TestClient_ShortSellingValue(t *testing.T) {
 	var sector33Code = codes.Sector33FisheryAgricultureAndForestry
-	client, err := setup()
+	client, err := NewClientWithRateLimit(Standard)
 	if err != nil {
 		t.Fatalf("Failed to setup client: %v", err)
 	}
@@ -39,7 +39,7 @@ func TestClient_ShortSellingValue(t *testing.T) {
 }
 
 func TestClient_TradingCalendar(t *testing.T) {
-	client, err := setup()
+	client, err := NewClientWithRateLimit(Standard)
 	if err != nil {
 		t.Fatalf("Failed to setup client: %v", err)
 	}

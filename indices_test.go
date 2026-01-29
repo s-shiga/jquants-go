@@ -6,7 +6,7 @@ import (
 
 func TestClient_IndexPrice(t *testing.T) {
 	var indexCode = "0000"
-	client, err := setup()
+	client, err := NewClientWithRateLimit(Standard)
 	if err != nil {
 		t.Fatalf("Failed to setup client: %v", err)
 	}
@@ -21,7 +21,7 @@ func TestClient_IndexPrice(t *testing.T) {
 }
 
 func TestClient_TopixPrices(t *testing.T) {
-	client, err := setup()
+	client, err := NewClientWithRateLimit(Standard)
 	if err != nil {
 		t.Fatalf("Failed to setup client: %v", err)
 	}
