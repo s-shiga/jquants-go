@@ -18,6 +18,7 @@
 package jquants
 
 import (
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -119,7 +120,7 @@ func getAPIKey() (string, error) {
 // Returns an error if the environment variable is not set.
 func NewClient() (*Client, error) {
 	httpClient := &http.Client{
-		Timeout: 5 * time.Second,
+		Timeout: 8 * time.Second,
 	}
 	apiKey, err := getAPIKey()
 	if err != nil {
@@ -153,7 +154,7 @@ func NewClientWithRateLimit(plan Plan) (*Client, error) {
 			Transport: http.DefaultTransport,
 			Limiter:   rate.NewLimiter(rate.Limit(limit), limit),
 		},
-		Timeout: 5 * time.Second,
+		Timeout: 8 * time.Second,
 	}
 	apiKey, err := getAPIKey()
 	if err != nil {
@@ -182,7 +183,7 @@ func NewClientWithConfig(config ClientConfig) (*Client, error) {
 		config.RateLimit = 1
 	}
 	if config.Timeout == 0 {
-		config.Timeout = 10 * time.Second
+		config.Timeout = 8 * time.Second
 	}
 	if config.RetryInterval == 0 {
 		config.RetryInterval = 5 * time.Second
@@ -239,6 +240,7 @@ func (c *Client) sendRequest(ctx context.Context, urlPath string, param paramete
 		return nil, fmt.Errorf("failed to build request: %w", err)
 	}
 	req.Header.Set("x-api-key", c.APIKey)
+	req.Header.Set("Accept-Encoding", "gzip")
 	resp, err := c.HttpClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -281,13 +283,16 @@ type PayloadTooLarge struct{ HTTPError }
 type InternalServerError struct{ HTTPError }
 
 func decodeResponse(resp *http.Response, body any) error {
+	gzipReader, err := gzip.NewReader(resp.Body)
+	if err != nil {
+		return err
+	}
 	defer func() {
-		closeErr := resp.Body.Close()
-		if closeErr != nil {
-			slog.Warn("failed to close response body", "error", closeErr)
+		if clsErr := gzipReader.Close(); clsErr != nil {
+			slog.Warn("failed to close response body", "error", clsErr)
 		}
 	}()
-	if err := json.NewDecoder(resp.Body).Decode(body); err != nil {
+	if err := json.NewDecoder(gzipReader).Decode(body); err != nil {
 		return fmt.Errorf("failed to decode response: %w", err)
 	}
 	return nil
