@@ -7,10 +7,7 @@ import (
 
 func TestClient_IndexOptionPrice(t *testing.T) {
 	date := "2025-01-06"
-	client, err := NewClientWithRateLimit(Standard)
-	if err != nil {
-		t.Fatalf("Failed to setup client: %v", err)
-	}
+	client := setupClient(t)
 	req := IndexOptionPriceRequest{Date: date}
 	resp, err := client.IndexOptionPrice(t.Context(), req)
 	if err != nil {
@@ -23,10 +20,7 @@ func TestClient_IndexOptionPrice(t *testing.T) {
 
 func TestClient_IndexOptionPriceWithChannel(t *testing.T) {
 	date := "2025-01-06"
-	client, err := NewClientWithRateLimit(Standard)
-	if err != nil {
-		t.Fatalf("Failed to setup client: %v", err)
-	}
+	client := setupClient(t)
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	req := IndexOptionPriceRequest{Date: date}

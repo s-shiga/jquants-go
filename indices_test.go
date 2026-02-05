@@ -6,10 +6,7 @@ import (
 
 func TestClient_IndexPrice(t *testing.T) {
 	var indexCode = "0000"
-	client, err := NewClientWithRateLimit(Standard)
-	if err != nil {
-		t.Fatalf("Failed to setup client: %v", err)
-	}
+	client := setupClient(t)
 	req := IndexPriceRequest{Code: &indexCode}
 	res, err := client.IndexPrice(t.Context(), req)
 	if err != nil {
@@ -21,10 +18,7 @@ func TestClient_IndexPrice(t *testing.T) {
 }
 
 func TestClient_TopixPrices(t *testing.T) {
-	client, err := NewClientWithRateLimit(Standard)
-	if err != nil {
-		t.Fatalf("Failed to setup client: %v", err)
-	}
+	client := setupClient(t)
 	res, err := client.TopixPrices(t.Context(), TopixPriceRequest{})
 	if err != nil {
 		t.Errorf("Failed to get topix price: %s", err)

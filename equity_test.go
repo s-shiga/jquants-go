@@ -4,14 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/S-Shiga/jquants-go/v2/codes"
+	"github.com/s-shiga/jquants-go/v2/codes"
 )
 
 func TestClient_IssueInformation(t *testing.T) {
-	client, err := NewClientWithRateLimit(Standard)
-	if err != nil {
-		t.Fatalf("Failed to setup client: %v", err)
-	}
+	client := setupClient(t)
 	resp, err := client.IssueInformation(t.Context(), IssueInformationRequest{})
 	if err != nil {
 		t.Errorf("Failed to get issue information: %v", err)
@@ -23,10 +20,7 @@ func TestClient_IssueInformation(t *testing.T) {
 
 func TestClient_StockPrice(t *testing.T) {
 	var code = "13010"
-	client, err := NewClientWithRateLimit(Standard)
-	if err != nil {
-		t.Fatalf("Failed to setup client: %v", err)
-	}
+	client := setupClient(t)
 	req := StockPriceRequest{Code: &code}
 	res, err := client.StockPrice(t.Context(), req)
 	if err != nil {
@@ -39,10 +33,7 @@ func TestClient_StockPrice(t *testing.T) {
 
 func TestClient_StockPriceWithChannel(t *testing.T) {
 	var code = "13010"
-	client, err := NewClientWithRateLimit(Standard)
-	if err != nil {
-		t.Fatalf("Failed to setup client: %v", err)
-	}
+	client := setupClient(t)
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	req := StockPriceRequest{Code: &code}
@@ -63,10 +54,7 @@ func TestClient_StockPriceWithChannel(t *testing.T) {
 
 func TestClient_InvestorType(t *testing.T) {
 	var code = codes.SectionPrime
-	client, err := NewClientWithRateLimit(Standard)
-	if err != nil {
-		t.Fatalf("Failed to setup client: %v", err)
-	}
+	client := setupClient(t)
 	req := InvestorTypeRequest{Section: &code}
 	res, err := client.InvestorType(t.Context(), req)
 	if err != nil {
