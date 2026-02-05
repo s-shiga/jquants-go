@@ -92,7 +92,7 @@ func getAPIKey() (string, error) {
 // NewClient creates a new J-Quants API client.
 // It reads the API key from the J_QUANTS_API_KEY environment variable.
 // Returns an error if the environment variable is not set.
-func NewClient(baseURL, apiKey string, opts ...Option) (*Client, error) {
+func NewClient(baseURL, apiKey string, opts ...Option) *Client {
 	client := &Client{
 		httpClient:    http.DefaultClient,
 		baseURL:       baseURL,
@@ -103,7 +103,7 @@ func NewClient(baseURL, apiKey string, opts ...Option) (*Client, error) {
 	for _, opt := range opts {
 		opt(client)
 	}
-	return client, nil
+	return client
 }
 
 type parameters interface {
