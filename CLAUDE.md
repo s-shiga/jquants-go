@@ -25,7 +25,7 @@ go fmt ./...
 go vet ./...
 ```
 
-**Note:** Tests make real API calls and require the `J_QUANTS_API_KEY` environment variable to be set.
+**Note:** Tests make real API calls and require the `J_QUANTS_API_KEY` environment variable to be set. There are no mocked tests.
 
 ## Architecture
 
@@ -33,11 +33,13 @@ go vet ./...
 
 The library uses a single `Client` struct (`client.go`) that holds HTTP client, base URL, API key, and retry/timeout settings. All API methods are methods on this `Client`.
 
+The constructor `NewClient(baseURL, apiKey string, opts ...Option)` returns `*Client` (no error). It uses a functional options pattern with `WithHTTPClient`, `WithRetryInterval`, and `WithLoopTimeout`.
+
 ### API Method Structure
 
 Each API endpoint follows a consistent pattern:
 
-1. **Response struct** - Go struct with custom `UnmarshalJSON` to handle J-Quants API quirks (e.g., numeric strings, floats that should be ints)
+1. **Response struct** - Go struct with custom `UnmarshalJSON` to handle J-Quants API quirks (e.g., numeric strings, floats that should be ints, abbreviated JSON keys like `"O"` → `Open`)
 2. **Request struct** - Public struct with optional filter parameters (uses `*string` for optional fields)
 3. **Parameters struct** - Internal struct embedding the request, adding `PaginationKey`
 4. **`values()` method** - Implements the `parameters` interface to convert to URL query params
@@ -46,7 +48,7 @@ Each API endpoint follows a consistent pattern:
 
 ### Pagination Handling
 
-APIs that return large datasets use pagination. The client automatically fetches all pages in a loop until `pagination_key` is nil. Some methods also offer `*WithChannel` variants for streaming results.
+APIs that return large datasets use pagination. The client automatically fetches all pages in a loop until `pagination_key` is nil. Some methods also offer `*WithChannel` variants for streaming results (`StockPriceWithChannel`, `IndexOptionPriceWithChannel`).
 
 ### Error Types
 
@@ -54,13 +56,24 @@ Custom error types in `client.go` wrap HTTP status codes: `BadRequest`, `Unautho
 
 ### Module Organization
 
-- `client.go` - Client initialization, HTTP request handling, error types
-- `equity.go` - Stock-related APIs: issue information (`/equities/master`), stock prices (`/prices/daily_quotes`)
-- `markets.go` - Market data APIs: trading values, margin trading, short selling, trading calendar
-- `indices.go` - Index prices including TOPIX
-- `option.go` - Index options data
-- `codes/codes.go` - Constants for market sections, sector codes, and index codes
+- `client.go` - Client initialization, HTTP request handling, error types, pagination helpers (`fetchAllPages`, `fetchAllPagesWithChannel`)
+- `generics.go` - Generic `Request` and `Response` interfaces
+- `equity.go` - Stock-related APIs:
+  - Issue information (`/equities/master`)
+  - Stock prices (`/equities/bars/daily`)
+  - Investor type trading (`/equities/investor-types`)
+- `markets.go` - Market data APIs:
+  - Margin trading outstanding (`/markets/margin-interest`)
+  - Short selling value (`/markets/short-ratio`)
+  - Trading calendar (`/markets/calendar`)
+- `indices.go` - Index APIs:
+  - Index prices (`/indices/bars/daily`)
+  - TOPIX prices (`/indices/bars/daily/topix`)
+- `option.go` - Derivatives APIs:
+  - Index option prices (`/derivatives/bars/daily/options/225`)
+- `codes/codes.go` - Constants for market sections, 33-sector codes, and index codes
+- `testutil.go` - Test helper that reads `J_QUANTS_API_KEY` from env and creates a client
 
 ### JSON Unmarshaling
 
-The J-Quants API returns some numeric fields as strings and uses abbreviated JSON keys. Custom `UnmarshalJSON` methods translate these to proper Go types with descriptive field names.
+The J-Quants API returns some numeric fields as strings and uses abbreviated JSON keys (e.g., `"O"`, `"H"`, `"L"`, `"C"` for OHLC prices, `"CoName"` for company name). Custom `UnmarshalJSON` methods translate these to proper Go types with descriptive field names. Price fields use `*json.Number` and volume fields may be `nil` when no trading occurred.

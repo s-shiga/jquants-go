@@ -9,7 +9,7 @@ import (
 type Request[T any] interface {
 	// Send returns a set of data
 	Send(context.Context, *Client) ([]T, error)
-	// Path returns the API endpoint path (e.g., "/prices/daily_quotes")
+	// Path returns the API endpoint path (e.g., "/equities/bars/daily")
 	Path() string
 	// Values returns the URL query parameters for this request
 	Values() (url.Values, error)

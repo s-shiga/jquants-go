@@ -6,12 +6,9 @@
 //
 // Basic usage:
 //
-//	client, err := jquants.NewClient()
-//	if err != nil {
-//	    log.Fatal(err)
-//	}
+//	client := jquants.NewClient(jquants.BaseURL, "your_api_key")
 //
-//	issues, err := client.IssueInformation(ctx, nil)
+//	issues, err := client.IssueInformation(ctx, jquants.IssueInformationRequest{})
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
@@ -84,8 +81,9 @@ func WithLoopTimeout(loopTimeout time.Duration) Option {
 }
 
 // NewClient creates a new J-Quants API client.
-// It reads the API key from the J_QUANTS_API_KEY environment variable.
-// Returns an error if the environment variable is not set.
+// baseURL is the API base URL (use [BaseURL] for the default).
+// apiKey is the J-Quants API key for authentication.
+// Optional [Option] functions can be used to customize the client (e.g., [WithHTTPClient], [WithRetryInterval], [WithLoopTimeout]).
 func NewClient(baseURL, apiKey string, opts ...Option) *Client {
 	client := &Client{
 		httpClient: http.DefaultClient,
