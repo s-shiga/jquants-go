@@ -28,83 +28,57 @@ import (
 	"net/url"
 	"os"
 	"time"
-
-	"golang.org/x/time/rate"
 )
 
 // BaseURL is the default base URL for the J-Quants API v2.
 const BaseURL = "https://api.jquants.com/v2"
 
-// Plan represents a J-Quants subscription plan, which determines rate limits.
-type Plan string
-
-const (
-	// Light plan allows 1 request per second.
-	Light Plan = "Light"
-	// Standard plan allows 2 requests per second.
-	Standard Plan = "Standard"
-	// Premium plan allows 8 requests per second (500 per minute).
-	Premium Plan = "Premium"
-)
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
 
 // Client is the J-Quants API client.
 // It holds the HTTP client, authentication credentials, and configuration
 // for making requests to the J-Quants API.
 type Client struct {
-	// HttpClient is the HTTP client used for making requests.
-	HttpClient *http.Client
+	httpClient HTTPClient
 
-	// BaseURL is the base URL for API requests. Defaults to BaseURL constant.
-	BaseURL string
+	// baseURL is the base URL for API requests. Defaults to BaseURL constant.
+	baseURL string
 
-	// APIKey is the J-Quants API key for authentication.
-	APIKey string
+	// apiKey is the J-Quants API key for authentication.
+	apiKey string
 
-	// RetryInterval is the duration to wait before retrying after a 500 error.
+	userAgent string
+
+	// retryInterval is the duration to wait before retrying after a 500 error.
 	// Defaults to 5 seconds.
-	RetryInterval time.Duration
+	retryInterval time.Duration
 
-	// LoopTimeout is the maximum duration for paginated requests.
+	// loopTimeout is the maximum duration for paginated requests.
 	// If fetching all pages takes longer than this, the request will be cancelled.
 	// Defaults to 20 seconds.
-	LoopTimeout time.Duration
+	loopTimeout time.Duration
 }
 
-// RateLimitedTransport is an http.RoundTripper that applies rate limiting to requests.
-type RateLimitedTransport struct {
-	Transport http.RoundTripper
-	Limiter   *rate.Limiter
-}
+type Option func(*Client)
 
-func (t *RateLimitedTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if err := t.Limiter.Wait(req.Context()); err != nil {
-		return nil, err
+func WithHTTPClient(client *http.Client) Option {
+	return func(c *Client) {
+		c.httpClient = client
 	}
-	return t.Transport.RoundTrip(req)
 }
 
-type rateLimit = int
+func WithRetryInterval(retryInterval time.Duration) Option {
+	return func(c *Client) {
+		c.retryInterval = retryInterval
+	}
+}
 
-const (
-	rateLimitLight    rateLimit = 1
-	rateLimitStandard rateLimit = 2
-	rateLimitPremium  rateLimit = 8 // 500 requests per min
-)
-
-// ClientConfig holds configuration options for creating a Client with NewClientWithConfig.
-type ClientConfig struct {
-	// BaseURL is the base URL for API requests. Defaults to BaseURL constant.
-	BaseURL string
-	// APIKey is the J-Quants API key. If empty, reads from J_QUANTS_API_KEY environment variable.
-	APIKey string
-	// RateLimit is the number of requests per second. Defaults to 1.
-	RateLimit int
-	// Timeout is the HTTP client timeout. Defaults to 10 seconds.
-	Timeout time.Duration
-	// RetryInterval is the duration to wait before retrying after a 500 error. Defaults to 5 seconds.
-	RetryInterval time.Duration
-	// LoopTimeout is the maximum duration for paginated requests. Defaults to 20 seconds.
-	LoopTimeout time.Duration
+func WithLoopTimeout(loopTimeout time.Duration) Option {
+	return func(c *Client) {
+		c.loopTimeout = loopTimeout
+	}
 }
 
 func getAPIKey() (string, error) {
@@ -118,104 +92,16 @@ func getAPIKey() (string, error) {
 // NewClient creates a new J-Quants API client.
 // It reads the API key from the J_QUANTS_API_KEY environment variable.
 // Returns an error if the environment variable is not set.
-func NewClient() (*Client, error) {
-	httpClient := &http.Client{
-		Timeout: 8 * time.Second,
-	}
-	apiKey, err := getAPIKey()
-	if err != nil {
-		return nil, err
-	}
+func NewClient(baseURL, apiKey string, opts ...Option) (*Client, error) {
 	client := &Client{
-		HttpClient:    httpClient,
-		BaseURL:       BaseURL,
-		APIKey:        apiKey,
-		RetryInterval: 5 * time.Second,
-		LoopTimeout:   20 * time.Second,
+		httpClient:    http.DefaultClient,
+		baseURL:       baseURL,
+		apiKey:        apiKey,
+		retryInterval: 5 * time.Second,
+		loopTimeout:   20 * time.Second,
 	}
-	return client, nil
-}
-
-// NewClientWithRateLimit creates a new J-Quants API client with rate limiting based on the subscription plan.
-// It reads the API key from the J_QUANTS_API_KEY environment variable.
-// Returns an error if the environment variable is not set.
-func NewClientWithRateLimit(plan Plan) (*Client, error) {
-	var limit int
-	switch plan {
-	case Light:
-		limit = rateLimitLight
-	case Standard:
-		limit = rateLimitStandard
-	case Premium:
-		limit = rateLimitPremium
-	}
-	httpClient := &http.Client{
-		Transport: &RateLimitedTransport{
-			Transport: http.DefaultTransport,
-			Limiter:   rate.NewLimiter(rate.Limit(limit), limit),
-		},
-		Timeout: 8 * time.Second,
-	}
-	apiKey, err := getAPIKey()
-	if err != nil {
-		return nil, err
-	}
-	client := &Client{
-		HttpClient:    httpClient,
-		BaseURL:       BaseURL,
-		APIKey:        apiKey,
-		RetryInterval: 5 * time.Second,
-		LoopTimeout:   20 * time.Second,
-	}
-	return client, nil
-}
-
-// NewClientWithConfig creates a new J-Quants API client with custom configuration.
-// Zero values in config are replaced with sensible defaults.
-// If APIKey is empty, it reads from the J_QUANTS_API_KEY environment variable.
-// Returns an error if no API key is provided and the environment variable is not set.
-func NewClientWithConfig(config ClientConfig) (*Client, error) {
-	// Set defaults for zero values
-	if config.BaseURL == "" {
-		config.BaseURL = BaseURL
-	}
-	if config.RateLimit == 0 {
-		config.RateLimit = 1
-	}
-	if config.Timeout == 0 {
-		config.Timeout = 8 * time.Second
-	}
-	if config.RetryInterval == 0 {
-		config.RetryInterval = 5 * time.Second
-	}
-	if config.LoopTimeout == 0 {
-		config.LoopTimeout = 20 * time.Second
-	}
-
-	// Get API key from config or environment
-	apiKey := config.APIKey
-	if apiKey == "" {
-		var err error
-		apiKey, err = getAPIKey()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	httpClient := &http.Client{
-		Transport: &RateLimitedTransport{
-			Transport: http.DefaultTransport,
-			Limiter:   rate.NewLimiter(rate.Limit(config.RateLimit), config.RateLimit),
-		},
-		Timeout: config.Timeout,
-	}
-
-	client := &Client{
-		HttpClient:    httpClient,
-		BaseURL:       config.BaseURL,
-		APIKey:        apiKey,
-		RetryInterval: config.RetryInterval,
-		LoopTimeout:   config.LoopTimeout,
+	for _, opt := range opts {
+		opt(client)
 	}
 	return client, nil
 }
@@ -225,7 +111,7 @@ type parameters interface {
 }
 
 func (c *Client) sendRequest(ctx context.Context, urlPath string, param parameters) (*http.Response, error) {
-	u, err := url.Parse(c.BaseURL + urlPath)
+	u, err := url.Parse(c.baseURL + urlPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse URL: %w", err)
 	}
@@ -239,9 +125,10 @@ func (c *Client) sendRequest(ctx context.Context, urlPath string, param paramete
 	if err != nil {
 		return nil, fmt.Errorf("failed to build request: %w", err)
 	}
-	req.Header.Set("x-api-key", c.APIKey)
+	req.Header.Set("User-Agent", c.userAgent)
+	req.Header.Set("x-api-key", c.apiKey)
 	req.Header.Set("Accept-Encoding", "gzip")
-	resp, err := c.HttpClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -337,14 +224,14 @@ func fetchAllPages[T any, R Response[T]](
 ) ([]T, error) {
 	data := make([]T, 0)
 	var paginationKey *string
-	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
+	ctx, cancel := context.WithTimeout(ctx, c.loopTimeout)
 	defer cancel()
 	for {
 		resp, err := fetchPage(ctx, paginationKey)
 		if err != nil {
 			if errors.As(err, &InternalServerError{}) {
 				slog.Warn("Retrying HTTP request", "error", err.Error())
-				time.Sleep(c.RetryInterval)
+				time.Sleep(c.retryInterval)
 				continue
 			}
 			return nil, err
@@ -366,14 +253,14 @@ func fetchAllPagesWithChannel[T any, R Response[T]](
 	fetchPage func(ctx context.Context, paginationKey *string) (R, error),
 ) error {
 	var paginationKey *string
-	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
+	ctx, cancel := context.WithTimeout(ctx, c.loopTimeout)
 	defer cancel()
 	for {
 		resp, err := fetchPage(ctx, paginationKey)
 		if err != nil {
 			if errors.As(err, &InternalServerError{}) {
 				slog.Warn("Retrying HTTP request", "error", err.Error())
-				time.Sleep(c.RetryInterval)
+				time.Sleep(c.retryInterval)
 				continue
 			}
 			return err
