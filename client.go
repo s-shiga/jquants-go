@@ -26,9 +26,11 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
-	"os"
+	"runtime"
 	"time"
 )
+
+const Version = "0.6.0"
 
 // BaseURL is the default base URL for the J-Quants API v2.
 const BaseURL = "https://api.jquants.com/v2"
@@ -81,22 +83,21 @@ func WithLoopTimeout(loopTimeout time.Duration) Option {
 	}
 }
 
-func getAPIKey() (string, error) {
-	APIKey, ok := os.LookupEnv("J_QUANTS_API_KEY")
-	if !ok {
-		return "", errors.New("J_QUANTS_API_KEY environment variable is not set")
-	}
-	return APIKey, nil
-}
-
 // NewClient creates a new J-Quants API client.
 // It reads the API key from the J_QUANTS_API_KEY environment variable.
 // Returns an error if the environment variable is not set.
 func NewClient(baseURL, apiKey string, opts ...Option) *Client {
 	client := &Client{
-		httpClient:    http.DefaultClient,
-		baseURL:       baseURL,
-		apiKey:        apiKey,
+		httpClient: http.DefaultClient,
+		baseURL:    baseURL,
+		apiKey:     apiKey,
+		userAgent: fmt.Sprintf(
+			"jquants-go/%s (%s; %s-%s)",
+			Version,
+			runtime.Version(),
+			runtime.GOOS,
+			runtime.GOARCH,
+		),
 		retryInterval: 5 * time.Second,
 		loopTimeout:   20 * time.Second,
 	}
