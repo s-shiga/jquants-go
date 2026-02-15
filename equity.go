@@ -288,7 +288,7 @@ type stockPriceResponse struct {
 	PaginationKey *string      `json:"pagination_key"`
 }
 
-func (r stockPriceResponse) Items() []StockPrice    { return r.Data }
+func (r stockPriceResponse) Items() []StockPrice  { return r.Data }
 func (r stockPriceResponse) NextPageKey() *string { return r.PaginationKey }
 
 func (c *Client) sendStockPriceRequest(ctx context.Context, params stockPriceParameters) (stockPriceResponse, error) {
@@ -506,8 +506,8 @@ type investorTypeResponse struct {
 	PaginationKey *string        `json:"pagination_key"`
 }
 
-func (r investorTypeResponse) Items() []InvestorType  { return r.Data }
-func (r investorTypeResponse) NextPageKey() *string { return r.PaginationKey }
+func (r investorTypeResponse) Items() []InvestorType { return r.Data }
+func (r investorTypeResponse) NextPageKey() *string  { return r.PaginationKey }
 
 func (c *Client) sendInvestorTypeRequest(ctx context.Context, params investorTypeParameters) (investorTypeResponse, error) {
 	var r investorTypeResponse
