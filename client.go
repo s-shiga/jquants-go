@@ -40,64 +40,64 @@ type HTTPClient interface {
 // It holds the HTTP client, authentication credentials, and configuration
 // for making requests to the J-Quants API.
 type Client struct {
-	httpClient HTTPClient
+	HTTPClient HTTPClient
 
-	// baseURL is the base URL for API requests. Defaults to BaseURL constant.
-	baseURL string
+	// BaseURL is the base URL for API requests. Defaults to BaseURL constant.
+	BaseURL string
 
-	// apiKey is the J-Quants API key for authentication.
-	apiKey string
+	// APIKey is the J-Quants API key for authentication.
+	APIKey string
 
-	userAgent string
+	UserAgent string
 
-	// retryInterval is the duration to wait before retrying after a 500 error.
+	// RetryInterval is the duration to wait before retrying after a 500 error.
 	// Defaults to 5 seconds.
-	retryInterval time.Duration
+	RetryInterval time.Duration
 
-	// loopTimeout is the maximum duration for paginated requests.
+	// LoopTimeout is the maximum duration for paginated requests.
 	// If fetching all pages takes longer than this, the request will be cancelled.
 	// Defaults to 20 seconds.
-	loopTimeout time.Duration
+	LoopTimeout time.Duration
 }
 
 type Option func(*Client)
 
-func WithHTTPClient(client *http.Client) Option {
+func WithHTTPClient(client HTTPClient) Option {
 	return func(c *Client) {
-		c.httpClient = client
+		c.HTTPClient = client
 	}
 }
 
 func WithRetryInterval(retryInterval time.Duration) Option {
 	return func(c *Client) {
-		c.retryInterval = retryInterval
+		c.RetryInterval = retryInterval
 	}
 }
 
 func WithLoopTimeout(loopTimeout time.Duration) Option {
 	return func(c *Client) {
-		c.loopTimeout = loopTimeout
+		c.LoopTimeout = loopTimeout
 	}
 }
 
 // NewClient creates a new J-Quants API client.
-// baseURL is the API base URL (use [BaseURL] for the default).
-// apiKey is the J-Quants API key for authentication.
+// BaseURL is the API base URL (use [BaseURL] for the default).
+// APIKey is the J-Quants API key for authentication.
 // Optional [Option] functions can be used to customize the client (e.g., [WithHTTPClient], [WithRetryInterval], [WithLoopTimeout]).
 func NewClient(baseURL, apiKey string, opts ...Option) *Client {
 	client := &Client{
-		httpClient: http.DefaultClient,
-		baseURL:    baseURL,
-		apiKey:     apiKey,
-		userAgent: fmt.Sprintf(
+		HTTPClient: http.DefaultClient,
+		BaseURL:    baseURL,
+		APIKey:     apiKey,
+		UserAgent: fmt.Sprintf(
 			"jquants-go/%s (%s; %s-%s)",
 			Version,
 			runtime.Version(),
 			runtime.GOOS,
 			runtime.GOARCH,
 		),
-		retryInterval: 5 * time.Second,
-		loopTimeout:   20 * time.Second,
+		RetryInterval: 5 * time.Second,
+		LoopTimeout:   20 * time.Second,
 	}
 	for _, opt := range opts {
 		opt(client)
@@ -110,7 +110,7 @@ type parameters interface {
 }
 
 func (c *Client) sendRequest(ctx context.Context, urlPath string, param parameters) (*http.Response, error) {
-	u, err := url.Parse(c.baseURL + urlPath)
+	u, err := url.Parse(c.BaseURL + urlPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse URL: %w", err)
 	}
@@ -124,10 +124,10 @@ func (c *Client) sendRequest(ctx context.Context, urlPath string, param paramete
 	if err != nil {
 		return nil, fmt.Errorf("failed to build request: %w", err)
 	}
-	req.Header.Set("User-Agent", c.userAgent)
-	req.Header.Set("x-api-key", c.apiKey)
+	req.Header.Set("User-Agent", c.UserAgent)
+	req.Header.Set("x-api-key", c.APIKey)
 	req.Header.Set("Accept-Encoding", "gzip")
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -223,14 +223,14 @@ func fetchAllPages[T any, R Response[T]](
 ) ([]T, error) {
 	data := make([]T, 0)
 	var paginationKey *string
-	ctx, cancel := context.WithTimeout(ctx, c.loopTimeout)
+	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
 	defer cancel()
 	for {
 		resp, err := fetchPage(ctx, paginationKey)
 		if err != nil {
 			if errors.As(err, &InternalServerError{}) {
 				slog.Warn("Retrying HTTP request", "error", err.Error())
-				time.Sleep(c.retryInterval)
+				time.Sleep(c.RetryInterval)
 				continue
 			}
 			return nil, err
@@ -252,14 +252,14 @@ func fetchAllPagesWithChannel[T any, R Response[T]](
 	fetchPage func(ctx context.Context, paginationKey *string) (R, error),
 ) error {
 	var paginationKey *string
-	ctx, cancel := context.WithTimeout(ctx, c.loopTimeout)
+	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
 	defer cancel()
 	for {
 		resp, err := fetchPage(ctx, paginationKey)
 		if err != nil {
 			if errors.As(err, &InternalServerError{}) {
 				slog.Warn("Retrying HTTP request", "error", err.Error())
-				time.Sleep(c.retryInterval)
+				time.Sleep(c.RetryInterval)
 				continue
 			}
 			return err
