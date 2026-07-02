@@ -17,29 +17,29 @@ type IndexOptionPrice struct {
 	// Code is the option contract code.
 	Code string
 	// WholeDayOpen is the opening price for the whole trading day.
-	WholeDayOpen *int16
+	WholeDayOpen *int32
 	// WholeDayHigh is the highest price for the whole trading day.
-	WholeDayHigh *int16
+	WholeDayHigh *int32
 	// WholeDayLow is the lowest price for the whole trading day.
-	WholeDayLow *int16
+	WholeDayLow *int32
 	// WholeDayClose is the closing price for the whole trading day.
-	WholeDayClose *int16
+	WholeDayClose *int32
 	// NightSessionOpen is the opening price for the night session.
-	NightSessionOpen *int16
+	NightSessionOpen *int32
 	// NightSessionHigh is the highest price for the night session.
-	NightSessionHigh *int16
+	NightSessionHigh *int32
 	// NightSessionLow is the lowest price for the night session.
-	NightSessionLow *int16
+	NightSessionLow *int32
 	// NightSessionClose is the closing price for the night session.
-	NightSessionClose *int16
+	NightSessionClose *int32
 	// DaySessionOpen is the opening price for the day session.
-	DaySessionOpen *int16
+	DaySessionOpen *int32
 	// DaySessionHigh is the highest price for the day session.
-	DaySessionHigh *int16
+	DaySessionHigh *int32
 	// DaySessionLow is the lowest price for the day session.
-	DaySessionLow *int16
+	DaySessionLow *int32
 	// DaySessionClose is the closing price for the day session.
-	DaySessionClose *int16
+	DaySessionClose *int32
 	// Volume is the total trading volume in contracts.
 	Volume int64
 	// OpenInterest is the number of outstanding contracts.
@@ -49,7 +49,7 @@ type IndexOptionPrice struct {
 	// ContractMonth is the contract expiration month in YYYYMM format.
 	ContractMonth string
 	// StrikePrice is the option strike price.
-	StrikePrice int16
+	StrikePrice int32
 	// VolumeOnlyAuction is the volume from auction-only trades.
 	VolumeOnlyAuction *int64
 	// EmergencyMarginTriggerDivision indicates emergency margin status.
@@ -61,7 +61,7 @@ type IndexOptionPrice struct {
 	// SpecialQuotationDay is the special quotation day (SQ day).
 	SpecialQuotationDay *string
 	// SettlementPrice is the daily settlement price.
-	SettlementPrice *int16
+	SettlementPrice *int32
 	// TheoreticalPrice is the theoretical option price.
 	TheoreticalPrice *json.Number
 	// BaseVolatility is the base volatility used for theoretical price calculation.
@@ -79,7 +79,7 @@ type unmarshaler struct {
 	err error
 }
 
-func (u *unmarshaler) price(v interface{}) *int16 {
+func (u *unmarshaler) price(v interface{}) *int32 {
 	if u.err != nil {
 		return nil
 	}
@@ -167,7 +167,7 @@ func (iop *IndexOptionPrice) UnmarshalJSON(b []byte) error {
 	iop.OpenInterest = int64(raw.OpenInterest)
 	iop.TurnoverValue = int64(raw.TurnoverValue)
 	iop.ContractMonth = raw.ContractMonth
-	iop.StrikePrice = int16(raw.StrikePrice)
+	iop.StrikePrice = int32(raw.StrikePrice)
 	iop.VolumeOnlyAuction = u.volume(raw.VolumeOnlyAuction)
 	iop.EmergencyMarginTriggerDivision = raw.EmergencyMarginTriggerDivision
 	iop.PutCallDivision = int8(putCallDivision)
@@ -183,11 +183,10 @@ func (iop *IndexOptionPrice) UnmarshalJSON(b []byte) error {
 	return u.err
 }
 
-func unmarshalPrice(value interface{}) (*int16, error) {
+func unmarshalPrice(value interface{}) (*int32, error) {
 	switch v := value.(type) {
 	case float64:
-		f := float32(v)
-		i := int16(f)
+		i := int32(v)
 		return &i, nil
 	case string:
 		return nil, nil
