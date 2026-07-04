@@ -109,6 +109,30 @@ type parameters interface {
 	values() (url.Values, error)
 }
 
+// codeDateRangeValues builds query parameters for endpoints that require
+// either a code or a date, with an optional from/to range when querying by code.
+func codeDateRangeValues(code, date, from, to, paginationKey *string) (url.Values, error) {
+	v := url.Values{}
+	if date != nil {
+		v.Add("date", *date)
+	} else {
+		if code == nil {
+			return nil, errors.New("code or date is required")
+		}
+		v.Add("code", *code)
+		if from != nil {
+			v.Add("from", *from)
+		}
+		if to != nil {
+			v.Add("to", *to)
+		}
+	}
+	if paginationKey != nil {
+		v.Add("pagination_key", *paginationKey)
+	}
+	return v, nil
+}
+
 func (c *Client) sendRequest(ctx context.Context, urlPath string, param parameters) (*http.Response, error) {
 	u, err := url.Parse(c.BaseURL + urlPath)
 	if err != nil {
@@ -184,6 +208,28 @@ func decodeResponse(resp *http.Response, body any) error {
 	return nil
 }
 
+// getJSON sends a single GET request and decodes the JSON response into R.
+// It ensures the response body is closed.
+func getJSON[R any](ctx context.Context, c *Client, urlPath string, param parameters) (R, error) {
+	var r R
+	resp, err := c.sendRequest(ctx, urlPath, param)
+	if err != nil {
+		return r, fmt.Errorf("failed to send GET request: %w", err)
+	}
+	defer func() {
+		if clsErr := resp.Body.Close(); clsErr != nil {
+			slog.Warn("failed to close response body", "error", clsErr)
+		}
+	}()
+	if resp.StatusCode != 200 {
+		return r, handleErrorResponse(resp)
+	}
+	if err = decodeResponse(resp, &r); err != nil {
+		return r, fmt.Errorf("failed to decode HTTP response: %w", err)
+	}
+	return r, nil
+}
+
 // ErrResponse represents the error response body from the J-Quants API.
 type ErrResponse struct {
 	Message string `json:"message"`
@@ -215,6 +261,19 @@ func decodeErrorResponse(resp *http.Response) error {
 	return errors.New(errResp.Message)
 }
 
+// sleep waits for the given duration or until the context is cancelled,
+// whichever comes first.
+func sleep(ctx context.Context, d time.Duration) error {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
+
 // fetchAllPages fetches all pages of a paginated API endpoint.
 func fetchAllPages[T any, R Response[T]](
 	ctx context.Context,
@@ -230,7 +289,9 @@ func fetchAllPages[T any, R Response[T]](
 		if err != nil {
 			if errors.As(err, &InternalServerError{}) {
 				slog.Warn("Retrying HTTP request", "error", err.Error())
-				time.Sleep(c.RetryInterval)
+				if err := sleep(ctx, c.RetryInterval); err != nil {
+					return nil, err
+				}
 				continue
 			}
 			return nil, err
@@ -245,12 +306,14 @@ func fetchAllPages[T any, R Response[T]](
 }
 
 // fetchAllPagesWithChannel fetches all pages and sends each item to a channel.
+// The channel is closed when all items have been sent or an error occurs.
 func fetchAllPagesWithChannel[T any, R Response[T]](
 	ctx context.Context,
 	c *Client,
 	ch chan<- T,
 	fetchPage func(ctx context.Context, paginationKey *string) (R, error),
 ) error {
+	defer close(ch)
 	var paginationKey *string
 	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
 	defer cancel()
@@ -259,19 +322,24 @@ func fetchAllPagesWithChannel[T any, R Response[T]](
 		if err != nil {
 			if errors.As(err, &InternalServerError{}) {
 				slog.Warn("Retrying HTTP request", "error", err.Error())
-				time.Sleep(c.RetryInterval)
+				if err := sleep(ctx, c.RetryInterval); err != nil {
+					return err
+				}
 				continue
 			}
 			return err
 		}
 		for _, item := range resp.Items() {
-			ch <- item
+			select {
+			case ch <- item:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
 		}
 		paginationKey = resp.NextPageKey()
 		if paginationKey == nil {
 			break
 		}
 	}
-	close(ch)
 	return nil
 }

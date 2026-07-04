@@ -83,25 +83,7 @@ type marginTradingOutstandingParameters struct {
 }
 
 func (p marginTradingOutstandingParameters) values() (url.Values, error) {
-	v := url.Values{}
-	if p.Date != nil {
-		v.Add("date", *p.Date)
-	} else {
-		if p.Code == nil {
-			return nil, errors.New("code or date is required")
-		}
-		v.Add("code", *p.Code)
-		if p.From != nil {
-			v.Add("from", *p.From)
-		}
-		if p.To != nil {
-			v.Add("to", *p.To)
-		}
-	}
-	if p.PaginationKey != nil {
-		v.Add("pagination_key", *p.PaginationKey)
-	}
-	return v, nil
+	return codeDateRangeValues(p.Code, p.Date, p.From, p.To, p.PaginationKey)
 }
 
 type marginTradingOutstandingResponse struct {
@@ -112,28 +94,13 @@ type marginTradingOutstandingResponse struct {
 func (r marginTradingOutstandingResponse) Items() []MarginTradingOutstanding { return r.Data }
 func (r marginTradingOutstandingResponse) NextPageKey() *string              { return r.PaginationKey }
 
-func (c *Client) sendMarginTradingOutstandingRequest(ctx context.Context, params marginTradingOutstandingParameters) (marginTradingOutstandingResponse, error) {
-	var r marginTradingOutstandingResponse
-	resp, err := c.sendRequest(ctx, "/markets/margin-interest", params)
-	if err != nil {
-		return r, fmt.Errorf("failed to send GET request: %w", err)
-	}
-	if resp.StatusCode != 200 {
-		return r, handleErrorResponse(resp)
-	}
-	if err = decodeResponse(resp, &r); err != nil {
-		return r, fmt.Errorf("failed to decode HTTP response: %w", err)
-	}
-	return r, nil
-}
-
 // MarginTradingOutstanding retrieves margin trading balance data from the /markets/margin-interest endpoint.
 // It automatically handles pagination to fetch all matching records.
 // See https://jpx-jquants.com/en/spec/mkt-margin-int for API details.
 func (c *Client) MarginTradingOutstanding(ctx context.Context, req MarginTradingOutstandingRequest) ([]MarginTradingOutstanding, error) {
 	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (marginTradingOutstandingResponse, error) {
 		params := marginTradingOutstandingParameters{MarginTradingOutstandingRequest: req, PaginationKey: paginationKey}
-		return c.sendMarginTradingOutstandingRequest(ctx, params)
+		return getJSON[marginTradingOutstandingResponse](ctx, c, "/markets/margin-interest", params)
 	})
 }
 
@@ -223,27 +190,12 @@ type shortSellingValueResponse struct {
 func (r shortSellingValueResponse) Items() []ShortSellingValue { return r.Data }
 func (r shortSellingValueResponse) NextPageKey() *string       { return r.PaginationKey }
 
-func (c *Client) sendShortSellingValueRequest(ctx context.Context, params shortSellingValueParameters) (shortSellingValueResponse, error) {
-	var r shortSellingValueResponse
-	resp, err := c.sendRequest(ctx, "/markets/short-ratio", params)
-	if err != nil {
-		return r, fmt.Errorf("failed to send GET request: %w", err)
-	}
-	if resp.StatusCode != 200 {
-		return r, handleErrorResponse(resp)
-	}
-	if err = decodeResponse(resp, &r); err != nil {
-		return r, fmt.Errorf("failed to decode HTTP response: %w", err)
-	}
-	return r, nil
-}
-
 // ShortSellingValue retrieves short selling turnover data from the /markets/short-ratio endpoint.
 // It automatically handles pagination to fetch all matching records.
 func (c *Client) ShortSellingValue(ctx context.Context, req ShortSellingValueRequest) ([]ShortSellingValue, error) {
 	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (shortSellingValueResponse, error) {
 		params := shortSellingValueParameters{ShortSellingValueRequest: req, PaginationKey: paginationKey}
-		return c.sendShortSellingValueRequest(ctx, params)
+		return getJSON[shortSellingValueResponse](ctx, c, "/markets/short-ratio", params)
 	})
 }
 
@@ -312,17 +264,9 @@ type tradingCalendarResponse struct {
 
 // TradingCalendar retrieves the TSE trading calendar from the /markets/calendar endpoint.
 func (c *Client) TradingCalendar(ctx context.Context, req TradingCalendarRequest) ([]TradingCalendar, error) {
-	var r tradingCalendarResponse
-	params := tradingCalendarParameters{TradingCalendarRequest: req}
-	resp, err := c.sendRequest(ctx, "/markets/calendar", params)
+	r, err := getJSON[tradingCalendarResponse](ctx, c, "/markets/calendar", tradingCalendarParameters{req})
 	if err != nil {
-		return nil, fmt.Errorf("failed to send GET request: %w", err)
-	}
-	if resp.StatusCode != 200 {
-		return nil, handleErrorResponse(resp)
-	}
-	if err = decodeResponse(resp, &r); err != nil {
-		return nil, fmt.Errorf("failed to decode HTTP response: %w", err)
+		return nil, err
 	}
 	return r.Data, nil
 }

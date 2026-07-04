@@ -79,7 +79,7 @@ type unmarshaler struct {
 	err error
 }
 
-func (u *unmarshaler) price(v interface{}) *int32 {
+func (u *unmarshaler) price(v any) *int32 {
 	if u.err != nil {
 		return nil
 	}
@@ -88,7 +88,7 @@ func (u *unmarshaler) price(v interface{}) *int32 {
 	return result
 }
 
-func (u *unmarshaler) volume(v interface{}) *int64 {
+func (u *unmarshaler) volume(v any) *int64 {
 	if u.err != nil {
 		return nil
 	}
@@ -97,7 +97,7 @@ func (u *unmarshaler) volume(v interface{}) *int64 {
 	return result
 }
 
-func (u *unmarshaler) jsonNumber(v interface{}) *json.Number {
+func (u *unmarshaler) jsonNumber(v any) *json.Number {
 	if u.err != nil {
 		return nil
 	}
@@ -108,36 +108,36 @@ func (u *unmarshaler) jsonNumber(v interface{}) *json.Number {
 
 func (iop *IndexOptionPrice) UnmarshalJSON(b []byte) error {
 	var raw struct {
-		Date                           string      `json:"Date"`
-		Code                           string      `json:"Code"`
-		WholeDayOpen                   interface{} `json:"O"`
-		WholeDayHigh                   interface{} `json:"H"`
-		WholeDayLow                    interface{} `json:"L"`
-		WholeDayClose                  interface{} `json:"C"`
-		NightSessionOpen               interface{} `json:"EO"`
-		NightSessionHigh               interface{} `json:"EH"`
-		NightSessionLow                interface{} `json:"EL"`
-		NightSessionClose              interface{} `json:"EC"`
-		DaySessionOpen                 interface{} `json:"AO"`
-		DaySessionHigh                 interface{} `json:"AH"`
-		DaySessionLow                  interface{} `json:"AL"`
-		DaySessionClose                interface{} `json:"AC"`
-		Volume                         float64     `json:"Vo"`
-		OpenInterest                   float64     `json:"OI"`
-		TurnoverValue                  float64     `json:"Va"`
-		ContractMonth                  string      `json:"CM"`
-		StrikePrice                    float64     `json:"Strike"`
-		VolumeOnlyAuction              interface{} `json:"VoOA"`
-		EmergencyMarginTriggerDivision string      `json:"EmMrgnTrgDiv"`
-		PutCallDivision                string      `json:"PCDiv"`
-		LastTradingDay                 string      `json:"LTD"`
-		SpecialQuotationDay            string      `json:"SQD"`
-		SettlementPrice                interface{} `json:"Settle"`
-		TheoreticalPrice               interface{} `json:"Theo"`
-		BaseVolatility                 interface{} `json:"BaseVol"`
-		UnderlyingPrice                interface{} `json:"UnderPx"`
-		ImpliedVolatility              interface{} `json:"IV"`
-		InterestRate                   interface{} `json:"IR"`
+		Date                           string  `json:"Date"`
+		Code                           string  `json:"Code"`
+		WholeDayOpen                   any     `json:"O"`
+		WholeDayHigh                   any     `json:"H"`
+		WholeDayLow                    any     `json:"L"`
+		WholeDayClose                  any     `json:"C"`
+		NightSessionOpen               any     `json:"EO"`
+		NightSessionHigh               any     `json:"EH"`
+		NightSessionLow                any     `json:"EL"`
+		NightSessionClose              any     `json:"EC"`
+		DaySessionOpen                 any     `json:"AO"`
+		DaySessionHigh                 any     `json:"AH"`
+		DaySessionLow                  any     `json:"AL"`
+		DaySessionClose                any     `json:"AC"`
+		Volume                         float64 `json:"Vo"`
+		OpenInterest                   float64 `json:"OI"`
+		TurnoverValue                  float64 `json:"Va"`
+		ContractMonth                  string  `json:"CM"`
+		StrikePrice                    float64 `json:"Strike"`
+		VolumeOnlyAuction              any     `json:"VoOA"`
+		EmergencyMarginTriggerDivision string  `json:"EmMrgnTrgDiv"`
+		PutCallDivision                string  `json:"PCDiv"`
+		LastTradingDay                 string  `json:"LTD"`
+		SpecialQuotationDay            string  `json:"SQD"`
+		SettlementPrice                any     `json:"Settle"`
+		TheoreticalPrice               any     `json:"Theo"`
+		BaseVolatility                 any     `json:"BaseVol"`
+		UnderlyingPrice                any     `json:"UnderPx"`
+		ImpliedVolatility              any     `json:"IV"`
+		InterestRate                   any     `json:"IR"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal index option price: %w", err)
@@ -149,7 +149,7 @@ func (iop *IndexOptionPrice) UnmarshalJSON(b []byte) error {
 
 	u := &unmarshaler{}
 
-	iop.Date = *unmarshalTime(raw.Date)
+	iop.Date = raw.Date
 	iop.Code = raw.Code
 	iop.WholeDayOpen = u.price(raw.WholeDayOpen)
 	iop.WholeDayHigh = u.price(raw.WholeDayHigh)
@@ -171,8 +171,8 @@ func (iop *IndexOptionPrice) UnmarshalJSON(b []byte) error {
 	iop.VolumeOnlyAuction = u.volume(raw.VolumeOnlyAuction)
 	iop.EmergencyMarginTriggerDivision = raw.EmergencyMarginTriggerDivision
 	iop.PutCallDivision = int8(putCallDivision)
-	iop.LastTradingDay = unmarshalTime(raw.LastTradingDay)
-	iop.SpecialQuotationDay = unmarshalTime(raw.SpecialQuotationDay)
+	iop.LastTradingDay = nilIfEmpty(raw.LastTradingDay)
+	iop.SpecialQuotationDay = nilIfEmpty(raw.SpecialQuotationDay)
 	iop.SettlementPrice = u.price(raw.SettlementPrice)
 	iop.TheoreticalPrice = u.jsonNumber(raw.TheoreticalPrice)
 	iop.BaseVolatility = u.jsonNumber(raw.BaseVolatility)
@@ -183,7 +183,7 @@ func (iop *IndexOptionPrice) UnmarshalJSON(b []byte) error {
 	return u.err
 }
 
-func unmarshalPrice(value interface{}) (*int32, error) {
+func unmarshalPrice(value any) (*int32, error) {
 	switch v := value.(type) {
 	case float64:
 		i := int32(v)
@@ -197,7 +197,7 @@ func unmarshalPrice(value interface{}) (*int32, error) {
 	}
 }
 
-func unmarshalVolume(value interface{}) (*int64, error) {
+func unmarshalVolume(value any) (*int64, error) {
 	switch v := value.(type) {
 	case float64:
 		i := int64(v)
@@ -211,7 +211,7 @@ func unmarshalVolume(value interface{}) (*int64, error) {
 	}
 }
 
-func unmarshalJSONNumber(value interface{}) (*json.Number, error) {
+func unmarshalJSONNumber(value any) (*json.Number, error) {
 	switch v := value.(type) {
 	case float64:
 		s := strconv.FormatFloat(v, 'f', -1, 64)
@@ -226,7 +226,7 @@ func unmarshalJSONNumber(value interface{}) (*json.Number, error) {
 	}
 }
 
-func unmarshalTime(value string) *string {
+func nilIfEmpty(value string) *string {
 	if value == "" {
 		return nil
 	}
@@ -261,27 +261,12 @@ type indexOptionPriceResponse struct {
 func (r indexOptionPriceResponse) Items() []IndexOptionPrice { return r.Data }
 func (r indexOptionPriceResponse) NextPageKey() *string      { return r.PaginationKey }
 
-func (c *Client) sendIndexOptionPriceRequest(ctx context.Context, params indexOptionPriceParameters) (indexOptionPriceResponse, error) {
-	var r indexOptionPriceResponse
-	resp, err := c.sendRequest(ctx, "/derivatives/bars/daily/options/225", params)
-	if err != nil {
-		return r, fmt.Errorf("failed to send GET request: %w", err)
-	}
-	if resp.StatusCode != 200 {
-		return r, handleErrorResponse(resp)
-	}
-	if err = decodeResponse(resp, &r); err != nil {
-		return r, fmt.Errorf("failed to decode HTTP response: %w", err)
-	}
-	return r, nil
-}
-
 // IndexOptionPrice retrieves Nikkei 225 index option prices from the /derivatives/bars/daily/options/225 endpoint.
 // It automatically handles pagination to fetch all matching records.
 func (c *Client) IndexOptionPrice(ctx context.Context, req IndexOptionPriceRequest) ([]IndexOptionPrice, error) {
 	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (indexOptionPriceResponse, error) {
 		params := indexOptionPriceParameters{IndexOptionPriceRequest: req, PaginationKey: paginationKey}
-		return c.sendIndexOptionPriceRequest(ctx, params)
+		return getJSON[indexOptionPriceResponse](ctx, c, "/derivatives/bars/daily/options/225", params)
 	})
 }
 
@@ -290,6 +275,6 @@ func (c *Client) IndexOptionPrice(ctx context.Context, req IndexOptionPriceReque
 func (c *Client) IndexOptionPriceWithChannel(ctx context.Context, req IndexOptionPriceRequest, ch chan<- IndexOptionPrice) error {
 	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (indexOptionPriceResponse, error) {
 		params := indexOptionPriceParameters{IndexOptionPriceRequest: req, PaginationKey: paginationKey}
-		return c.sendIndexOptionPriceRequest(ctx, params)
+		return getJSON[indexOptionPriceResponse](ctx, c, "/derivatives/bars/daily/options/225", params)
 	})
 }

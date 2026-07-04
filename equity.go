@@ -3,7 +3,6 @@ package jquants
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -116,18 +115,9 @@ type issueInformationResponse struct {
 // IssueInformation retrieves master data for listed securities from the /equities/master endpoint.
 // It returns company information, sector classifications, and market details.
 func (c *Client) IssueInformation(ctx context.Context, req IssueInformationRequest) ([]IssueInformation, error) {
-	var r issueInformationResponse
-	params := issueInformationParameters{req}
-	resp, err := c.sendRequest(ctx, "/equities/master", params)
+	r, err := getJSON[issueInformationResponse](ctx, c, "/equities/master", issueInformationParameters{req})
 	if err != nil {
-		return nil, fmt.Errorf("failed to send GET request: %w", err)
-	}
-
-	if resp.StatusCode != 200 {
-		return nil, handleErrorResponse(resp)
-	}
-	if err = decodeResponse(resp, &r); err != nil {
-		return nil, fmt.Errorf("failed to decode HTTP response: %w", err)
+		return nil, err
 	}
 	return r.Information, nil
 }
@@ -262,25 +252,7 @@ type stockPriceParameters struct {
 }
 
 func (p stockPriceParameters) values() (url.Values, error) {
-	v := url.Values{}
-	if p.Date != nil {
-		v.Add("date", *p.Date)
-	} else {
-		if p.Code == nil {
-			return nil, errors.New("code or date is required")
-		}
-		v.Add("code", *p.Code)
-		if p.From != nil {
-			v.Add("from", *p.From)
-		}
-		if p.To != nil {
-			v.Add("to", *p.To)
-		}
-	}
-	if p.PaginationKey != nil {
-		v.Add("pagination_key", *p.PaginationKey)
-	}
-	return v, nil
+	return codeDateRangeValues(p.Code, p.Date, p.From, p.To, p.PaginationKey)
 }
 
 type stockPriceResponse struct {
@@ -291,27 +263,12 @@ type stockPriceResponse struct {
 func (r stockPriceResponse) Items() []StockPrice  { return r.Data }
 func (r stockPriceResponse) NextPageKey() *string { return r.PaginationKey }
 
-func (c *Client) sendStockPriceRequest(ctx context.Context, params stockPriceParameters) (stockPriceResponse, error) {
-	var r stockPriceResponse
-	resp, err := c.sendRequest(ctx, "/equities/bars/daily", params)
-	if err != nil {
-		return r, fmt.Errorf("failed to send GET request: %w", err)
-	}
-	if resp.StatusCode != 200 {
-		return r, handleErrorResponse(resp)
-	}
-	if err = decodeResponse(resp, &r); err != nil {
-		return r, fmt.Errorf("failed to decode HTTP response: %w", err)
-	}
-	return r, nil
-}
-
 // StockPrice retrieves daily stock prices from the /equities/bars/daily endpoint.
 // It automatically handles pagination to fetch all matching records.
 func (c *Client) StockPrice(ctx context.Context, req StockPriceRequest) ([]StockPrice, error) {
 	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (stockPriceResponse, error) {
 		params := stockPriceParameters{StockPriceRequest: req, PaginationKey: paginationKey}
-		return c.sendStockPriceRequest(ctx, params)
+		return getJSON[stockPriceResponse](ctx, c, "/equities/bars/daily", params)
 	})
 }
 
@@ -320,7 +277,7 @@ func (c *Client) StockPrice(ctx context.Context, req StockPriceRequest) ([]Stock
 func (c *Client) StockPriceWithChannel(ctx context.Context, req StockPriceRequest, ch chan<- StockPrice) error {
 	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (stockPriceResponse, error) {
 		params := stockPriceParameters{StockPriceRequest: req, PaginationKey: paginationKey}
-		return c.sendStockPriceRequest(ctx, params)
+		return getJSON[stockPriceResponse](ctx, c, "/equities/bars/daily", params)
 	})
 }
 
@@ -509,27 +466,12 @@ type investorTypeResponse struct {
 func (r investorTypeResponse) Items() []InvestorType { return r.Data }
 func (r investorTypeResponse) NextPageKey() *string  { return r.PaginationKey }
 
-func (c *Client) sendInvestorTypeRequest(ctx context.Context, params investorTypeParameters) (investorTypeResponse, error) {
-	var r investorTypeResponse
-	resp, err := c.sendRequest(ctx, "/equities/investor-types", params)
-	if err != nil {
-		return r, fmt.Errorf("failed to send GET request: %w", err)
-	}
-	if resp.StatusCode != 200 {
-		return r, handleErrorResponse(resp)
-	}
-	if err = decodeResponse(resp, &r); err != nil {
-		return r, fmt.Errorf("failed to decode HTTP response: %w", err)
-	}
-	return r, nil
-}
-
 // InvestorType retrieves weekly trading data by investor type from the /equities/investor-types endpoint.
 // It automatically handles pagination to fetch all matching records.
 // See https://jpx-jquants.com/en/spec/eq-investor-types for API details.
 func (c *Client) InvestorType(ctx context.Context, req InvestorTypeRequest) ([]InvestorType, error) {
 	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (investorTypeResponse, error) {
 		params := investorTypeParameters{InvestorTypeRequest: req, PaginationKey: paginationKey}
-		return c.sendInvestorTypeRequest(ctx, params)
+		return getJSON[investorTypeResponse](ctx, c, "/equities/investor-types", params)
 	})
 }

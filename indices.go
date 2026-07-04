@@ -3,7 +3,6 @@ package jquants
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 )
@@ -64,25 +63,7 @@ type indexPriceParameters struct {
 }
 
 func (p indexPriceParameters) values() (url.Values, error) {
-	v := url.Values{}
-	if p.Date != nil {
-		v.Add("date", *p.Date)
-	} else {
-		if p.Code == nil {
-			return nil, errors.New("code or date is required")
-		}
-		v.Add("code", *p.Code)
-		if p.From != nil {
-			v.Add("from", *p.From)
-		}
-		if p.To != nil {
-			v.Add("to", *p.To)
-		}
-	}
-	if p.PaginationKey != nil {
-		v.Add("pagination_key", *p.PaginationKey)
-	}
-	return v, nil
+	return codeDateRangeValues(p.Code, p.Date, p.From, p.To, p.PaginationKey)
 }
 
 type indexPriceResponse struct {
@@ -90,30 +71,15 @@ type indexPriceResponse struct {
 	PaginationKey *string      `json:"pagination_key"`
 }
 
-func (r indexPriceResponse) Items() []IndexPrice    { return r.Data }
+func (r indexPriceResponse) Items() []IndexPrice  { return r.Data }
 func (r indexPriceResponse) NextPageKey() *string { return r.PaginationKey }
-
-func (c *Client) sendIndexPriceRequest(ctx context.Context, params indexPriceParameters) (indexPriceResponse, error) {
-	var r indexPriceResponse
-	resp, err := c.sendRequest(ctx, "/indices/bars/daily", params)
-	if err != nil {
-		return r, fmt.Errorf("failed to send GET request: %w", err)
-	}
-	if resp.StatusCode != 200 {
-		return r, handleErrorResponse(resp)
-	}
-	if err = decodeResponse(resp, &r); err != nil {
-		return r, fmt.Errorf("failed to decode HTTP response: %w", err)
-	}
-	return r, nil
-}
 
 // IndexPrice retrieves daily index prices from the /indices/bars/daily endpoint.
 // It automatically handles pagination to fetch all matching records.
 func (c *Client) IndexPrice(ctx context.Context, req IndexPriceRequest) ([]IndexPrice, error) {
 	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (indexPriceResponse, error) {
 		params := indexPriceParameters{IndexPriceRequest: req, PaginationKey: paginationKey}
-		return c.sendIndexPriceRequest(ctx, params)
+		return getJSON[indexPriceResponse](ctx, c, "/indices/bars/daily", params)
 	})
 }
 
@@ -182,29 +148,14 @@ type topixPriceResponse struct {
 	PaginationKey *string      `json:"pagination_key"`
 }
 
-func (r topixPriceResponse) Items() []TopixPrice    { return r.Data }
+func (r topixPriceResponse) Items() []TopixPrice  { return r.Data }
 func (r topixPriceResponse) NextPageKey() *string { return r.PaginationKey }
-
-func (c *Client) sendTopixPriceRequest(ctx context.Context, params topixPriceParameters) (topixPriceResponse, error) {
-	var r topixPriceResponse
-	resp, err := c.sendRequest(ctx, "/indices/bars/daily/topix", params)
-	if err != nil {
-		return r, fmt.Errorf("failed to send GET request: %w", err)
-	}
-	if resp.StatusCode != 200 {
-		return r, handleErrorResponse(resp)
-	}
-	if err = decodeResponse(resp, &r); err != nil {
-		return r, fmt.Errorf("failed to decode HTTP response: %w", err)
-	}
-	return r, nil
-}
 
 // TopixPrices retrieves daily TOPIX index prices from the /indices/bars/daily/topix endpoint.
 // It automatically handles pagination to fetch all matching records.
 func (c *Client) TopixPrices(ctx context.Context, req TopixPriceRequest) ([]TopixPrice, error) {
 	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (topixPriceResponse, error) {
 		params := topixPriceParameters{TopixPriceRequest: req, PaginationKey: paginationKey}
-		return c.sendTopixPriceRequest(ctx, params)
+		return getJSON[topixPriceResponse](ctx, c, "/indices/bars/daily/topix", params)
 	})
 }
