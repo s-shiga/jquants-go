@@ -274,6 +274,8 @@ func (c *Client) StockPrice(ctx context.Context, req StockPriceRequest) ([]Stock
 
 // StockPriceWithChannel retrieves daily stock prices and streams each record to the provided channel.
 // The channel is closed when all records have been sent or an error occurs.
+// On error the channel is closed and the error is returned from this method, so callers
+// must check the returned error after the channel closes; ranging the channel alone will not surface it.
 func (c *Client) StockPriceWithChannel(ctx context.Context, req StockPriceRequest, ch chan<- StockPrice) error {
 	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (stockPriceResponse, error) {
 		params := stockPriceParameters{StockPriceRequest: req, PaginationKey: paginationKey}

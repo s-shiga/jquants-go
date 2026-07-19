@@ -11,7 +11,7 @@ import (
 type IndexPrice struct {
 	// Date is the trading date in YYYY-MM-DD format.
 	Date string
-	// Code is the index code (e.g., "0000" for TOPIX, "0001" for TOPIX Core30).
+	// Code is the index code (e.g., "0000" for TOPIX, "0028" for TOPIX Core30).
 	Code string
 	// Open is the opening value of the index.
 	Open json.Number

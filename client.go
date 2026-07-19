@@ -20,10 +20,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
 	"runtime"
+	"strconv"
 	"time"
 )
 
@@ -188,21 +190,49 @@ type Forbidden struct{ HTTPError }
 // This occurs when the request parameters would result in too much data.
 type PayloadTooLarge struct{ HTTPError }
 
+// TooManyRequests represents an HTTP 429 error response.
+// The client automatically retries requests that receive this error, honoring
+// the Retry-After header (in seconds) when present.
+type TooManyRequests struct {
+	HTTPError
+	// RetryAfter is the duration parsed from the Retry-After header, or 0 if absent.
+	RetryAfter time.Duration
+}
+
 // InternalServerError represents an HTTP 500 error response.
 // The client automatically retries requests that receive this error.
 type InternalServerError struct{ HTTPError }
 
+// BadGateway represents an HTTP 502 error response.
+// The client automatically retries requests that receive this error.
+type BadGateway struct{ HTTPError }
+
+// ServiceUnavailable represents an HTTP 503 error response.
+// The client automatically retries requests that receive this error.
+type ServiceUnavailable struct{ HTTPError }
+
+// GatewayTimeout represents an HTTP 504 error response.
+// The client automatically retries requests that receive this error.
+type GatewayTimeout struct{ HTTPError }
+
 func decodeResponse(resp *http.Response, body any) error {
-	gzipReader, err := gzip.NewReader(resp.Body)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if clsErr := gzipReader.Close(); clsErr != nil {
-			slog.Warn("failed to close response body", "error", clsErr)
+	// The client requests gzip encoding, but some responses (e.g. errors from
+	// AWS API Gateway) may be uncompressed. Only gzip-decode when the response
+	// actually declares gzip content encoding; otherwise read the body directly.
+	reader := io.Reader(resp.Body)
+	if !resp.Uncompressed && resp.Header.Get("Content-Encoding") == "gzip" {
+		gzipReader, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			return err
 		}
-	}()
-	if err := json.NewDecoder(gzipReader).Decode(body); err != nil {
+		defer func() {
+			if clsErr := gzipReader.Close(); clsErr != nil {
+				slog.Warn("failed to close response body", "error", clsErr)
+			}
+		}()
+		reader = gzipReader
+	}
+	if err := json.NewDecoder(reader).Decode(body); err != nil {
 		return fmt.Errorf("failed to decode response: %w", err)
 	}
 	return nil
@@ -246,11 +276,33 @@ func handleErrorResponse(resp *http.Response) error {
 		return Forbidden{HTTPError{403, "forbidden", err}}
 	case 413:
 		return PayloadTooLarge{HTTPError{413, "payload too large", err}}
+	case 429:
+		return TooManyRequests{HTTPError{429, "too many requests", err}, parseRetryAfter(resp)}
 	case 500:
 		return InternalServerError{HTTPError{500, "internal server error", err}}
+	case 502:
+		return BadGateway{HTTPError{502, "bad gateway", err}}
+	case 503:
+		return ServiceUnavailable{HTTPError{503, "service unavailable", err}}
+	case 504:
+		return GatewayTimeout{HTTPError{504, "gateway timeout", err}}
 	default:
 		return err
 	}
+}
+
+// parseRetryAfter parses the Retry-After header as a number of seconds.
+// It returns 0 if the header is absent or cannot be parsed.
+func parseRetryAfter(resp *http.Response) time.Duration {
+	v := resp.Header.Get("Retry-After")
+	if v == "" {
+		return 0
+	}
+	seconds, err := strconv.Atoi(v)
+	if err != nil || seconds < 0 {
+		return 0
+	}
+	return time.Duration(seconds) * time.Second
 }
 
 func decodeErrorResponse(resp *http.Response) error {
@@ -259,6 +311,27 @@ func decodeErrorResponse(resp *http.Response) error {
 		return fmt.Errorf("failed to decode error response: %w", err)
 	}
 	return errors.New(errResp.Message)
+}
+
+// retryDelay reports whether err is a retryable HTTP error and, if so, how long
+// to wait before retrying. Retryable errors are 429, 500, 502, 503, and 504.
+// For 429, the Retry-After header (if present) takes precedence over the
+// configured default interval.
+func retryDelay(err error, defaultInterval time.Duration) (time.Duration, bool) {
+	var tooManyRequests TooManyRequests
+	if errors.As(err, &tooManyRequests) {
+		if tooManyRequests.RetryAfter > 0 {
+			return tooManyRequests.RetryAfter, true
+		}
+		return defaultInterval, true
+	}
+	if errors.As(err, &InternalServerError{}) ||
+		errors.As(err, &BadGateway{}) ||
+		errors.As(err, &ServiceUnavailable{}) ||
+		errors.As(err, &GatewayTimeout{}) {
+		return defaultInterval, true
+	}
+	return 0, false
 }
 
 // sleep waits for the given duration or until the context is cancelled,
@@ -287,9 +360,9 @@ func fetchAllPages[T any, R Response[T]](
 	for {
 		resp, err := fetchPage(ctx, paginationKey)
 		if err != nil {
-			if errors.As(err, &InternalServerError{}) {
+			if delay, ok := retryDelay(err, c.RetryInterval); ok {
 				slog.Warn("Retrying HTTP request", "error", err.Error())
-				if err := sleep(ctx, c.RetryInterval); err != nil {
+				if err := sleep(ctx, delay); err != nil {
 					return nil, err
 				}
 				continue
@@ -320,9 +393,9 @@ func fetchAllPagesWithChannel[T any, R Response[T]](
 	for {
 		resp, err := fetchPage(ctx, paginationKey)
 		if err != nil {
-			if errors.As(err, &InternalServerError{}) {
+			if delay, ok := retryDelay(err, c.RetryInterval); ok {
 				slog.Warn("Retrying HTTP request", "error", err.Error())
-				if err := sleep(ctx, c.RetryInterval); err != nil {
+				if err := sleep(ctx, delay); err != nil {
 					return err
 				}
 				continue

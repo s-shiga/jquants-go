@@ -40,12 +40,12 @@ type IndexOptionPrice struct {
 	DaySessionLow *int32
 	// DaySessionClose is the closing price for the day session.
 	DaySessionClose *int32
-	// Volume is the total trading volume in contracts.
-	Volume int64
-	// OpenInterest is the number of outstanding contracts.
-	OpenInterest int64
-	// TurnoverValue is the total trading value in yen.
-	TurnoverValue int64
+	// Volume is the total trading volume in contracts. Nil when no data is available.
+	Volume *int64
+	// OpenInterest is the number of outstanding contracts. Nil when no data is available.
+	OpenInterest *int64
+	// TurnoverValue is the total trading value in yen. Nil when no data is available.
+	TurnoverValue *int64
 	// ContractMonth is the contract expiration month in YYYYMM format.
 	ContractMonth string
 	// StrikePrice is the option strike price.
@@ -122,9 +122,9 @@ func (iop *IndexOptionPrice) UnmarshalJSON(b []byte) error {
 		DaySessionHigh                 any     `json:"AH"`
 		DaySessionLow                  any     `json:"AL"`
 		DaySessionClose                any     `json:"AC"`
-		Volume                         float64 `json:"Vo"`
-		OpenInterest                   float64 `json:"OI"`
-		TurnoverValue                  float64 `json:"Va"`
+		Volume                         any     `json:"Vo"`
+		OpenInterest                   any     `json:"OI"`
+		TurnoverValue                  any     `json:"Va"`
 		ContractMonth                  string  `json:"CM"`
 		StrikePrice                    float64 `json:"Strike"`
 		VolumeOnlyAuction              any     `json:"VoOA"`
@@ -163,9 +163,9 @@ func (iop *IndexOptionPrice) UnmarshalJSON(b []byte) error {
 	iop.DaySessionHigh = u.price(raw.DaySessionHigh)
 	iop.DaySessionLow = u.price(raw.DaySessionLow)
 	iop.DaySessionClose = u.price(raw.DaySessionClose)
-	iop.Volume = int64(raw.Volume)
-	iop.OpenInterest = int64(raw.OpenInterest)
-	iop.TurnoverValue = int64(raw.TurnoverValue)
+	iop.Volume = u.volume(raw.Volume)
+	iop.OpenInterest = u.volume(raw.OpenInterest)
+	iop.TurnoverValue = u.volume(raw.TurnoverValue)
 	iop.ContractMonth = raw.ContractMonth
 	iop.StrikePrice = int32(raw.StrikePrice)
 	iop.VolumeOnlyAuction = u.volume(raw.VolumeOnlyAuction)
@@ -272,6 +272,8 @@ func (c *Client) IndexOptionPrice(ctx context.Context, req IndexOptionPriceReque
 
 // IndexOptionPriceWithChannel retrieves Nikkei 225 index option prices and streams each record to the provided channel.
 // The channel is closed when all records have been sent or an error occurs.
+// On error the channel is closed and the error is returned from this method, so callers
+// must check the returned error after the channel closes; ranging the channel alone will not surface it.
 func (c *Client) IndexOptionPriceWithChannel(ctx context.Context, req IndexOptionPriceRequest, ch chan<- IndexOptionPrice) error {
 	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (indexOptionPriceResponse, error) {
 		params := indexOptionPriceParameters{IndexOptionPriceRequest: req, PaginationKey: paginationKey}
