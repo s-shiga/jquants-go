@@ -5,7 +5,7 @@ Go client library for the [J-Quants API](https://jpx-jquants.com/), providing ac
 ## Installation
 
 ```bash
-go get github.com/S-Shiga/jquants-go/v2
+go get github.com/s-shiga/jquants-go/v2
 ```
 
 ## Quick Start
@@ -22,7 +22,7 @@ import (
     "log"
     "os"
 
-    "github.com/S-Shiga/jquants-go/v2"
+    "github.com/s-shiga/jquants-go/v2"
 )
 
 func main() {
@@ -51,7 +51,7 @@ client := jquants.NewClient(
     jquants.BaseURL,
     os.Getenv("J_QUANTS_API_KEY"),
     jquants.WithHTTPClient(customHTTPClient),       // custom *http.Client (default: http.DefaultClient)
-    jquants.WithRetryInterval(10 * time.Second),    // retry interval for 500 errors (default: 5s)
+    jquants.WithRetryInterval(10 * time.Second),    // retry interval for retryable errors (default: 5s)
     jquants.WithLoopTimeout(60 * time.Second),      // timeout for paginated requests (default: 20s)
 )
 ```
@@ -145,6 +145,15 @@ data, err := client.InvestorType(ctx, jquants.InvestorTypeRequest{
 })
 ```
 
+#### Earnings Calendar
+
+Retrieves upcoming earnings announcement dates from the `/equities/earnings-calendar` endpoint.
+See [API reference](https://jpx-jquants.com/en/spec/eq-earnings-cal) for details.
+
+```go
+calendar, err := client.EarningsCalendar(ctx, jquants.EarningsCalendarRequest{})
+```
+
 ### Markets
 
 #### Margin Trading Outstanding
@@ -181,6 +190,32 @@ from, to := "2024-01-01", "2024-12-31"
 calendar, err := client.TradingCalendar(ctx, jquants.TradingCalendarRequest{
     From: &from,
     To:   &to,
+})
+```
+
+#### Outstanding Short Positions
+
+Retrieves outstanding short selling position reports from the `/markets/short-sale-report` endpoint (Standard plan or above).
+See [API reference](https://jpx-jquants.com/en/spec/mkt-short-sale) for details.
+
+```go
+calcDate := "2024-03-01"
+positions, err := client.OutstandingShortPosition(ctx, jquants.OutstandingShortPositionRequest{
+    CalculationDate: &calcDate,
+})
+```
+
+#### Margin Alert
+
+Retrieves issues under margin trading restrictions from the `/markets/margin-alert` endpoint (Standard plan or above).
+See [API reference](https://jpx-jquants.com/en/spec/mkt-margin-alert) for details.
+
+Change and ratio fields may be `nil` when the API reports them as unavailable (`"-"`) or not applicable for ETFs (`"*"`).
+
+```go
+date := "2024-02-08"
+alerts, err := client.MarginAlert(ctx, jquants.MarginAlertRequest{
+    Date: &date,
 })
 ```
 
@@ -236,14 +271,66 @@ for option := range ch {
 }
 ```
 
+### Financials
+
+#### Financial Summary
+
+Retrieves financial data summaries (results, forecasts, dividends, per-share metrics) from the `/fins/summary` endpoint.
+See [API reference](https://jpx-jquants.com/en/spec/fin-summary) for details.
+
+The API returns numeric values as strings; this library parses them into `*float64` fields, which are `nil` when no data is available.
+
+```go
+code := "7203"
+summaries, err := client.FinancialSummary(ctx, jquants.FinancialSummaryRequest{
+    Code: &code,
+})
+```
+
+### EDINET Filings
+
+The EDINET endpoints (Standard plan or above) share a common `EdinetRequest` with `EdinetCode`, `Code`, and `Date` filters. Specifying both `EdinetCode` and `Code` at once is rejected by the API.
+
+#### Major Shareholders
+
+Retrieves major shareholder data from annual securities reports via the `/edinet/major-shareholders` endpoint.
+See [API reference](https://jpx-jquants.com/en/spec/edinet-major-shareholders) for details.
+
+```go
+code := "7203"
+reports, err := client.MajorShareholders(ctx, jquants.EdinetRequest{Code: &code})
+```
+
+#### Cross-Shareholdings
+
+Retrieves cross-shareholding (policy holdings) data from the `/edinet/cross-shareholdings` endpoint.
+See [API reference](https://jpx-jquants.com/en/spec/edinet-cross-shareholdings) for details.
+
+```go
+code := "7203"
+reports, err := client.CrossShareholdings(ctx, jquants.EdinetRequest{Code: &code})
+```
+
+#### Large Volume Shareholders
+
+Retrieves large volume holding reports from the `/edinet/large-volume-shareholders` endpoint.
+See [API reference](https://jpx-jquants.com/en/spec/edinet-large-volume-shareholders) for details.
+
+```go
+code := "7203"
+reports, err := client.LargeVolumeShareholders(ctx, jquants.EdinetRequest{Code: &code})
+```
+
 ### Not Yet Implemented
 
-The following J-Quants API endpoints are not yet implemented in this library:
+The following J-Quants API endpoints require the Premium plan and are not implemented in this library:
 
-- Morning Session Stock Prices
-- Outstanding Short Selling Positions Reported
-- Margin Trading Outstanding (Breakdown)
-- Breakdown Trading
+- Financial Statements Details (`/fins/details`)
+- Cash Dividend Data (`/fins/dividend`)
+- Futures Prices (`/derivatives/bars/daily/futures`)
+- Option Prices, all underlyings (`/derivatives/bars/daily/options`)
+- Breakdown Trading (`/markets/breakdown`)
+- Morning Session Stock Prices (`/equities/bars/daily/am`)
 
 ### Channel API (Streaming)
 
@@ -259,7 +346,7 @@ Methods with a `WithChannel` suffix (`StockPriceWithChannel`, `IndexOptionPriceW
 The `codes` package provides constants for market sections, sector codes, and index codes.
 
 ```go
-import "github.com/S-Shiga/jquants-go/v2/codes"
+import "github.com/s-shiga/jquants-go/v2/codes"
 
 // Market sections
 section := codes.SectionPrime
@@ -310,7 +397,7 @@ if err != nil {
 }
 ```
 
-The client automatically retries on HTTP 500 errors with a configurable interval.
+The client automatically retries on HTTP 429, 500, 502, 503, and 504 errors with a configurable interval (`TooManyRequests`, `InternalServerError`, `BadGateway`, `ServiceUnavailable`, `GatewayTimeout`). For 429 responses, a `Retry-After` header is honored when present.
 
 ## License
 
