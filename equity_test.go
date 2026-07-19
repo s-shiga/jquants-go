@@ -52,6 +52,17 @@ func TestClient_StockPriceWithChannel(t *testing.T) {
 	}
 }
 
+func TestClient_EarningsCalendar(t *testing.T) {
+	client := setupClient(t)
+	res, err := client.EarningsCalendar(t.Context(), EarningsCalendarRequest{})
+	if err != nil {
+		t.Errorf("Failed to get earnings calendar: %s", err)
+	}
+	if len(res) == 0 {
+		t.Error("Empty earnings calendar")
+	}
+}
+
 func TestClient_InvestorType(t *testing.T) {
 	var code = codes.SectionPrime
 	client := setupClient(t)

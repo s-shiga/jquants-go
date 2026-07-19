@@ -283,7 +283,83 @@ func (c *Client) StockPriceWithChannel(ctx context.Context, req StockPriceReques
 	})
 }
 
-// Morning Session Stock Prices not implemented
+// Morning Session Stock Prices not implemented (Premium plan only)
+
+// EarningsCalendar represents a scheduled or announced earnings release for a listed company.
+type EarningsCalendar struct {
+	// Date is the scheduled announcement date in YYYY-MM-DD format, or "" if undecided (JSON key "Date").
+	Date string
+	// Code is the security code (JSON key "Code").
+	Code string
+	// CompanyName is the company name in Japanese (JSON key "CoName").
+	CompanyName string
+	// FiscalYear is the fiscal year-end description (JSON key "FY").
+	FiscalYear string
+	// SectorName is the sector name in Japanese (JSON key "SectorNm").
+	SectorName string
+	// FiscalQuarter is the fiscal quarter description (JSON key "FQ").
+	FiscalQuarter string
+	// Section is the market section name in Japanese (JSON key "Section").
+	Section string
+}
+
+func (e *EarningsCalendar) UnmarshalJSON(b []byte) error {
+	var raw struct {
+		Date     string `json:"Date"`
+		Code     string `json:"Code"`
+		CoName   string `json:"CoName"`
+		FY       string `json:"FY"`
+		SectorNm string `json:"SectorNm"`
+		FQ       string `json:"FQ"`
+		Section  string `json:"Section"`
+	}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return fmt.Errorf("failed to unmarshal earnings calendar: %w", err)
+	}
+	e.Date = raw.Date
+	e.Code = raw.Code
+	e.CompanyName = raw.CoName
+	e.FiscalYear = raw.FY
+	e.SectorName = raw.SectorNm
+	e.FiscalQuarter = raw.FQ
+	e.Section = raw.Section
+	return nil
+}
+
+// EarningsCalendarRequest specifies filter parameters for the EarningsCalendar API.
+// The endpoint takes no filter parameters.
+type EarningsCalendarRequest struct{}
+
+type earningsCalendarParameters struct {
+	EarningsCalendarRequest
+	PaginationKey *string
+}
+
+func (p earningsCalendarParameters) values() (url.Values, error) {
+	v := url.Values{}
+	if p.PaginationKey != nil {
+		v.Add("pagination_key", *p.PaginationKey)
+	}
+	return v, nil
+}
+
+type earningsCalendarResponse struct {
+	Data          []EarningsCalendar `json:"data"`
+	PaginationKey *string            `json:"pagination_key"`
+}
+
+func (r earningsCalendarResponse) Items() []EarningsCalendar { return r.Data }
+func (r earningsCalendarResponse) NextPageKey() *string      { return r.PaginationKey }
+
+// EarningsCalendar retrieves the earnings announcement calendar from the /equities/earnings-calendar endpoint.
+// It automatically handles pagination to fetch all matching records.
+// See https://jpx-jquants.com/en/spec/eq-earnings-cal for API details.
+func (c *Client) EarningsCalendar(ctx context.Context, req EarningsCalendarRequest) ([]EarningsCalendar, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (earningsCalendarResponse, error) {
+		params := earningsCalendarParameters{EarningsCalendarRequest: req, PaginationKey: paginationKey}
+		return getJSON[earningsCalendarResponse](ctx, c, "/equities/earnings-calendar", params)
+	})
+}
 
 // TradingBalance represents trading activity metrics for a specific investor type.
 // All values are in units of 1,000 shares.

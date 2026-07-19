@@ -32,6 +32,32 @@ func TestClient_ShortSellingValue(t *testing.T) {
 	}
 }
 
+func TestClient_OutstandingShortPosition(t *testing.T) {
+	calcDate := "20260210"
+	client := setupClient(t)
+	req := OutstandingShortPositionRequest{CalculationDate: &calcDate}
+	res, err := client.OutstandingShortPosition(t.Context(), req)
+	if err != nil {
+		t.Errorf("Failed to get outstanding short position: %s", err)
+	}
+	if len(res) == 0 {
+		t.Error("Empty outstanding short position")
+	}
+}
+
+func TestClient_MarginAlert(t *testing.T) {
+	date := "20260213"
+	client := setupClient(t)
+	req := MarginAlertRequest{Date: &date}
+	res, err := client.MarginAlert(t.Context(), req)
+	if err != nil {
+		t.Errorf("Failed to get margin alert: %s", err)
+	}
+	if len(res) == 0 {
+		t.Error("Empty margin alert")
+	}
+}
+
 func TestClient_TradingCalendar(t *testing.T) {
 	client := setupClient(t)
 	res, err := client.TradingCalendar(t.Context(), TradingCalendarRequest{})

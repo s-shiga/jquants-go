@@ -199,11 +199,319 @@ func (c *Client) ShortSellingValue(ctx context.Context, req ShortSellingValueReq
 	})
 }
 
-// Outstanding Short Selling Positions Reported not implemented
+// Breakdown Trading not implemented (Premium plan only)
 
-// Margin Trading Outstanding not implemented
+// OutstandingShortPosition represents an outstanding short position report
+// submitted to the exchange when a short seller's position reaches a
+// reportable threshold.
+type OutstandingShortPosition struct {
+	// DisclosureDate is the disclosure date in YYYY-MM-DD format (JSON key "DiscDate").
+	DisclosureDate string
+	// CalculationDate is the position calculation date in YYYY-MM-DD format (JSON key "CalcDate").
+	CalculationDate string
+	// Code is the security code (JSON key "Code").
+	Code string
+	// ShortSellerName is the name of the short seller (JSON key "SSName").
+	ShortSellerName string
+	// ShortSellerAddress is the address of the short seller (JSON key "SSAddr").
+	ShortSellerAddress string
+	// DiscretionaryInvestmentContractorName is the name of the discretionary
+	// investment contractor, or "-" if none (JSON key "DICName").
+	DiscretionaryInvestmentContractorName string
+	// DiscretionaryInvestmentContractorAddress is the address of the
+	// discretionary investment contractor, or "-" if none (JSON key "DICAddr").
+	DiscretionaryInvestmentContractorAddress string
+	// FundName is the name of the fund, or "-" if none (JSON key "FundName").
+	FundName string
+	// ShortPositionToSharesOutstandingRatio is the ratio of the short position
+	// to shares outstanding (JSON key "ShrtPosToSO").
+	ShortPositionToSharesOutstandingRatio float64
+	// ShortPositionShares is the number of shares held short (JSON key "ShrtPosShares").
+	ShortPositionShares float64
+	// ShortPositionUnits is the number of trading units held short (JSON key "ShrtPosUnits").
+	ShortPositionUnits float64
+	// PreviousReportDate is the previous report calculation date, or "-" if none (JSON key "PrevRptDate").
+	PreviousReportDate string
+	// PreviousReportRatio is the short position ratio from the previous report (JSON key "PrevRptRatio").
+	PreviousReportRatio float64
+	// Notes contains any additional notes, or "-" if none (JSON key "Notes").
+	Notes string
+}
 
-// Breakdown Trading not implemented
+func (o *OutstandingShortPosition) UnmarshalJSON(b []byte) error {
+	var raw struct {
+		DiscDate      string  `json:"DiscDate"`
+		CalcDate      string  `json:"CalcDate"`
+		Code          string  `json:"Code"`
+		SSName        string  `json:"SSName"`
+		SSAddr        string  `json:"SSAddr"`
+		DICName       string  `json:"DICName"`
+		DICAddr       string  `json:"DICAddr"`
+		FundName      string  `json:"FundName"`
+		ShrtPosToSO   float64 `json:"ShrtPosToSO"`
+		ShrtPosShares float64 `json:"ShrtPosShares"`
+		ShrtPosUnits  float64 `json:"ShrtPosUnits"`
+		PrevRptDate   string  `json:"PrevRptDate"`
+		PrevRptRatio  float64 `json:"PrevRptRatio"`
+		Notes         string  `json:"Notes"`
+	}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return fmt.Errorf("failed to unmarshal outstanding short position: %w", err)
+	}
+	o.DisclosureDate = raw.DiscDate
+	o.CalculationDate = raw.CalcDate
+	o.Code = raw.Code
+	o.ShortSellerName = raw.SSName
+	o.ShortSellerAddress = raw.SSAddr
+	o.DiscretionaryInvestmentContractorName = raw.DICName
+	o.DiscretionaryInvestmentContractorAddress = raw.DICAddr
+	o.FundName = raw.FundName
+	o.ShortPositionToSharesOutstandingRatio = raw.ShrtPosToSO
+	o.ShortPositionShares = raw.ShrtPosShares
+	o.ShortPositionUnits = raw.ShrtPosUnits
+	o.PreviousReportDate = raw.PrevRptDate
+	o.PreviousReportRatio = raw.PrevRptRatio
+	o.Notes = raw.Notes
+	return nil
+}
+
+// OutstandingShortPositionRequest specifies filter parameters for the OutstandingShortPosition API.
+// All parameters are optional.
+type OutstandingShortPositionRequest struct {
+	// Code filters by security code.
+	Code *string
+	// DisclosureDate filters by disclosure date.
+	DisclosureDate *string
+	// DisclosureDateFrom specifies the start of a disclosure date range.
+	DisclosureDateFrom *string
+	// DisclosureDateTo specifies the end of a disclosure date range.
+	DisclosureDateTo *string
+	// CalculationDate filters by position calculation date.
+	CalculationDate *string
+}
+
+type outstandingShortPositionParameters struct {
+	OutstandingShortPositionRequest
+	PaginationKey *string
+}
+
+func (p outstandingShortPositionParameters) values() (url.Values, error) {
+	v := url.Values{}
+	if p.Code != nil {
+		v.Add("code", *p.Code)
+	}
+	if p.DisclosureDate != nil {
+		v.Add("disc_date", *p.DisclosureDate)
+	}
+	if p.DisclosureDateFrom != nil {
+		v.Add("disc_date_from", *p.DisclosureDateFrom)
+	}
+	if p.DisclosureDateTo != nil {
+		v.Add("disc_date_to", *p.DisclosureDateTo)
+	}
+	if p.CalculationDate != nil {
+		v.Add("calc_date", *p.CalculationDate)
+	}
+	if p.PaginationKey != nil {
+		v.Add("pagination_key", *p.PaginationKey)
+	}
+	return v, nil
+}
+
+type outstandingShortPositionResponse struct {
+	Data          []OutstandingShortPosition `json:"data"`
+	PaginationKey *string                    `json:"pagination_key"`
+}
+
+func (r outstandingShortPositionResponse) Items() []OutstandingShortPosition { return r.Data }
+func (r outstandingShortPositionResponse) NextPageKey() *string              { return r.PaginationKey }
+
+// OutstandingShortPosition retrieves outstanding short position reports from the /markets/short-sale-report endpoint.
+// It automatically handles pagination to fetch all matching records.
+// See https://jpx-jquants.com/en/spec/mkt-short-sale for API details.
+func (c *Client) OutstandingShortPosition(ctx context.Context, req OutstandingShortPositionRequest) ([]OutstandingShortPosition, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (outstandingShortPositionResponse, error) {
+		params := outstandingShortPositionParameters{OutstandingShortPositionRequest: req, PaginationKey: paginationKey}
+		return getJSON[outstandingShortPositionResponse](ctx, c, "/markets/short-sale-report", params)
+	})
+}
+
+// MarginAlertPublicationReason describes why a security was published on the
+// margin trading alert list. Each field is a flag reported by the API as the
+// string "0" (not applicable) or "1" (applicable).
+type MarginAlertPublicationReason struct {
+	// Restricted indicates the issue is subject to trading restrictions (JSON key "Restricted").
+	Restricted string
+	// DailyPublication indicates the issue is subject to daily publication (JSON key "DailyPublication").
+	DailyPublication string
+	// Monitoring indicates the issue is under monitoring (JSON key "Monitoring").
+	Monitoring string
+	// RestrictedByJSF indicates the issue is restricted by the Japan Securities Finance Co. (JSON key "RestrictedByJSF").
+	RestrictedByJSF string
+	// PrecautionByJSF indicates a precaution notice by the Japan Securities Finance Co. (JSON key "PrecautionByJSF").
+	PrecautionByJSF string
+	// UnclearOrSecOnAlert indicates an unclear status or that the security is on alert (JSON key "UnclearOrSecOnAlert").
+	UnclearOrSecOnAlert string
+}
+
+// MarginAlert represents a margin trading alert entry, giving outstanding
+// margin balances and the reason the issue was published on the alert list.
+type MarginAlert struct {
+	// PublicationDate is the publication date in YYYY-MM-DD format (JSON key "PubDate").
+	PublicationDate string
+	// Code is the security code (JSON key "Code").
+	Code string
+	// ApplicationDate is the application (record) date in YYYY-MM-DD format (JSON key "AppDate").
+	ApplicationDate string
+	// PublicationReason describes why the issue was published (JSON key "PubReason").
+	PublicationReason MarginAlertPublicationReason
+	// ShortOutstanding is the outstanding short margin balance (JSON key "ShrtOut").
+	ShortOutstanding float64
+	// LongOutstanding is the outstanding long margin balance (JSON key "LongOut").
+	LongOutstanding float64
+	// ShortLongRatio is the ratio of short to long margin balance (JSON key "SLRatio").
+	ShortLongRatio float64
+	// ShortNegotiableOutstanding is the outstanding negotiable short balance (JSON key "ShrtNegOut").
+	ShortNegotiableOutstanding float64
+	// ShortStandardizedOutstanding is the outstanding standardized short balance (JSON key "ShrtStdOut").
+	ShortStandardizedOutstanding float64
+	// LongNegotiableOutstanding is the outstanding negotiable long balance (JSON key "LongNegOut").
+	LongNegotiableOutstanding float64
+	// LongStandardizedOutstanding is the outstanding standardized long balance (JSON key "LongStdOut").
+	LongStandardizedOutstanding float64
+	// ShortOutstandingChange is the change in short balance; nil when unavailable ("-") (JSON key "ShrtOutChg").
+	ShortOutstandingChange *float64
+	// LongOutstandingChange is the change in long balance; nil when unavailable ("-") (JSON key "LongOutChg").
+	LongOutstandingChange *float64
+	// ShortNegotiableOutstandingChange is the change in negotiable short balance; nil when unavailable ("-") (JSON key "ShrtNegOutChg").
+	ShortNegotiableOutstandingChange *float64
+	// ShortStandardizedOutstandingChange is the change in standardized short balance; nil when unavailable ("-") (JSON key "ShrtStdOutChg").
+	ShortStandardizedOutstandingChange *float64
+	// LongNegotiableOutstandingChange is the change in negotiable long balance; nil when unavailable ("-") (JSON key "LongNegOutChg").
+	LongNegotiableOutstandingChange *float64
+	// LongStandardizedOutstandingChange is the change in standardized long balance; nil when unavailable ("-") (JSON key "LongStdOutChg").
+	LongStandardizedOutstandingChange *float64
+	// ShortOutstandingRatio is the short balance ratio; nil for ETFs ("*") (JSON key "ShrtOutRatio").
+	ShortOutstandingRatio *float64
+	// LongOutstandingRatio is the long balance ratio; nil for ETFs ("*") (JSON key "LongOutRatio").
+	LongOutstandingRatio *float64
+	// TSEMarginRegulationClass is the TSE margin regulation classification code (JSON key "TSEMrgnRegCls").
+	TSEMarginRegulationClass string
+}
+
+func (m *MarginAlert) UnmarshalJSON(b []byte) error {
+	var raw struct {
+		PubDate       string                       `json:"PubDate"`
+		Code          string                       `json:"Code"`
+		AppDate       string                       `json:"AppDate"`
+		PubReason     MarginAlertPublicationReason `json:"PubReason"`
+		ShrtOut       float64                      `json:"ShrtOut"`
+		LongOut       float64                      `json:"LongOut"`
+		SLRatio       float64                      `json:"SLRatio"`
+		ShrtNegOut    float64                      `json:"ShrtNegOut"`
+		ShrtStdOut    float64                      `json:"ShrtStdOut"`
+		LongNegOut    float64                      `json:"LongNegOut"`
+		LongStdOut    float64                      `json:"LongStdOut"`
+		ShrtOutChg    any                          `json:"ShrtOutChg"`
+		LongOutChg    any                          `json:"LongOutChg"`
+		ShrtNegOutChg any                          `json:"ShrtNegOutChg"`
+		ShrtStdOutChg any                          `json:"ShrtStdOutChg"`
+		LongNegOutChg any                          `json:"LongNegOutChg"`
+		LongStdOutChg any                          `json:"LongStdOutChg"`
+		ShrtOutRatio  any                          `json:"ShrtOutRatio"`
+		LongOutRatio  any                          `json:"LongOutRatio"`
+		TSEMrgnRegCls string                       `json:"TSEMrgnRegCls"`
+	}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return fmt.Errorf("failed to unmarshal margin alert: %w", err)
+	}
+	a := &floatAccumulator{}
+	fromAny := func(v any) *float64 {
+		if a.err != nil {
+			return nil
+		}
+		result, err := unmarshalFloatFromAny(v)
+		a.err = err
+		return result
+	}
+	m.PublicationDate = raw.PubDate
+	m.Code = raw.Code
+	m.ApplicationDate = raw.AppDate
+	m.PublicationReason = raw.PubReason
+	m.ShortOutstanding = raw.ShrtOut
+	m.LongOutstanding = raw.LongOut
+	m.ShortLongRatio = raw.SLRatio
+	m.ShortNegotiableOutstanding = raw.ShrtNegOut
+	m.ShortStandardizedOutstanding = raw.ShrtStdOut
+	m.LongNegotiableOutstanding = raw.LongNegOut
+	m.LongStandardizedOutstanding = raw.LongStdOut
+	m.ShortOutstandingChange = fromAny(raw.ShrtOutChg)
+	m.LongOutstandingChange = fromAny(raw.LongOutChg)
+	m.ShortNegotiableOutstandingChange = fromAny(raw.ShrtNegOutChg)
+	m.ShortStandardizedOutstandingChange = fromAny(raw.ShrtStdOutChg)
+	m.LongNegotiableOutstandingChange = fromAny(raw.LongNegOutChg)
+	m.LongStandardizedOutstandingChange = fromAny(raw.LongStdOutChg)
+	m.ShortOutstandingRatio = fromAny(raw.ShrtOutRatio)
+	m.LongOutstandingRatio = fromAny(raw.LongOutRatio)
+	m.TSEMarginRegulationClass = raw.TSEMrgnRegCls
+	return a.err
+}
+
+// MarginAlertRequest specifies filter parameters for the MarginAlert API.
+// All parameters are optional.
+type MarginAlertRequest struct {
+	// Code filters by security code.
+	Code *string
+	// Date filters by publication date.
+	Date *string
+	// From specifies the start of a publication date range.
+	From *string
+	// To specifies the end of a publication date range.
+	To *string
+}
+
+type marginAlertParameters struct {
+	MarginAlertRequest
+	PaginationKey *string
+}
+
+func (p marginAlertParameters) values() (url.Values, error) {
+	v := url.Values{}
+	if p.Code != nil {
+		v.Add("code", *p.Code)
+	}
+	if p.Date != nil {
+		v.Add("date", *p.Date)
+	}
+	if p.From != nil {
+		v.Add("from", *p.From)
+	}
+	if p.To != nil {
+		v.Add("to", *p.To)
+	}
+	if p.PaginationKey != nil {
+		v.Add("pagination_key", *p.PaginationKey)
+	}
+	return v, nil
+}
+
+type marginAlertResponse struct {
+	Data          []MarginAlert `json:"data"`
+	PaginationKey *string       `json:"pagination_key"`
+}
+
+func (r marginAlertResponse) Items() []MarginAlert { return r.Data }
+func (r marginAlertResponse) NextPageKey() *string { return r.PaginationKey }
+
+// MarginAlert retrieves margin trading alert data from the /markets/margin-alert endpoint.
+// It automatically handles pagination to fetch all matching records.
+// See https://jpx-jquants.com/en/spec/mkt-margin-alert for API details.
+func (c *Client) MarginAlert(ctx context.Context, req MarginAlertRequest) ([]MarginAlert, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (marginAlertResponse, error) {
+		params := marginAlertParameters{MarginAlertRequest: req, PaginationKey: paginationKey}
+		return getJSON[marginAlertResponse](ctx, c, "/markets/margin-alert", params)
+	})
+}
 
 // TradingCalendar represents a trading calendar entry indicating whether a date is a trading day.
 type TradingCalendar struct {
