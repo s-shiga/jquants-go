@@ -175,6 +175,11 @@ func (e HTTPError) Unwrap() error {
 	return e.Err
 }
 
+// NoContent represents an HTTP 210 response returned by some endpoints
+// (e.g. morning session prices) when no data is available, such as outside
+// the morning-session publication window.
+type NoContent struct{ HTTPError }
+
 // BadRequest represents an HTTP 400 error response.
 type BadRequest struct{ HTTPError }
 
@@ -268,6 +273,8 @@ type ErrResponse struct {
 func handleErrorResponse(resp *http.Response) error {
 	err := decodeErrorResponse(resp)
 	switch resp.StatusCode {
+	case 210:
+		return NoContent{HTTPError{210, "no content", err}}
 	case 400:
 		return BadRequest{HTTPError{400, "bad request", err}}
 	case 401:

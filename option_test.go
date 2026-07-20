@@ -38,3 +38,39 @@ func TestClient_IndexOptionPriceWithChannel(t *testing.T) {
 		t.Error("Empty response")
 	}
 }
+
+func TestClient_OptionPrice(t *testing.T) {
+	date := "2026-07-17"
+	category := "TOPIXE"
+	client := setupClient(t)
+	req := OptionPriceRequest{Date: date, Category: &category}
+	resp, err := client.OptionPrice(t.Context(), req)
+	if err != nil {
+		t.Errorf("Failed to get option price: %v", err)
+	}
+	if len(resp) == 0 {
+		t.Error("Empty response")
+	}
+}
+
+func TestClient_OptionPriceWithChannel(t *testing.T) {
+	date := "2026-07-17"
+	category := "TOPIXE"
+	client := setupClient(t)
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	req := OptionPriceRequest{Date: date, Category: &category}
+	ch := make(chan OptionPrice)
+	go func() {
+		if e := client.OptionPriceWithChannel(ctx, req, ch); e != nil {
+			t.Errorf("Failed to get option price: %v", e)
+		}
+	}()
+	found := false
+	for range ch {
+		found = true
+	}
+	if !found {
+		t.Error("Empty response")
+	}
+}

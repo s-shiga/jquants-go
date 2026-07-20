@@ -1,6 +1,7 @@
 package jquants
 
 import (
+	"context"
 	"testing"
 
 	"github.com/s-shiga/jquants-go/v2/codes"
@@ -55,6 +56,44 @@ func TestClient_MarginAlert(t *testing.T) {
 	}
 	if len(res) == 0 {
 		t.Error("Empty margin alert")
+	}
+}
+
+func TestClient_BreakdownTrading(t *testing.T) {
+	code := "13010"
+	from := "2026-07-01"
+	to := "2026-07-17"
+	client := setupClient(t)
+	req := BreakdownTradingRequest{Code: &code, From: &from, To: &to}
+	res, err := client.BreakdownTrading(t.Context(), req)
+	if err != nil {
+		t.Errorf("Failed to get breakdown trading: %s", err)
+	}
+	if len(res) == 0 {
+		t.Error("Empty breakdown trading")
+	}
+}
+
+func TestClient_BreakdownTradingWithChannel(t *testing.T) {
+	code := "13010"
+	from := "2026-07-01"
+	to := "2026-07-17"
+	client := setupClient(t)
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	req := BreakdownTradingRequest{Code: &code, From: &from, To: &to}
+	ch := make(chan BreakdownTrading)
+	go func() {
+		if e := client.BreakdownTradingWithChannel(ctx, req, ch); e != nil {
+			t.Errorf("Failed to get breakdown trading: %s", e)
+		}
+	}()
+	found := false
+	for range ch {
+		found = true
+	}
+	if !found {
+		t.Error("Empty breakdown trading")
 	}
 }
 

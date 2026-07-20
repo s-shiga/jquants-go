@@ -48,11 +48,11 @@ Each API endpoint follows a consistent pattern:
 
 ### Pagination Handling
 
-APIs that return large datasets use pagination. The client automatically fetches all pages in a loop until `pagination_key` is nil. Some methods also offer `*WithChannel` variants for streaming results (`StockPriceWithChannel`, `IndexOptionPriceWithChannel`).
+APIs that return large datasets use pagination. The client automatically fetches all pages in a loop until `pagination_key` is nil. Some methods also offer `*WithChannel` variants for streaming results (`StockPriceWithChannel`, `IndexOptionPriceWithChannel`, `OptionPriceWithChannel`, `FuturesPriceWithChannel`, `BreakdownTradingWithChannel`).
 
 ### Error Types
 
-Custom error types in `client.go` wrap HTTP status codes: `BadRequest`, `Unauthorized`, `Forbidden`, `PayloadTooLarge`, `InternalServerError`. The client auto-retries on `InternalServerError`.
+Custom error types in `client.go` wrap HTTP status codes: `NoContent` (210), `BadRequest`, `Unauthorized`, `Forbidden`, `PayloadTooLarge`, `TooManyRequests`, `InternalServerError`, `BadGateway`, `ServiceUnavailable`, `GatewayTimeout`. The client auto-retries on 429/500/502/503/504, honoring `Retry-After` for 429.
 
 ### Module Organization
 
@@ -61,16 +61,32 @@ Custom error types in `client.go` wrap HTTP status codes: `BadRequest`, `Unautho
 - `equity.go` - Stock-related APIs:
   - Issue information (`/equities/master`)
   - Stock prices (`/equities/bars/daily`)
+  - Morning session stock prices (`/equities/bars/daily/am`, Premium)
+  - Earnings calendar (`/equities/earnings-calendar`)
   - Investor type trading (`/equities/investor-types`)
 - `markets.go` - Market data APIs:
   - Margin trading outstanding (`/markets/margin-interest`)
   - Short selling value (`/markets/short-ratio`)
   - Trading calendar (`/markets/calendar`)
+  - Outstanding short positions (`/markets/short-sale-report`, Standard)
+  - Margin alert (`/markets/margin-alert`, Standard)
+  - Breakdown trading (`/markets/breakdown`, Premium)
 - `indices.go` - Index APIs:
   - Index prices (`/indices/bars/daily`)
   - TOPIX prices (`/indices/bars/daily/topix`)
-- `option.go` - Derivatives APIs:
+- `option.go` - Options APIs:
   - Index option prices (`/derivatives/bars/daily/options/225`)
+  - Option prices, all underlyings (`/derivatives/bars/daily/options`, Premium)
+- `future.go` - Futures APIs:
+  - Futures prices (`/derivatives/bars/daily/futures`, Premium)
+- `fins.go` - Financial data APIs:
+  - Financial summary (`/fins/summary`)
+  - Financial statement details (`/fins/details`, Premium)
+  - Cash dividend data (`/fins/dividend`, Premium)
+- `edinet.go` - EDINET filing APIs (Standard):
+  - Major shareholders (`/edinet/major-shareholders`)
+  - Cross-shareholdings (`/edinet/cross-shareholdings`)
+  - Large volume shareholders (`/edinet/large-volume-shareholders`)
 - `codes/codes.go` - Constants for market sections, 33-sector codes, and index codes
 - `testutil.go` - Test helper that reads `J_QUANTS_API_KEY` from env and creates a client
 

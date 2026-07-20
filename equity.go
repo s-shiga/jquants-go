@@ -283,7 +283,96 @@ func (c *Client) StockPriceWithChannel(ctx context.Context, req StockPriceReques
 	})
 }
 
-// Morning Session Stock Prices not implemented (Premium plan only)
+// MorningSessionStockPrice represents the current day's morning-session (前場)
+// OHLCV data for a security.
+type MorningSessionStockPrice struct {
+	// Date is the trading date in YYYY-MM-DD format (JSON key "Date").
+	Date string
+	// Code is the security code (JSON key "Code").
+	Code string
+	// Open is the morning-session opening price (nil if no trading occurred) (JSON key "MO").
+	Open *json.Number
+	// High is the morning-session highest price (nil if no trading occurred) (JSON key "MH").
+	High *json.Number
+	// Low is the morning-session lowest price (nil if no trading occurred) (JSON key "ML").
+	Low *json.Number
+	// Close is the morning-session closing price (nil if no trading occurred) (JSON key "MC").
+	Close *json.Number
+	// Volume is the morning-session trading volume in shares (nil if no trading occurred) (JSON key "MVo").
+	Volume *int64
+	// TurnoverValue is the morning-session total trading value in yen (nil if no trading occurred) (JSON key "MVa").
+	TurnoverValue *int64
+}
+
+func (m *MorningSessionStockPrice) UnmarshalJSON(b []byte) error {
+	var raw struct {
+		Date string `json:"Date"`
+		Code string `json:"Code"`
+		Open any    `json:"MO"`
+		High any    `json:"MH"`
+		Low  any    `json:"ML"`
+		C    any    `json:"MC"`
+		Vo   any    `json:"MVo"`
+		Va   any    `json:"MVa"`
+	}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return fmt.Errorf("failed to unmarshal morning session stock price: %w", err)
+	}
+	u := &unmarshaler{}
+	m.Date = raw.Date
+	m.Code = raw.Code
+	m.Open = u.jsonNumber(raw.Open)
+	m.High = u.jsonNumber(raw.High)
+	m.Low = u.jsonNumber(raw.Low)
+	m.Close = u.jsonNumber(raw.C)
+	m.Volume = u.volume(raw.Vo)
+	m.TurnoverValue = u.volume(raw.Va)
+	return u.err
+}
+
+// MorningSessionStockPriceRequest specifies filter parameters for the MorningSessionStockPrice API.
+type MorningSessionStockPriceRequest struct {
+	// Code filters by security code. If nil, returns all securities.
+	Code *string
+}
+
+type morningSessionStockPriceParameters struct {
+	MorningSessionStockPriceRequest
+	PaginationKey *string
+}
+
+func (p morningSessionStockPriceParameters) values() (url.Values, error) {
+	v := url.Values{}
+	if p.Code != nil {
+		v.Add("code", *p.Code)
+	}
+	if p.PaginationKey != nil {
+		v.Add("pagination_key", *p.PaginationKey)
+	}
+	return v, nil
+}
+
+type morningSessionStockPriceResponse struct {
+	Data          []MorningSessionStockPrice `json:"data"`
+	PaginationKey *string                    `json:"pagination_key"`
+}
+
+func (r morningSessionStockPriceResponse) Items() []MorningSessionStockPrice { return r.Data }
+func (r morningSessionStockPriceResponse) NextPageKey() *string              { return r.PaginationKey }
+
+// MorningSessionStockPrice retrieves the current day's morning-session OHLCV data
+// from the /equities/bars/daily/am endpoint.
+// It automatically handles pagination to fetch all matching records.
+// This endpoint requires the Premium plan.
+// Outside the morning-session publication window the API responds with HTTP 210,
+// which is surfaced as a NoContent error.
+// See https://jpx-jquants.com/en/spec/eq-bars-daily-am for API details.
+func (c *Client) MorningSessionStockPrice(ctx context.Context, req MorningSessionStockPriceRequest) ([]MorningSessionStockPrice, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (morningSessionStockPriceResponse, error) {
+		params := morningSessionStockPriceParameters{MorningSessionStockPriceRequest: req, PaginationKey: paginationKey}
+		return getJSON[morningSessionStockPriceResponse](ctx, c, "/equities/bars/daily/am", params)
+	})
+}
 
 // EarningsCalendar represents a scheduled or announced earnings release for a listed company.
 type EarningsCalendar struct {

@@ -581,3 +581,261 @@ func (c *Client) FinancialSummary(ctx context.Context, req FinancialSummaryReque
 		return getJSON[financialSummaryResponse](ctx, c, "/fins/summary", params)
 	})
 }
+
+// FinancialDetails represents the detailed financial statement line items
+// disclosed by a listed company. The individual statement values are exposed
+// through FinancialStatement, a map keyed by the verbose English XBRL label
+// with the reported value as a string.
+type FinancialDetails struct {
+	// DisclosureDate is the disclosure date (JSON key "DiscDate").
+	DisclosureDate string
+	// DisclosureTime is the disclosure time (JSON key "DiscTime").
+	DisclosureTime string
+	// Code is the security code (JSON key "Code").
+	Code string
+	// DisclosureNumber is the disclosure number (JSON key "DiscNo").
+	DisclosureNumber string
+	// DocumentType is the type of disclosure document (JSON key "DocType").
+	DocumentType string
+	// FinancialStatement holds the financial-statement line items keyed by
+	// verbose English XBRL label, with each reported value as a string (JSON key "FS").
+	FinancialStatement map[string]string
+}
+
+func (fd *FinancialDetails) UnmarshalJSON(b []byte) error {
+	var raw struct {
+		DiscDate string            `json:"DiscDate"`
+		DiscTime string            `json:"DiscTime"`
+		Code     string            `json:"Code"`
+		DiscNo   string            `json:"DiscNo"`
+		DocType  string            `json:"DocType"`
+		FS       map[string]string `json:"FS"`
+	}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return fmt.Errorf("failed to unmarshal financial details: %w", err)
+	}
+	fd.DisclosureDate = raw.DiscDate
+	fd.DisclosureTime = raw.DiscTime
+	fd.Code = raw.Code
+	fd.DisclosureNumber = raw.DiscNo
+	fd.DocumentType = raw.DocType
+	fd.FinancialStatement = raw.FS
+	return nil
+}
+
+// FinancialDetailsRequest specifies filter parameters for the FinancialDetails API.
+// At least one of Code or Date should be provided.
+type FinancialDetailsRequest struct {
+	// Code filters by security code.
+	Code *string
+	// Date filters by disclosure date in YYYYMMDD or YYYY-MM-DD format.
+	Date *string
+}
+
+type financialDetailsParameters struct {
+	FinancialDetailsRequest
+	PaginationKey *string
+}
+
+func (p financialDetailsParameters) values() (url.Values, error) {
+	v := url.Values{}
+	if p.Code != nil {
+		v.Add("code", *p.Code)
+	}
+	if p.Date != nil {
+		v.Add("date", *p.Date)
+	}
+	if p.PaginationKey != nil {
+		v.Add("pagination_key", *p.PaginationKey)
+	}
+	return v, nil
+}
+
+type financialDetailsResponse struct {
+	Data          []FinancialDetails `json:"data"`
+	PaginationKey *string            `json:"pagination_key"`
+}
+
+func (r financialDetailsResponse) Items() []FinancialDetails { return r.Data }
+func (r financialDetailsResponse) NextPageKey() *string      { return r.PaginationKey }
+
+// FinancialDetails retrieves detailed financial statement data from the /fins/details endpoint.
+// It automatically handles pagination to fetch all matching records.
+// This endpoint requires a Premium plan subscription.
+// See https://jpx-jquants.com/en/spec/fin-details for API details.
+func (c *Client) FinancialDetails(ctx context.Context, req FinancialDetailsRequest) ([]FinancialDetails, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (financialDetailsResponse, error) {
+		params := financialDetailsParameters{FinancialDetailsRequest: req, PaginationKey: paginationKey}
+		return getJSON[financialDetailsResponse](ctx, c, "/fins/details", params)
+	})
+}
+
+// Dividend represents cash dividend data disclosed by a listed company.
+// Numeric fields are reported by the API either as JSON numbers or as string
+// placeholders ("-" undetermined, "" not applicable); such placeholders are
+// parsed into a nil *float64.
+type Dividend struct {
+	// PublicationDate is the announcement date (JSON key "PubDate").
+	PublicationDate string
+	// PublicationTime is the announcement time (JSON key "PubTime").
+	PublicationTime string
+	// Code is the security code (JSON key "Code").
+	Code string
+	// ReferenceNumber is the reference number of the record (JSON key "RefNo").
+	ReferenceNumber string
+	// StatusCode is the record status: "1" new, "2" revised, "3" delete (JSON key "StatCode").
+	StatusCode string
+	// BoardMeetingDate is the date of the board resolution (JSON key "BoardDate").
+	BoardMeetingDate string
+	// InterimFinalCode indicates interim ("1") or final ("2") dividend (JSON key "IFCode").
+	InterimFinalCode string
+	// ForecastResultCode indicates result ("1") or forecast ("2") (JSON key "FRCode").
+	ForecastResultCode string
+	// InterimFinalTerm is the applicable fiscal term (JSON key "IFTerm").
+	InterimFinalTerm string
+	// CommemorativeSpecialCode indicates the dividend nature: "0" normal, "1" commemorative,
+	// "2" special, "3" both commemorative and special (JSON key "CommSpecCode").
+	CommemorativeSpecialCode string
+	// CAReferenceNumber is the reference number of the related corporate action (JSON key "CARefNo").
+	CAReferenceNumber string
+	// RecordDate is the record date (JSON key "RecDate").
+	RecordDate string
+	// ExDate is the ex-dividend date (JSON key "ExDate").
+	ExDate string
+	// ActualRecordDate is the actual record date (JSON key "ActRecDate").
+	ActualRecordDate string
+	// PayDate is the payment date; it may be "-" or "" when undetermined (JSON key "PayDate").
+	PayDate string
+	// DividendRate is the dividend per share (JSON key "DivRate").
+	DividendRate *float64
+	// DistributionAmount is the amount of distribution (JSON key "DistAmt").
+	DistributionAmount *float64
+	// RetainedEarnings is the retained earnings portion (JSON key "RetEarn").
+	RetainedEarnings *float64
+	// DeemedDividend is the deemed dividend amount (JSON key "DeemDiv").
+	DeemedDividend *float64
+	// DeemedCapitalGains is the deemed capital gains amount (JSON key "DeemCapGains").
+	DeemedCapitalGains *float64
+	// NetAssetDecreaseRatio is the net asset decrease ratio (JSON key "NetAssetDecRatio").
+	NetAssetDecreaseRatio *float64
+	// CommemorativeDividendRate is the commemorative dividend per share (JSON key "CommDivRate").
+	CommemorativeDividendRate *float64
+	// SpecialDividendRate is the special dividend per share (JSON key "SpecDivRate").
+	SpecialDividendRate *float64
+}
+
+func (d *Dividend) UnmarshalJSON(b []byte) error {
+	var raw struct {
+		PubDate          string `json:"PubDate"`
+		PubTime          string `json:"PubTime"`
+		Code             string `json:"Code"`
+		RefNo            string `json:"RefNo"`
+		StatCode         string `json:"StatCode"`
+		BoardDate        string `json:"BoardDate"`
+		IFCode           string `json:"IFCode"`
+		FRCode           string `json:"FRCode"`
+		IFTerm           string `json:"IFTerm"`
+		CommSpecCode     string `json:"CommSpecCode"`
+		CARefNo          string `json:"CARefNo"`
+		RecDate          string `json:"RecDate"`
+		ExDate           string `json:"ExDate"`
+		ActRecDate       string `json:"ActRecDate"`
+		PayDate          string `json:"PayDate"`
+		DivRate          any    `json:"DivRate"`
+		DistAmt          any    `json:"DistAmt"`
+		RetEarn          any    `json:"RetEarn"`
+		DeemDiv          any    `json:"DeemDiv"`
+		DeemCapGains     any    `json:"DeemCapGains"`
+		NetAssetDecRatio any    `json:"NetAssetDecRatio"`
+		CommDivRate      any    `json:"CommDivRate"`
+		SpecDivRate      any    `json:"SpecDivRate"`
+	}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return fmt.Errorf("failed to unmarshal dividend: %w", err)
+	}
+
+	d.PublicationDate = raw.PubDate
+	d.PublicationTime = raw.PubTime
+	d.Code = raw.Code
+	d.ReferenceNumber = raw.RefNo
+	d.StatusCode = raw.StatCode
+	d.BoardMeetingDate = raw.BoardDate
+	d.InterimFinalCode = raw.IFCode
+	d.ForecastResultCode = raw.FRCode
+	d.InterimFinalTerm = raw.IFTerm
+	d.CommemorativeSpecialCode = raw.CommSpecCode
+	d.CAReferenceNumber = raw.CARefNo
+	d.RecordDate = raw.RecDate
+	d.ExDate = raw.ExDate
+	d.ActualRecordDate = raw.ActRecDate
+	d.PayDate = raw.PayDate
+
+	var err error
+	if d.DividendRate, err = unmarshalFloatFromAny(raw.DivRate); err != nil {
+		return err
+	}
+	if d.DistributionAmount, err = unmarshalFloatFromAny(raw.DistAmt); err != nil {
+		return err
+	}
+	if d.RetainedEarnings, err = unmarshalFloatFromAny(raw.RetEarn); err != nil {
+		return err
+	}
+	if d.DeemedDividend, err = unmarshalFloatFromAny(raw.DeemDiv); err != nil {
+		return err
+	}
+	if d.DeemedCapitalGains, err = unmarshalFloatFromAny(raw.DeemCapGains); err != nil {
+		return err
+	}
+	if d.NetAssetDecreaseRatio, err = unmarshalFloatFromAny(raw.NetAssetDecRatio); err != nil {
+		return err
+	}
+	if d.CommemorativeDividendRate, err = unmarshalFloatFromAny(raw.CommDivRate); err != nil {
+		return err
+	}
+	if d.SpecialDividendRate, err = unmarshalFloatFromAny(raw.SpecDivRate); err != nil {
+		return err
+	}
+	return nil
+}
+
+// DividendRequest specifies filter parameters for the Dividend API.
+// At least one of Code or Date should be provided. From and To narrow the
+// date range when querying by Code.
+type DividendRequest struct {
+	// Code filters by security code.
+	Code *string
+	// Date filters by disclosure date in YYYYMMDD or YYYY-MM-DD format.
+	Date *string
+	// From is the start of the disclosure date range (used with Code).
+	From *string
+	// To is the end of the disclosure date range (used with Code).
+	To *string
+}
+
+type dividendParameters struct {
+	DividendRequest
+	PaginationKey *string
+}
+
+func (p dividendParameters) values() (url.Values, error) {
+	return codeDateRangeValues(p.Code, p.Date, p.From, p.To, p.PaginationKey)
+}
+
+type dividendResponse struct {
+	Data          []Dividend `json:"data"`
+	PaginationKey *string    `json:"pagination_key"`
+}
+
+func (r dividendResponse) Items() []Dividend    { return r.Data }
+func (r dividendResponse) NextPageKey() *string { return r.PaginationKey }
+
+// Dividend retrieves cash dividend data from the /fins/dividend endpoint.
+// It automatically handles pagination to fetch all matching records.
+// This endpoint requires a Premium plan subscription.
+// See https://jpx-jquants.com/en/spec/fin-dividend for API details.
+func (c *Client) Dividend(ctx context.Context, req DividendRequest) ([]Dividend, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (dividendResponse, error) {
+		params := dividendParameters{DividendRequest: req, PaginationKey: paginationKey}
+		return getJSON[dividendResponse](ctx, c, "/fins/dividend", params)
+	})
+}

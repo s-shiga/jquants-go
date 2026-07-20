@@ -82,6 +82,26 @@ issues, err := client.IssueInformation(ctx, jquants.IssueInformationRequest{
 })
 ```
 
+#### Morning Session Stock Prices
+
+Retrieves the current day's morning session OHLCV data from the `/equities/bars/daily/am` endpoint (Premium plan).
+See [API reference](https://jpx-jquants.com/en/spec/eq-bars-daily-am) for details.
+
+Outside the morning-session publication window, the API responds with HTTP 210 and the method returns a `NoContent` error.
+
+```go
+code := "7203"
+prices, err := client.MorningSessionStockPrice(ctx, jquants.MorningSessionStockPriceRequest{
+    Code: &code,
+})
+if err != nil {
+    var noContent jquants.NoContent
+    if errors.As(err, &noContent) {
+        // outside the morning session window
+    }
+}
+```
+
 #### Stock Prices
 
 Retrieves daily OHLCV data for stocks from the `/equities/bars/daily` endpoint.
@@ -219,6 +239,23 @@ alerts, err := client.MarginAlert(ctx, jquants.MarginAlertRequest{
 })
 ```
 
+#### Breakdown Trading
+
+Retrieves the breakdown of trading value and volume (long selling/buying, short selling, margin transactions) from the `/markets/breakdown` endpoint (Premium plan).
+See [API reference](https://jpx-jquants.com/en/spec/mkt-breakdown) for details.
+
+```go
+code := "7203"
+from, to := "2024-01-01", "2024-01-31"
+data, err := client.BreakdownTrading(ctx, jquants.BreakdownTradingRequest{
+    Code: &code,
+    From: &from,
+    To:   &to,
+})
+```
+
+A `BreakdownTradingWithChannel` streaming variant is also available.
+
 ### Indices
 
 #### Index Prices
@@ -271,6 +308,38 @@ for option := range ch {
 }
 ```
 
+#### Futures Prices
+
+Retrieves daily futures prices for all products (TOPIX futures, Nikkei 225 futures, etc.) from the `/derivatives/bars/daily/futures` endpoint (Premium plan).
+See [API reference](https://jpx-jquants.com/en/spec/drv-bars-daily-fut) for details.
+
+Price fields use `*json.Number` (prices can be fractional and may be `nil` when no trading occurred). Whole-day, morning, night, and day session OHLC are all provided.
+
+```go
+category := "TOPIXF"
+futures, err := client.FuturesPrice(ctx, jquants.FuturesPriceRequest{
+    Date:     "2024-07-23",
+    Category: &category,
+})
+```
+
+A `FuturesPriceWithChannel` streaming variant is also available.
+
+#### Option Prices (All Underlyings)
+
+Retrieves daily option prices for all underlyings (TOPIX options, Nikkei 225 options, securities options, etc.) from the `/derivatives/bars/daily/options` endpoint (Premium plan).
+See [API reference](https://jpx-jquants.com/en/spec/drv-bars-daily-opt) for details.
+
+```go
+category := "NK225E"
+options, err := client.OptionPrice(ctx, jquants.OptionPriceRequest{
+    Date:     "2024-07-23",
+    Category: &category,
+})
+```
+
+For securities options, pass the underlying security code via `Code`. A `OptionPriceWithChannel` streaming variant is also available.
+
 ### Financials
 
 #### Financial Summary
@@ -283,6 +352,34 @@ The API returns numeric values as strings; this library parses them into `*float
 ```go
 code := "7203"
 summaries, err := client.FinancialSummary(ctx, jquants.FinancialSummaryRequest{
+    Code: &code,
+})
+```
+
+#### Financial Statement Details
+
+Retrieves detailed financial statement line items (balance sheet, income statement, etc.) from the `/fins/details` endpoint (Premium plan).
+See [API reference](https://jpx-jquants.com/en/spec/fin-details) for details.
+
+Line items are returned in the `FinancialStatement` field as a `map[string]string` keyed by verbose English XBRL labels.
+
+```go
+code := "7203"
+details, err := client.FinancialDetails(ctx, jquants.FinancialDetailsRequest{
+    Code: &code,
+})
+```
+
+#### Cash Dividend Data
+
+Retrieves cash dividend announcements (record dates, ex-dates, dividend rates, etc.) from the `/fins/dividend` endpoint (Premium plan).
+See [API reference](https://jpx-jquants.com/en/spec/fin-dividend) for details.
+
+Numeric fields use `*float64` and are `nil` when the value is undetermined (`"-"`) or not applicable (`""`).
+
+```go
+code := "7203"
+dividends, err := client.Dividend(ctx, jquants.DividendRequest{
     Code: &code,
 })
 ```
@@ -321,20 +418,9 @@ code := "7203"
 reports, err := client.LargeVolumeShareholders(ctx, jquants.EdinetRequest{Code: &code})
 ```
 
-### Not Yet Implemented
-
-The following J-Quants API endpoints require the Premium plan and are not implemented in this library:
-
-- Financial Statements Details (`/fins/details`)
-- Cash Dividend Data (`/fins/dividend`)
-- Futures Prices (`/derivatives/bars/daily/futures`)
-- Option Prices, all underlyings (`/derivatives/bars/daily/options`)
-- Breakdown Trading (`/markets/breakdown`)
-- Morning Session Stock Prices (`/equities/bars/daily/am`)
-
 ### Channel API (Streaming)
 
-Methods with a `WithChannel` suffix (`StockPriceWithChannel`, `IndexOptionPriceWithChannel`) stream results through a channel instead of returning a slice. This is useful when processing large datasets incrementally.
+Methods with a `WithChannel` suffix (`StockPriceWithChannel`, `IndexOptionPriceWithChannel`, `OptionPriceWithChannel`, `FuturesPriceWithChannel`, `BreakdownTradingWithChannel`) stream results through a channel instead of returning a slice. This is useful when processing large datasets incrementally.
 
 - The caller must create the channel and pass it in.
 - The channel is **automatically closed** when all pages have been sent or when an error occurs.
@@ -396,6 +482,8 @@ if err != nil {
     }
 }
 ```
+
+A `NoContent` error (HTTP 210) is returned by endpoints that have no data for the requested window, such as morning session prices outside publication hours; it is not retried.
 
 The client automatically retries on HTTP 429, 500, 502, 503, and 504 errors with a configurable interval (`TooManyRequests`, `InternalServerError`, `BadGateway`, `ServiceUnavailable`, `GatewayTimeout`). For 429 responses, a `Retry-After` header is honored when present.
 

@@ -2,6 +2,7 @@ package jquants
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/s-shiga/jquants-go/v2/codes"
@@ -49,6 +50,23 @@ func TestClient_StockPriceWithChannel(t *testing.T) {
 	}
 	if !found {
 		t.Error("Empty stock price")
+	}
+}
+
+func TestClient_MorningSessionStockPrice(t *testing.T) {
+	code := "72030"
+	client := setupClient(t)
+	req := MorningSessionStockPriceRequest{Code: &code}
+	res, err := client.MorningSessionStockPrice(t.Context(), req)
+	if err != nil {
+		var noContent NoContent
+		if errors.As(err, &noContent) {
+			t.Skip("outside morning session window")
+		}
+		t.Errorf("Failed to get morning session stock price: %s", err)
+	}
+	if len(res) == 0 {
+		t.Error("Empty morning session stock price")
 	}
 }
 

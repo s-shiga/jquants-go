@@ -199,7 +199,150 @@ func (c *Client) ShortSellingValue(ctx context.Context, req ShortSellingValueReq
 	})
 }
 
-// Breakdown Trading not implemented (Premium plan only)
+// BreakdownTrading represents a breakdown of daily trading value and volume for
+// a security by trade type, distinguishing long trades from margin trades and
+// splitting margin trades into positions being newly opened versus closed.
+type BreakdownTrading struct {
+	// Date is the trading date in YYYY-MM-DD format (JSON key "Date").
+	Date string
+	// Code is the security code (JSON key "Code").
+	Code string
+	// LongSellValue is the trading value of long selling in yen (JSON key "LongSellVa").
+	LongSellValue float64
+	// ShortSellWithoutMarginValue is the trading value of short selling that is not
+	// margin trading, in yen (JSON key "ShrtNoMrgnVa").
+	ShortSellWithoutMarginValue float64
+	// MarginSellNewValue is the trading value in yen of sell orders creating new
+	// margin sell positions (JSON key "MrgnSellNewVa").
+	MarginSellNewValue float64
+	// MarginSellCloseValue is the trading value in yen of sell orders closing existing
+	// margin buy positions (JSON key "MrgnSellCloseVa").
+	MarginSellCloseValue float64
+	// LongBuyValue is the trading value of long buying in yen (JSON key "LongBuyVa").
+	LongBuyValue float64
+	// MarginBuyNewValue is the trading value in yen of buy orders creating new margin
+	// buy positions (JSON key "MrgnBuyNewVa").
+	MarginBuyNewValue float64
+	// MarginBuyCloseValue is the trading value in yen of buy orders closing existing
+	// margin sell positions (JSON key "MrgnBuyCloseVa").
+	MarginBuyCloseValue float64
+	// LongSellVolume is the volume of long selling in shares (JSON key "LongSellVo").
+	LongSellVolume int64
+	// ShortSellWithoutMarginVolume is the volume of short selling that is not margin
+	// trading, in shares (JSON key "ShrtNoMrgnVo").
+	ShortSellWithoutMarginVolume int64
+	// MarginSellNewVolume is the volume in shares of sell orders creating new margin
+	// sell positions (JSON key "MrgnSellNewVo").
+	MarginSellNewVolume int64
+	// MarginSellCloseVolume is the volume in shares of sell orders closing existing
+	// margin buy positions (JSON key "MrgnSellCloseVo").
+	MarginSellCloseVolume int64
+	// LongBuyVolume is the volume of long buying in shares (JSON key "LongBuyVo").
+	LongBuyVolume int64
+	// MarginBuyNewVolume is the volume in shares of buy orders creating new margin buy
+	// positions (JSON key "MrgnBuyNewVo").
+	MarginBuyNewVolume int64
+	// MarginBuyCloseVolume is the volume in shares of buy orders closing existing margin
+	// sell positions (JSON key "MrgnBuyCloseVo").
+	MarginBuyCloseVolume int64
+}
+
+func (bt *BreakdownTrading) UnmarshalJSON(b []byte) error {
+	var raw struct {
+		Date            string  `json:"Date"`
+		Code            string  `json:"Code"`
+		LongSellVa      float64 `json:"LongSellVa"`
+		ShrtNoMrgnVa    float64 `json:"ShrtNoMrgnVa"`
+		MrgnSellNewVa   float64 `json:"MrgnSellNewVa"`
+		MrgnSellCloseVa float64 `json:"MrgnSellCloseVa"`
+		LongBuyVa       float64 `json:"LongBuyVa"`
+		MrgnBuyNewVa    float64 `json:"MrgnBuyNewVa"`
+		MrgnBuyCloseVa  float64 `json:"MrgnBuyCloseVa"`
+		LongSellVo      float64 `json:"LongSellVo"`
+		ShrtNoMrgnVo    float64 `json:"ShrtNoMrgnVo"`
+		MrgnSellNewVo   float64 `json:"MrgnSellNewVo"`
+		MrgnSellCloseVo float64 `json:"MrgnSellCloseVo"`
+		LongBuyVo       float64 `json:"LongBuyVo"`
+		MrgnBuyNewVo    float64 `json:"MrgnBuyNewVo"`
+		MrgnBuyCloseVo  float64 `json:"MrgnBuyCloseVo"`
+	}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return fmt.Errorf("failed to unmarshal breakdown trading: %w", err)
+	}
+	bt.Date = raw.Date
+	bt.Code = raw.Code
+	bt.LongSellValue = raw.LongSellVa
+	bt.ShortSellWithoutMarginValue = raw.ShrtNoMrgnVa
+	bt.MarginSellNewValue = raw.MrgnSellNewVa
+	bt.MarginSellCloseValue = raw.MrgnSellCloseVa
+	bt.LongBuyValue = raw.LongBuyVa
+	bt.MarginBuyNewValue = raw.MrgnBuyNewVa
+	bt.MarginBuyCloseValue = raw.MrgnBuyCloseVa
+	bt.LongSellVolume = int64(raw.LongSellVo)
+	bt.ShortSellWithoutMarginVolume = int64(raw.ShrtNoMrgnVo)
+	bt.MarginSellNewVolume = int64(raw.MrgnSellNewVo)
+	bt.MarginSellCloseVolume = int64(raw.MrgnSellCloseVo)
+	bt.LongBuyVolume = int64(raw.LongBuyVo)
+	bt.MarginBuyNewVolume = int64(raw.MrgnBuyNewVo)
+	bt.MarginBuyCloseVolume = int64(raw.MrgnBuyCloseVo)
+	return nil
+}
+
+// BreakdownTradingRequest specifies filter parameters for the BreakdownTrading API.
+// Either Code or Date must be provided.
+type BreakdownTradingRequest struct {
+	// Code filters by security code. Required if Date is not specified.
+	Code *string
+	// Date filters by a specific date in YYYY-MM-DD format. If specified, Code is ignored.
+	Date *string
+	// From specifies the start date for a date range query (used with Code).
+	From *string
+	// To specifies the end date for a date range query (used with Code).
+	To *string
+}
+
+type breakdownTradingParameters struct {
+	BreakdownTradingRequest
+	PaginationKey *string
+}
+
+func (p breakdownTradingParameters) values() (url.Values, error) {
+	return codeDateRangeValues(p.Code, p.Date, p.From, p.To, p.PaginationKey)
+}
+
+type breakdownTradingResponse struct {
+	Data          []BreakdownTrading `json:"data"`
+	PaginationKey *string            `json:"pagination_key"`
+}
+
+func (r breakdownTradingResponse) Items() []BreakdownTrading { return r.Data }
+func (r breakdownTradingResponse) NextPageKey() *string      { return r.PaginationKey }
+
+// BreakdownTrading retrieves the daily breakdown of trading value and volume by
+// trade type from the /markets/breakdown endpoint.
+// It automatically handles pagination to fetch all matching records.
+// This endpoint requires the Premium plan.
+// See https://jpx-jquants.com/en/spec/mkt-breakdown for API details.
+func (c *Client) BreakdownTrading(ctx context.Context, req BreakdownTradingRequest) ([]BreakdownTrading, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (breakdownTradingResponse, error) {
+		params := breakdownTradingParameters{BreakdownTradingRequest: req, PaginationKey: paginationKey}
+		return getJSON[breakdownTradingResponse](ctx, c, "/markets/breakdown", params)
+	})
+}
+
+// BreakdownTradingWithChannel retrieves the daily breakdown of trading value and volume
+// and streams each record to the provided channel.
+// The channel is closed when all records have been sent or an error occurs.
+// On error the channel is closed and the error is returned from this method, so callers
+// must check the returned error after the channel closes; ranging the channel alone will not surface it.
+// This endpoint requires the Premium plan.
+// See https://jpx-jquants.com/en/spec/mkt-breakdown for API details.
+func (c *Client) BreakdownTradingWithChannel(ctx context.Context, req BreakdownTradingRequest, ch chan<- BreakdownTrading) error {
+	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (breakdownTradingResponse, error) {
+		params := breakdownTradingParameters{BreakdownTradingRequest: req, PaginationKey: paginationKey}
+		return getJSON[breakdownTradingResponse](ctx, c, "/markets/breakdown", params)
+	})
+}
 
 // OutstandingShortPosition represents an outstanding short position report
 // submitted to the exchange when a short seller's position reaches a
