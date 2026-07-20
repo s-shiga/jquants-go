@@ -118,9 +118,9 @@ type CrossShareholdingIssue struct {
 	// PriorShares is the number of shares held in the prior period, or nil (JSON key "PriShs").
 	PriorShares *int64 `json:"PriShs"`
 	// CurrentBookValue is the current-period book value, or nil (JSON key "CurBookVal").
-	CurrentBookValue *int64 `json:"CurBookVal"`
+	CurrentBookValue *float64 `json:"CurBookVal"`
 	// PriorBookValue is the prior-period book value, or nil (JSON key "PriBookVal").
-	PriorBookValue *int64 `json:"PriBookVal"`
+	PriorBookValue *float64 `json:"PriBookVal"`
 	// CurrentSharesNotDisclosed is a note when current shares are not disclosed, or nil (JSON key "CurShsNotDisc").
 	CurrentSharesNotDisclosed *string `json:"CurShsNotDisc"`
 	// PriorSharesNotDisclosed is a note when prior shares are not disclosed, or nil (JSON key "PriShsNotDisc").
@@ -149,29 +149,29 @@ type CrossShareholdingEntry struct {
 	// ListedIssues is the number of listed cross-held issues, or nil (JSON key "ListedIss").
 	ListedIssues *int64 `json:"ListedIss"`
 	// ListedBookValue is the total book value of listed cross-holdings, or nil (JSON key "ListedBookVal").
-	ListedBookValue *int64 `json:"ListedBookVal"`
+	ListedBookValue *float64 `json:"ListedBookVal"`
 	// ListedIncreaseIssues is the number of listed issues that increased, or nil (JSON key "ListedIncIss").
 	ListedIncreaseIssues *int64 `json:"ListedIncIss"`
 	// ListedIncreaseAcquisitionCost is the acquisition cost of listed increases, or nil (JSON key "ListedIncAcqCost").
-	ListedIncreaseAcquisitionCost *int64 `json:"ListedIncAcqCost"`
+	ListedIncreaseAcquisitionCost *float64 `json:"ListedIncAcqCost"`
 	// ListedDecreaseIssues is the number of listed issues that decreased, or nil (JSON key "ListedDecIss").
 	ListedDecreaseIssues *int64 `json:"ListedDecIss"`
 	// ListedDecreaseSaleAmount is the sale amount of listed decreases, or nil (JSON key "ListedDecSaleAmt").
-	ListedDecreaseSaleAmount *int64 `json:"ListedDecSaleAmt"`
+	ListedDecreaseSaleAmount *float64 `json:"ListedDecSaleAmt"`
 	// ListedIncreaseReason is the reason for listed increases, or nil (JSON key "ListedIncRsn").
 	ListedIncreaseReason *string `json:"ListedIncRsn"`
 	// NonListedIssues is the number of non-listed cross-held issues, or nil (JSON key "NonListedIss").
 	NonListedIssues *int64 `json:"NonListedIss"`
 	// NonListedBookValue is the total book value of non-listed cross-holdings, or nil (JSON key "NonListedBookVal").
-	NonListedBookValue *int64 `json:"NonListedBookVal"`
+	NonListedBookValue *float64 `json:"NonListedBookVal"`
 	// NonListedIncreaseIssues is the number of non-listed issues that increased, or nil (JSON key "NonListedIncIss").
 	NonListedIncreaseIssues *int64 `json:"NonListedIncIss"`
 	// NonListedIncreaseAcquisitionCost is the acquisition cost of non-listed increases, or nil (JSON key "NonListedIncAcqCost").
-	NonListedIncreaseAcquisitionCost *int64 `json:"NonListedIncAcqCost"`
+	NonListedIncreaseAcquisitionCost *float64 `json:"NonListedIncAcqCost"`
 	// NonListedDecreaseIssues is the number of non-listed issues that decreased, or nil (JSON key "NonListedDecIss").
 	NonListedDecreaseIssues *int64 `json:"NonListedDecIss"`
 	// NonListedDecreaseSaleAmount is the sale amount of non-listed decreases, or nil (JSON key "NonListedDecSaleAmt").
-	NonListedDecreaseSaleAmount *int64 `json:"NonListedDecSaleAmt"`
+	NonListedDecreaseSaleAmount *float64 `json:"NonListedDecSaleAmt"`
 	// NonListedIncreaseReason is the reason for non-listed increases, or nil (JSON key "NonListedIncRsn").
 	NonListedIncreaseReason *string `json:"NonListedIncRsn"`
 	// Specified is the list of specified investment cross-holdings (JSON key "Spec").
@@ -264,7 +264,7 @@ type LargeVolumeAcquisitionDisposal struct {
 	// Counterparty is the counterparty name, or nil (JSON key "Cptty").
 	Counterparty *string `json:"Cptty"`
 	// Price is the transaction price (JSON key "Price").
-	Price int64 `json:"Price"`
+	Price float64 `json:"Price"`
 	// PriceRaw is the raw price text as extracted, or nil (JSON key "PriceRaw").
 	PriceRaw *string `json:"PriceRaw"`
 }
@@ -284,7 +284,7 @@ type LargeVolumeBorrowing struct {
 	// ("1": not disclosed, "2": disclosed) (JSON key "DiscBrwPurp").
 	DisclosedBorrowingPurpose string `json:"DiscBrwPurp"`
 	// Amount is the borrowed amount (JSON key "Amt").
-	Amount int64 `json:"Amt"`
+	Amount float64 `json:"Amt"`
 }
 
 // LargeVolumeCredit represents an entry in the list of credit counterparties
@@ -325,15 +325,15 @@ type LargeVolumeHolder struct {
 	// SharesRatioLast is the shareholding ratio in the previous report, or nil (JSON key "ShsRatioLast").
 	SharesRatioLast *float64 `json:"ShsRatioLast"`
 	// OwnFund is the amount funded from the holder's own capital, or nil (JSON key "OwnFund").
-	OwnFund *int64 `json:"OwnFund"`
+	OwnFund *float64 `json:"OwnFund"`
 	// TotalBorrowed is the total borrowed amount, or nil (JSON key "TotalBrw").
-	TotalBorrowed *int64 `json:"TotalBrw"`
+	TotalBorrowed *float64 `json:"TotalBrw"`
 	// TotalOther is the total from other sources, or nil (JSON key "TotalOther").
-	TotalOther *int64 `json:"TotalOther"`
+	TotalOther *float64 `json:"TotalOther"`
 	// OtherBreakdown is a breakdown note for other sources, or nil (JSON key "OtherBrk").
 	OtherBreakdown *string `json:"OtherBrk"`
 	// TotalFund is the total funding amount, or nil (JSON key "TotalFund").
-	TotalFund *int64 `json:"TotalFund"`
+	TotalFund *float64 `json:"TotalFund"`
 	// AcquisitionsDisposals is the list of acquisition and disposal records (JSON key "AcqDisp").
 	AcquisitionsDisposals []LargeVolumeAcquisitionDisposal `json:"AcqDisp"`
 	// Borrowings is the list of borrowing counterparties (JSON key "BrwList").

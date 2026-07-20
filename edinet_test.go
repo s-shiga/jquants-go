@@ -1,6 +1,27 @@
 package jquants
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+)
+
+// TestLargeVolumeAcquisitionDisposal_DecimalPrice pins the regression where the
+// live EDINET API returned a decimal transaction price (e.g. 718.33). The field
+// was previously int64, which aborted the entire fetch with a JSON unmarshal
+// error. Money-denominated EDINET fields are now float64.
+func TestLargeVolumeAcquisitionDisposal_DecimalPrice(t *testing.T) {
+	const raw = `{"Date":"2024-01-15","SecType":"株式","Shs":1000,"Ratio":0.05,"Price":718.33}`
+	var got LargeVolumeAcquisitionDisposal
+	if err := json.Unmarshal([]byte(raw), &got); err != nil {
+		t.Fatalf("failed to unmarshal decimal price: %s", err)
+	}
+	if got.Price != 718.33 {
+		t.Errorf("Price = %v, want 718.33", got.Price)
+	}
+	if got.Shares != 1000 {
+		t.Errorf("Shares = %d, want 1000", got.Shares)
+	}
+}
 
 func TestClient_MajorShareholders(t *testing.T) {
 	code := "7203"
