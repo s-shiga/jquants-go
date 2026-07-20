@@ -61,6 +61,7 @@ Custom error types in `client.go` wrap HTTP status codes: `NoContent` (210), `Ba
 - `equity.go` - Stock-related APIs:
   - Issue information (`/equities/master`)
   - Stock prices (`/equities/bars/daily`)
+  - Minute stock prices (`/equities/bars/minute`, add-on)
   - Morning session stock prices (`/equities/bars/daily/am`, Premium)
   - Earnings calendar (`/equities/earnings-calendar`)
   - Investor type trading (`/equities/investor-types`)
@@ -87,6 +88,11 @@ Custom error types in `client.go` wrap HTTP status codes: `NoContent` (210), `Ba
   - Major shareholders (`/edinet/major-shareholders`)
   - Cross-shareholdings (`/edinet/cross-shareholdings`)
   - Large volume shareholders (`/edinet/large-volume-shareholders`)
+- `td.go` - TDnet timely disclosure APIs (TimelyDisclosure add-on):
+  - Disclosure index list (`/td/list`)
+  - Disclosure files (`/td/files`)
+  - Disclosure CSV download (`/td/bulk`)
+- `bulk.go` - Bulk download APIs (`/bulk/list`, `/bulk/get`); tick-level stock trades (add-on) are delivered only through these as gzip CSVs
 - `codes/codes.go` - Constants for market sections, 33-sector codes, and index codes
 - `testutil.go` - Test helper that reads `J_QUANTS_API_KEY` from env and creates a client
 

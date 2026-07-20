@@ -82,6 +82,23 @@ issues, err := client.IssueInformation(ctx, jquants.IssueInformationRequest{
 })
 ```
 
+#### Minute Stock Prices
+
+Retrieves 1-minute OHLCV bars from the `/equities/bars/minute` endpoint (minute-bars add-on plan).
+See [API reference](https://jpx-jquants.com/en/spec/eq-bars-minute) for details.
+
+```go
+code := "8697"
+from, to := "2024-01-15", "2024-01-15"
+bars, err := client.MinuteStockPrice(ctx, jquants.MinuteStockPriceRequest{
+    Code: &code,
+    From: &from,
+    To:   &to,
+})
+```
+
+A `MinuteStockPriceWithChannel` streaming variant is also available.
+
 #### Morning Session Stock Prices
 
 Retrieves the current day's morning session OHLCV data from the `/equities/bars/daily/am` endpoint (Premium plan).
@@ -418,9 +435,65 @@ code := "7203"
 reports, err := client.LargeVolumeShareholders(ctx, jquants.EdinetRequest{Code: &code})
 ```
 
+### TDnet Timely Disclosure (Add-on)
+
+The TDnet endpoints require the TimelyDisclosure add-on plan.
+
+#### Disclosure Index List
+
+Retrieves the TDnet disclosure index from the `/td/list` endpoint.
+See [API reference](https://jpx-jquants.com/en/spec/td-list) for details.
+
+```go
+date := "2024-04-01"
+disclosures, err := client.TimelyDisclosure(ctx, jquants.TimelyDisclosureRequest{
+    Date: &date,
+})
+```
+
+`DisclosureStatus` is `nil` for new disclosures, `"revision"` for corrections, and `"delete"` for deletions. A `TimelyDisclosureWithChannel` streaming variant is also available.
+
+#### Disclosure Files
+
+Retrieves signed download URLs for a disclosure's documents (full PDF, summary PDF, XBRL) from the `/td/files` endpoint. URLs expire in 15 minutes.
+See [API reference](https://jpx-jquants.com/en/spec/td-files) for details.
+
+```go
+files, err := client.TimelyDisclosureFiles(ctx, jquants.TimelyDisclosureFilesRequest{
+    DisclosureNumber: "20250401130100",
+})
+if files.Files.PDF != nil {
+    // download *files.Files.PDF
+}
+```
+
+#### Disclosure CSV Download
+
+Retrieves a signed URL for a gzip CSV covering five years of disclosures from the `/td/bulk` endpoint.
+See [API reference](https://jpx-jquants.com/en/spec/td-bulk) for details.
+
+```go
+bulk, err := client.TimelyDisclosureBulk(ctx)
+// bulk.URL is a short-lived download link; bulk.LastUpdated is ISO 8601
+```
+
+### Bulk Download
+
+Lists and fetches whole-dataset gzip CSV files via the `/bulk/list` and `/bulk/get` endpoints. Tick-level stock trades (Stock Prices (Tick) add-on) have no REST endpoint and are delivered exclusively this way, under keys prefixed `equities/trades/`.
+See [API reference](https://jpx-jquants.com/en/spec/bulk-list) for details.
+
+```go
+// List files for a date (or by endpoint name)
+date := "2024-01-15"
+files, err := client.BulkList(ctx, jquants.BulkListRequest{Date: &date})
+
+// Get a signed download URL (valid ~5 minutes, single-use)
+url, err := client.BulkGet(ctx, jquants.BulkGetRequest{Key: &files[0].Key})
+```
+
 ### Channel API (Streaming)
 
-Methods with a `WithChannel` suffix (`StockPriceWithChannel`, `IndexOptionPriceWithChannel`, `OptionPriceWithChannel`, `FuturesPriceWithChannel`, `BreakdownTradingWithChannel`) stream results through a channel instead of returning a slice. This is useful when processing large datasets incrementally.
+Methods with a `WithChannel` suffix (`StockPriceWithChannel`, `MinuteStockPriceWithChannel`, `IndexOptionPriceWithChannel`, `OptionPriceWithChannel`, `FuturesPriceWithChannel`, `BreakdownTradingWithChannel`, `TimelyDisclosureWithChannel`) stream results through a channel instead of returning a slice. This is useful when processing large datasets incrementally.
 
 - The caller must create the channel and pass it in.
 - The channel is **automatically closed** when all pages have been sent or when an error occurs.

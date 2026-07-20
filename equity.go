@@ -283,6 +283,110 @@ func (c *Client) StockPriceWithChannel(ctx context.Context, req StockPriceReques
 	})
 }
 
+// MinuteStockPrice represents one-minute OHLCV data for a security.
+type MinuteStockPrice struct {
+	// Date is the trading date in YYYY-MM-DD format (JSON key "Date").
+	Date string
+	// Time is the start time of the one-minute bar in HH:MM format (JSON key "Time").
+	Time string
+	// Code is the security code (JSON key "Code").
+	Code string
+	// Open is the opening price of the minute (nil if no trading occurred) (JSON key "O").
+	Open *json.Number
+	// High is the highest price of the minute (nil if no trading occurred) (JSON key "H").
+	High *json.Number
+	// Low is the lowest price of the minute (nil if no trading occurred) (JSON key "L").
+	Low *json.Number
+	// Close is the closing price of the minute (nil if no trading occurred) (JSON key "C").
+	Close *json.Number
+	// Volume is the trading volume in shares for the minute (nil if no trading occurred) (JSON key "Vo").
+	Volume *int64
+	// TurnoverValue is the total trading value in yen for the minute (nil if no trading occurred) (JSON key "Va").
+	TurnoverValue *int64
+}
+
+func (m *MinuteStockPrice) UnmarshalJSON(b []byte) error {
+	var raw struct {
+		Date string `json:"Date"`
+		Time string `json:"Time"`
+		Code string `json:"Code"`
+		Open any    `json:"O"`
+		High any    `json:"H"`
+		Low  any    `json:"L"`
+		C    any    `json:"C"`
+		Vo   any    `json:"Vo"`
+		Va   any    `json:"Va"`
+	}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return fmt.Errorf("failed to unmarshal minute stock price: %w", err)
+	}
+	u := &unmarshaler{}
+	m.Date = raw.Date
+	m.Time = raw.Time
+	m.Code = raw.Code
+	m.Open = u.jsonNumber(raw.Open)
+	m.High = u.jsonNumber(raw.High)
+	m.Low = u.jsonNumber(raw.Low)
+	m.Close = u.jsonNumber(raw.C)
+	m.Volume = u.volume(raw.Vo)
+	m.TurnoverValue = u.volume(raw.Va)
+	return u.err
+}
+
+// MinuteStockPriceRequest specifies filter parameters for the MinuteStockPrice API.
+// Either Code or Date must be provided.
+type MinuteStockPriceRequest struct {
+	// Code filters by security code. Required if Date is not specified.
+	Code *string
+	// Date filters by a specific date in YYYY-MM-DD format. If specified, Code is ignored.
+	Date *string
+	// From specifies the start date for a date range query (used with Code).
+	From *string
+	// To specifies the end date for a date range query (used with Code).
+	To *string
+}
+
+type minuteStockPriceParameters struct {
+	MinuteStockPriceRequest
+	PaginationKey *string
+}
+
+func (p minuteStockPriceParameters) values() (url.Values, error) {
+	return codeDateRangeValues(p.Code, p.Date, p.From, p.To, p.PaginationKey)
+}
+
+type minuteStockPriceResponse struct {
+	Data          []MinuteStockPrice `json:"data"`
+	PaginationKey *string            `json:"pagination_key"`
+}
+
+func (r minuteStockPriceResponse) Items() []MinuteStockPrice { return r.Data }
+func (r minuteStockPriceResponse) NextPageKey() *string      { return r.PaginationKey }
+
+// MinuteStockPrice retrieves one-minute stock prices from the /equities/bars/minute endpoint.
+// It automatically handles pagination to fetch all matching records.
+// This endpoint requires the minute-bars add-on plan.
+// See https://jpx-jquants.com/en/spec/eq-bars-minute for API details.
+func (c *Client) MinuteStockPrice(ctx context.Context, req MinuteStockPriceRequest) ([]MinuteStockPrice, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (minuteStockPriceResponse, error) {
+		params := minuteStockPriceParameters{MinuteStockPriceRequest: req, PaginationKey: paginationKey}
+		return getJSON[minuteStockPriceResponse](ctx, c, "/equities/bars/minute", params)
+	})
+}
+
+// MinuteStockPriceWithChannel retrieves one-minute stock prices and streams each record to the provided channel.
+// The channel is closed when all records have been sent or an error occurs.
+// On error the channel is closed and the error is returned from this method, so callers
+// must check the returned error after the channel closes; ranging the channel alone will not surface it.
+// This endpoint requires the minute-bars add-on plan.
+// See https://jpx-jquants.com/en/spec/eq-bars-minute for API details.
+func (c *Client) MinuteStockPriceWithChannel(ctx context.Context, req MinuteStockPriceRequest, ch chan<- MinuteStockPrice) error {
+	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (minuteStockPriceResponse, error) {
+		params := minuteStockPriceParameters{MinuteStockPriceRequest: req, PaginationKey: paginationKey}
+		return getJSON[minuteStockPriceResponse](ctx, c, "/equities/bars/minute", params)
+	})
+}
+
 // MorningSessionStockPrice represents the current day's morning-session (前場)
 // OHLCV data for a security.
 type MorningSessionStockPrice struct {
