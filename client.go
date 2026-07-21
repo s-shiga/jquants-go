@@ -31,7 +31,7 @@ import (
 	"time"
 )
 
-const Version = "2.3.3"
+const Version = "2.3.4"
 
 // BaseURL is the default base URL for the J-Quants API v2.
 const BaseURL = "https://api.jquants.com/v2"
