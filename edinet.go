@@ -46,7 +46,9 @@ type MajorShareholder struct {
 	// HolderAddress is the shareholder's address (JSON key "HldrAddr").
 	HolderAddress string `json:"HldrAddr"`
 	// SharesHeld is the number of shares held (JSON key "ShsHeld").
-	SharesHeld int64 `json:"ShsHeld"`
+	// EDINET numerics are LLM-extracted from filings and may be fractional
+	// (e.g. holdings in thousands of shares); all are float64 by policy.
+	SharesHeld float64 `json:"ShsHeld"`
 	// SharesRatio is the shareholding ratio as a decimal fraction (JSON key "ShsRatio").
 	SharesRatio float64 `json:"ShsRatio"`
 }
@@ -114,9 +116,9 @@ type CrossShareholdingIssue struct {
 	// IssuerEdinetCode is the issuer's EDINET code, or nil (JSON key "IsrEdinetCode").
 	IssuerEdinetCode *string `json:"IsrEdinetCode"`
 	// CurrentShares is the number of shares held in the current period, or nil (JSON key "CurShs").
-	CurrentShares *int64 `json:"CurShs"`
+	CurrentShares *float64 `json:"CurShs"`
 	// PriorShares is the number of shares held in the prior period, or nil (JSON key "PriShs").
-	PriorShares *int64 `json:"PriShs"`
+	PriorShares *float64 `json:"PriShs"`
 	// CurrentBookValue is the current-period book value, or nil (JSON key "CurBookVal").
 	CurrentBookValue *float64 `json:"CurBookVal"`
 	// PriorBookValue is the prior-period book value, or nil (JSON key "PriBookVal").
@@ -147,29 +149,29 @@ type CrossShareholdingEntry struct {
 	// HolderEdinetCode is the holder's EDINET code, or nil (JSON key "HldrEdinetCode").
 	HolderEdinetCode *string `json:"HldrEdinetCode"`
 	// ListedIssues is the number of listed cross-held issues, or nil (JSON key "ListedIss").
-	ListedIssues *int64 `json:"ListedIss"`
+	ListedIssues *float64 `json:"ListedIss"`
 	// ListedBookValue is the total book value of listed cross-holdings, or nil (JSON key "ListedBookVal").
 	ListedBookValue *float64 `json:"ListedBookVal"`
 	// ListedIncreaseIssues is the number of listed issues that increased, or nil (JSON key "ListedIncIss").
-	ListedIncreaseIssues *int64 `json:"ListedIncIss"`
+	ListedIncreaseIssues *float64 `json:"ListedIncIss"`
 	// ListedIncreaseAcquisitionCost is the acquisition cost of listed increases, or nil (JSON key "ListedIncAcqCost").
 	ListedIncreaseAcquisitionCost *float64 `json:"ListedIncAcqCost"`
 	// ListedDecreaseIssues is the number of listed issues that decreased, or nil (JSON key "ListedDecIss").
-	ListedDecreaseIssues *int64 `json:"ListedDecIss"`
+	ListedDecreaseIssues *float64 `json:"ListedDecIss"`
 	// ListedDecreaseSaleAmount is the sale amount of listed decreases, or nil (JSON key "ListedDecSaleAmt").
 	ListedDecreaseSaleAmount *float64 `json:"ListedDecSaleAmt"`
 	// ListedIncreaseReason is the reason for listed increases, or nil (JSON key "ListedIncRsn").
 	ListedIncreaseReason *string `json:"ListedIncRsn"`
 	// NonListedIssues is the number of non-listed cross-held issues, or nil (JSON key "NonListedIss").
-	NonListedIssues *int64 `json:"NonListedIss"`
+	NonListedIssues *float64 `json:"NonListedIss"`
 	// NonListedBookValue is the total book value of non-listed cross-holdings, or nil (JSON key "NonListedBookVal").
 	NonListedBookValue *float64 `json:"NonListedBookVal"`
 	// NonListedIncreaseIssues is the number of non-listed issues that increased, or nil (JSON key "NonListedIncIss").
-	NonListedIncreaseIssues *int64 `json:"NonListedIncIss"`
+	NonListedIncreaseIssues *float64 `json:"NonListedIncIss"`
 	// NonListedIncreaseAcquisitionCost is the acquisition cost of non-listed increases, or nil (JSON key "NonListedIncAcqCost").
 	NonListedIncreaseAcquisitionCost *float64 `json:"NonListedIncAcqCost"`
 	// NonListedDecreaseIssues is the number of non-listed issues that decreased, or nil (JSON key "NonListedDecIss").
-	NonListedDecreaseIssues *int64 `json:"NonListedDecIss"`
+	NonListedDecreaseIssues *float64 `json:"NonListedDecIss"`
 	// NonListedDecreaseSaleAmount is the sale amount of non-listed decreases, or nil (JSON key "NonListedDecSaleAmt").
 	NonListedDecreaseSaleAmount *float64 `json:"NonListedDecSaleAmt"`
 	// NonListedIncreaseReason is the reason for non-listed increases, or nil (JSON key "NonListedIncRsn").
@@ -250,7 +252,7 @@ type LargeVolumeAcquisitionDisposal struct {
 	// SecurityType is the type of security transacted (JSON key "SecType").
 	SecurityType string `json:"SecType"`
 	// Shares is the number of shares transacted (JSON key "Shs").
-	Shares int64 `json:"Shs"`
+	Shares float64 `json:"Shs"`
 	// Ratio is the shareholding ratio after the transaction (JSON key "Ratio").
 	Ratio float64 `json:"Ratio"`
 	// Market describes the market where the transaction occurred (JSON key "Mkt").
@@ -319,7 +321,7 @@ type LargeVolumeHolder struct {
 	// CollateralAgreement is a note on any collateral agreement, or nil (JSON key "ColAgr").
 	CollateralAgreement *string `json:"ColAgr"`
 	// SharesHeld is the number of shares held (JSON key "ShsHeld").
-	SharesHeld int64 `json:"ShsHeld"`
+	SharesHeld float64 `json:"ShsHeld"`
 	// SharesRatio is the shareholding ratio (JSON key "ShsRatio").
 	SharesRatio float64 `json:"ShsRatio"`
 	// SharesRatioLast is the shareholding ratio in the previous report, or nil (JSON key "ShsRatioLast").
@@ -366,13 +368,13 @@ type LargeVolumeShareholders struct {
 	// ChangeReason is the reason for the change, or nil (JSON key "ChgRsn").
 	ChangeReason *string `json:"ChgRsn"`
 	// TotalSharesHeld is the total number of shares held (JSON key "TotalShsHeld").
-	TotalSharesHeld int64 `json:"TotalShsHeld"`
+	TotalSharesHeld float64 `json:"TotalShsHeld"`
 	// TotalSharesRatio is the total shareholding ratio (JSON key "TotalShsRatio").
 	TotalSharesRatio float64 `json:"TotalShsRatio"`
 	// TotalSharesRatioLast is the total shareholding ratio in the previous report, or nil (JSON key "TotalShsRatioLast").
 	TotalSharesRatioLast *float64 `json:"TotalShsRatioLast"`
 	// TotalOutstandingStocks is the total number of outstanding shares (JSON key "TotalOutStks").
-	TotalOutstandingStocks int64 `json:"TotalOutStks"`
+	TotalOutstandingStocks float64 `json:"TotalOutStks"`
 	// Holders is the list of holders covered by the report (JSON key "Hldrs").
 	Holders []LargeVolumeHolder `json:"Hldrs"`
 }

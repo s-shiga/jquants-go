@@ -19,7 +19,23 @@ func TestLargeVolumeAcquisitionDisposal_DecimalPrice(t *testing.T) {
 		t.Errorf("Price = %v, want 718.33", got.Price)
 	}
 	if got.Shares != 1000 {
-		t.Errorf("Shares = %d, want 1000", got.Shares)
+		t.Errorf("Shares = %v, want 1000", got.Shares)
+	}
+}
+
+// TestMajorShareholder_DecimalSharesHeld pins the regression where the live
+// EDINET API returned a fractional shares-held value (ShsHeld=140365.3, filings
+// express holdings in thousands of shares). The field was previously int64,
+// which aborted the entire fetch with a JSON unmarshal error. All EDINET
+// numerics are now float64 by policy.
+func TestMajorShareholder_DecimalSharesHeld(t *testing.T) {
+	const raw = `{"Rank":1,"HldrName":"テスト","HldrAddr":"東京","ShsHeld":140365.3,"ShsRatio":0.12}`
+	var got MajorShareholder
+	if err := json.Unmarshal([]byte(raw), &got); err != nil {
+		t.Fatalf("failed to unmarshal decimal shares held: %s", err)
+	}
+	if got.SharesHeld != 140365.3 {
+		t.Errorf("SharesHeld = %v, want 140365.3", got.SharesHeld)
 	}
 }
 
