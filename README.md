@@ -560,6 +560,8 @@ A `NoContent` error (HTTP 210) is returned by endpoints that have no data for th
 
 The client automatically retries on HTTP 429, 500, 502, 503, and 504 errors with a configurable interval (`TooManyRequests`, `InternalServerError`, `BadGateway`, `ServiceUnavailable`, `GatewayTimeout`). For 429 responses, a `Retry-After` header is honored when present.
 
+Transient transport-level failures are retried under the same policy and surface as `TransientTransportError`: a response body truncated mid-stream (unexpected EOF while decoding a very large page), a connection reset, or a network error from the HTTP round trip itself. Only the failing page is re-requested (with the same pagination key). Retries are bounded by `WithLoopTimeout`; caller cancellation (`context.Canceled` / `context.DeadlineExceeded`) is never retried and remains fatal.
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.

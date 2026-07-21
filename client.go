@@ -22,14 +22,16 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/url"
 	"runtime"
 	"strconv"
+	"syscall"
 	"time"
 )
 
-const Version = "2.3.2"
+const Version = "2.3.3"
 
 // BaseURL is the default base URL for the J-Quants API v2.
 const BaseURL = "https://api.jquants.com/v2"
@@ -220,6 +222,67 @@ type ServiceUnavailable struct{ HTTPError }
 // The client automatically retries requests that receive this error.
 type GatewayTimeout struct{ HTTPError }
 
+// TransientTransportError wraps a transport-level failure that is not tied to
+// an HTTP status code but is nonetheless safe to retry, such as a response body
+// that was truncated mid-stream (unexpected EOF while decoding), a connection
+// reset, or a network error from the HTTP round trip itself. The client retries
+// these using the same bounded policy as retryable HTTP status codes.
+type TransientTransportError struct {
+	Err error
+}
+
+func (e TransientTransportError) Error() string {
+	return fmt.Sprintf("transient transport error: %v", e.Err)
+}
+
+func (e TransientTransportError) Unwrap() error {
+	return e.Err
+}
+
+// asTransientTransportError classifies err as a [TransientTransportError] when
+// it represents a retryable transport-level failure (a truncated response body,
+// a connection reset, or a network round-trip error). Caller cancellation and
+// deadlines (context.Canceled / context.DeadlineExceeded) must remain fatal, so
+// they are returned unchanged even though they may surface as network errors.
+// Errors that are not recognized as transient are returned unchanged and stay
+// fatal.
+func asTransientTransportError(err error) error {
+	if err == nil {
+		return nil
+	}
+	// Caller cancellation must never be retried, even though it can surface
+	// wrapped in a *url.Error / *net.OpError.
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return err
+	}
+	if isTransientTransport(err) {
+		return TransientTransportError{Err: err}
+	}
+	return err
+}
+
+// isTransientTransport reports whether err is a retryable transport-level
+// failure. It matches only by errors.Is/As on net/io/syscall types, never by
+// string. Unmatched transport errors — including http2 stream errors that are
+// not exposed as net/io/syscall types — remain fatal by design.
+func isTransientTransport(err error) bool {
+	// A body truncated mid-stream surfaces as an unexpected EOF while decoding.
+	// A bare io.EOF from a JSON decode likewise means the body ended before a
+	// complete document was read (empty or truncated), so treat it as transient.
+	if errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF) {
+		return true
+	}
+	// Connection resets / aborted pipes from client.Do or from body reads.
+	if errors.Is(err, syscall.ECONNRESET) ||
+		errors.Is(err, syscall.ECONNABORTED) ||
+		errors.Is(err, syscall.EPIPE) {
+		return true
+	}
+	// Any other network operation error (dial/read/write failures, etc.).
+	var opErr *net.OpError
+	return errors.As(err, &opErr)
+}
+
 func decodeResponse(resp *http.Response, body any) error {
 	// The client requests gzip encoding, but some responses (e.g. errors from
 	// AWS API Gateway) may be uncompressed. Only gzip-decode when the response
@@ -249,7 +312,9 @@ func getJSON[R any](ctx context.Context, c *Client, urlPath string, param parame
 	var r R
 	resp, err := c.sendRequest(ctx, urlPath, param)
 	if err != nil {
-		return r, fmt.Errorf("failed to send GET request: %w", err)
+		// A failed round trip (connection reset, network error) is classified
+		// as transient so the paginated fetch loop retries the same page.
+		return r, asTransientTransportError(fmt.Errorf("failed to send GET request: %w", err))
 	}
 	defer func() {
 		if clsErr := resp.Body.Close(); clsErr != nil {
@@ -260,7 +325,9 @@ func getJSON[R any](ctx context.Context, c *Client, urlPath string, param parame
 		return r, handleErrorResponse(resp)
 	}
 	if err = decodeResponse(resp, &r); err != nil {
-		return r, fmt.Errorf("failed to decode HTTP response: %w", err)
+		// A body truncated mid-stream (unexpected EOF while decoding, gzip read
+		// error) is classified as transient so the fetch loop retries the page.
+		return r, asTransientTransportError(fmt.Errorf("failed to decode HTTP response: %w", err))
 	}
 	return r, nil
 }
@@ -320,10 +387,12 @@ func decodeErrorResponse(resp *http.Response) error {
 	return errors.New(errResp.Message)
 }
 
-// retryDelay reports whether err is a retryable HTTP error and, if so, how long
-// to wait before retrying. Retryable errors are 429, 500, 502, 503, and 504.
-// For 429, the Retry-After header (if present) takes precedence over the
-// configured default interval.
+// retryDelay reports whether err is a retryable error and, if so, how long to
+// wait before retrying. Retryable errors are the HTTP status codes 429, 500,
+// 502, 503, and 504, and transient transport failures ([TransientTransportError]:
+// truncated bodies, connection resets, network round-trip errors). For 429, the
+// Retry-After header (if present) takes precedence over the configured default
+// interval; all other retryable errors use the default interval.
 func retryDelay(err error, defaultInterval time.Duration) (time.Duration, bool) {
 	var tooManyRequests TooManyRequests
 	if errors.As(err, &tooManyRequests) {
@@ -338,7 +407,17 @@ func retryDelay(err error, defaultInterval time.Duration) (time.Duration, bool) 
 		errors.As(err, &GatewayTimeout{}) {
 		return defaultInterval, true
 	}
+	var transient TransientTransportError
+	if errors.As(err, &transient) {
+		return defaultInterval, true
+	}
 	return 0, false
+}
+
+// isContextError reports whether err was caused by context cancellation or a
+// deadline (including the LoopTimeout deadline used to bound the retry loop).
+func isContextError(err error) bool {
+	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
 }
 
 // sleep waits for the given duration or until the context is cancelled,
@@ -362,20 +441,30 @@ func fetchAllPages[T any, R Response[T]](
 ) ([]T, error) {
 	data := make([]T, 0)
 	var paginationKey *string
+	// lastRetryErr holds the most recent retryable failure so that if the retry
+	// budget (LoopTimeout) is exhausted — surfacing as a context deadline either
+	// while sleeping or on the next round trip — the cause we were retrying is
+	// preserved in the returned error chain instead of an opaque context error.
+	var lastRetryErr error
 	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
 	defer cancel()
 	for {
 		resp, err := fetchPage(ctx, paginationKey)
 		if err != nil {
 			if delay, ok := retryDelay(err, c.RetryInterval); ok {
+				lastRetryErr = err
 				slog.Warn("Retrying HTTP request", "error", err.Error())
-				if err := sleep(ctx, delay); err != nil {
-					return nil, err
+				if sleepErr := sleep(ctx, delay); sleepErr != nil {
+					return nil, errors.Join(err, sleepErr)
 				}
 				continue
 			}
+			if lastRetryErr != nil && isContextError(err) {
+				return nil, errors.Join(lastRetryErr, err)
+			}
 			return nil, err
 		}
+		lastRetryErr = nil
 		data = append(data, resp.Items()...)
 		paginationKey = resp.NextPageKey()
 		if paginationKey == nil {
@@ -395,20 +484,28 @@ func fetchAllPagesWithChannel[T any, R Response[T]](
 ) error {
 	defer close(ch)
 	var paginationKey *string
+	// lastRetryErr preserves the retryable cause when the retry budget
+	// (LoopTimeout) is exhausted; see fetchAllPages for details.
+	var lastRetryErr error
 	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
 	defer cancel()
 	for {
 		resp, err := fetchPage(ctx, paginationKey)
 		if err != nil {
 			if delay, ok := retryDelay(err, c.RetryInterval); ok {
+				lastRetryErr = err
 				slog.Warn("Retrying HTTP request", "error", err.Error())
-				if err := sleep(ctx, delay); err != nil {
-					return err
+				if sleepErr := sleep(ctx, delay); sleepErr != nil {
+					return errors.Join(err, sleepErr)
 				}
 				continue
 			}
+			if lastRetryErr != nil && isContextError(err) {
+				return errors.Join(lastRetryErr, err)
+			}
 			return err
 		}
+		lastRetryErr = nil
 		for _, item := range resp.Items() {
 			select {
 			case ch <- item:
