@@ -1,5 +1,7 @@
 # jquants-go
 
+[![CI](https://github.com/s-shiga/jquants-go/actions/workflows/ci.yml/badge.svg)](https://github.com/s-shiga/jquants-go/actions/workflows/ci.yml)
+
 Go client library for the [J-Quants API](https://jpx-jquants.com/), providing access to Japanese stock market data from the Tokyo Stock Exchange (TSE).
 
 ## Installation
