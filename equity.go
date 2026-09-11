@@ -76,6 +76,7 @@ func (ii *IssueInformation) UnmarshalJSON(b []byte) error {
 	ii.ScaleCategory = raw.ScaleCategory
 	ii.MarketCode = raw.MarketCode
 	ii.MarketName = raw.MarketCodeName
+	ii.MarginCode = nil
 	if raw.MarginCode != nil {
 		marginCode, err := strconv.ParseInt(*raw.MarginCode, 10, 8)
 		if err != nil {

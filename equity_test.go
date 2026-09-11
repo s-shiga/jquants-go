@@ -13,6 +13,16 @@ func TestClient_IssueInformation(t *testing.T) {
 	})
 }
 
+func TestIssueInformationClearsMissingMarginCode(t *testing.T) {
+	value := IssueInformation{MarginCode: ptr(int8(2))}
+	if err := json.Unmarshal([]byte(`{"S17":"16"}`), &value); err != nil {
+		t.Fatal(err)
+	}
+	if value.MarginCode != nil {
+		t.Fatalf("MarginCode = %v, want nil", *value.MarginCode)
+	}
+}
+
 func TestClient_StockPrice(t *testing.T) {
 	req := StockPriceRequest{Code: ptr("86970"), From: ptr("2026-07-01"), To: ptr("2026-07-17")}
 	checkEndpoint(t, "/equities/bars/daily", "code=86970&from=2026-07-01&to=2026-07-17", `{"Code":"86970","O":2047.5,"C":null,"UL":"0","LL":"1","Vo":1200.0,"AdjFactor":0.5,"AdjO":1023.75,"AdjVo":2400.0}`, true, StockPrice{Code: "86970", Open: ptr(json.Number("2047.5")), LowerLimit: true, Volume: ptr(int64(1200)), AdjustmentFactor: json.Number("0.5"), AdjustedOpen: ptr(json.Number("1023.75")), AdjustedVolume: ptr(int64(2400))}, func(c *Client) ([]StockPrice, error) {
