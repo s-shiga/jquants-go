@@ -262,6 +262,14 @@ type FinancialSummary struct {
 	NextForecastNonConsolidatedNetProfit *float64
 	// NextForecastNonConsolidatedEarningsPerShare is the next-year forecast full-year non-consolidated EPS (JSON key "NxFNCEPS").
 	NextForecastNonConsolidatedEarningsPerShare *float64
+	// ShareholdersEquity is shareholders' equity (JSON key "ShEq").
+	ShareholdersEquity *float64
+	// NonConsolidatedShareholdersEquity is non-consolidated shareholders' equity (JSON key "NCShEq").
+	NonConsolidatedShareholdersEquity *float64
+	// ReturnOnEquity is return on equity (JSON key "ROE").
+	ReturnOnEquity *float64
+	// NonConsolidatedReturnOnEquity is non-consolidated return on equity (JSON key "NCROE").
+	NonConsolidatedReturnOnEquity *float64
 }
 
 func (fs *FinancialSummary) UnmarshalJSON(b []byte) error {
@@ -386,6 +394,11 @@ func (fs *FinancialSummary) UnmarshalJSON(b []byte) error {
 		NxFNCOdP   string `json:"NxFNCOdP"`
 		NxFNCNP    string `json:"NxFNCNP"`
 		NxFNCEPS   string `json:"NxFNCEPS"`
+
+		ShEq   string `json:"ShEq"`
+		NCShEq string `json:"NCShEq"`
+		ROE    string `json:"ROE"`
+		NCROE  string `json:"NCROE"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal financial summary: %w", err)
@@ -511,6 +524,10 @@ func (fs *FinancialSummary) UnmarshalJSON(b []byte) error {
 	fs.NextForecastNonConsolidatedOrdinaryProfit = a.f(raw.NxFNCOdP)
 	fs.NextForecastNonConsolidatedNetProfit = a.f(raw.NxFNCNP)
 	fs.NextForecastNonConsolidatedEarningsPerShare = a.f(raw.NxFNCEPS)
+	fs.ShareholdersEquity = a.f(raw.ShEq)
+	fs.NonConsolidatedShareholdersEquity = a.f(raw.NCShEq)
+	fs.ReturnOnEquity = a.f(raw.ROE)
+	fs.NonConsolidatedReturnOnEquity = a.f(raw.NCROE)
 
 	return a.err
 }
