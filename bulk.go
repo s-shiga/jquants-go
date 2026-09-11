@@ -23,16 +23,23 @@ type BulkFile struct {
 
 func (bf *BulkFile) UnmarshalJSON(b []byte) error {
 	var raw struct {
-		Key          string  `json:"Key"`
-		LastModified string  `json:"LastModified"`
-		Size         float64 `json:"Size"`
+		Key          string         `json:"Key"`
+		LastModified string         `json:"LastModified"`
+		Size         nullableNumber `json:"Size"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return err
 	}
 	bf.Key = raw.Key
 	bf.LastModified = raw.LastModified
-	bf.Size = int64(raw.Size)
+	size, err := raw.Size.int64()
+	if err != nil {
+		return err
+	}
+	bf.Size = 0
+	if size != nil {
+		bf.Size = *size
+	}
 	return nil
 }
 

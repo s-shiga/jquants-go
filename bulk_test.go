@@ -1,6 +1,7 @@
 package jquants
 
 import (
+	"encoding/json"
 	"testing"
 )
 
@@ -27,5 +28,22 @@ func TestClient_BulkGet(t *testing.T) {
 				t.Fatalf("BulkGet = %q, %v", got, err)
 			}
 		})
+	}
+}
+
+func TestBulkFilePreservesIntegerPrecision(t *testing.T) {
+	var file BulkFile
+	if err := json.Unmarshal([]byte(`{"Size":9007199254740993}`), &file); err != nil {
+		t.Fatal(err)
+	}
+	if file.Size != 9007199254740993 {
+		t.Fatalf("Size = %d", file.Size)
+	}
+}
+
+func TestBulkFileRejectsFractionalSize(t *testing.T) {
+	var file BulkFile
+	if err := json.Unmarshal([]byte(`{"Size":1.5}`), &file); err == nil {
+		t.Fatal("json.Unmarshal accepted a fractional file size")
 	}
 }
