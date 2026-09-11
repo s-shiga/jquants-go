@@ -9,7 +9,7 @@ This is `jquants-go`, a Go client library for the J-Quants API, which provides a
 ## Build and Test Commands
 
 ```bash
-# Run all tests (requires J_QUANTS_API_KEY environment variable)
+# Run all tests (offline; no credentials required)
 go test ./...
 
 # Run a specific test
@@ -25,7 +25,7 @@ go fmt ./...
 go vet ./...
 ```
 
-**Note:** Tests make real API calls and require the `J_QUANTS_API_KEY` environment variable to be set. There are no mocked tests.
+**Note:** All tests use in-memory HTTP fixtures and never connect to the live API or open sockets. No API key or subscription is required, even for Premium and add-on endpoint tests. `J_QUANTS_API_KEY` is ignored by the tests.
 
 ## Architecture
 
@@ -94,7 +94,7 @@ Custom error types in `client.go` wrap HTTP status codes: `NoContent` (210), `Ba
   - Disclosure CSV download (`/td/bulk`)
 - `bulk.go` - Bulk download APIs (`/bulk/list`, `/bulk/get`); tick-level stock trades (add-on) are delivered only through these as gzip CSVs
 - `codes/codes.go` - Constants for market sections, 33-sector codes, and index codes
-- `testutil.go` - Test helper that reads `J_QUANTS_API_KEY` from env and creates a client
+- `testutil_test.go` - In-memory HTTP fixture client and shared endpoint/channel assertions
 
 ### JSON Unmarshaling
 

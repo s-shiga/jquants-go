@@ -33,7 +33,6 @@ jobs:
       - name: Vet
         run: go vet ./...
 
-      # Tests against the live API skip themselves when J_QUANTS_API_KEY is
-      # unset, so this compiles and runs the test binaries without API access.
-      - name: Test (no live API)
-        run: go test ./...
+      # All HTTP responses are in-memory fixtures; no API key or network is used.
+      - name: Test (offline, race detector)
+        run: go test -race ./...

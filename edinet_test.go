@@ -5,6 +5,27 @@ import (
 	"testing"
 )
 
+func TestClient_MajorShareholders(t *testing.T) {
+	req := EdinetRequest{Code: ptr("7203")}
+	checkEndpoint(t, "/edinet/major-shareholders", "code=7203", `{"Code":"7203","Hldrs":[{"Rank":1,"ShsHeld":140365.3}]}`, true, MajorShareholders{Code: "7203", Holders: []MajorShareholder{{Rank: 1, SharesHeld: 140365.3}}}, func(c *Client) ([]MajorShareholders, error) {
+		return c.MajorShareholders(t.Context(), req)
+	})
+}
+
+func TestClient_CrossShareholdings(t *testing.T) {
+	req := EdinetRequest{EdinetCode: ptr("E00001"), Date: ptr("2026-07-17")}
+	checkEndpoint(t, "/edinet/cross-shareholdings", "edinet_code=E00001&date=2026-07-17", `{"DocId":"doc-1","Largest":{"HldrName":"holder","Spec":[{"IsrName":"issuer","CurBookVal":12.5}]},"SecondLargest":null}`, true, CrossShareholdings{DocumentID: "doc-1", Largest: &CrossShareholdingEntry{HolderName: "holder", Specified: []CrossShareholdingIssue{{IssuerName: "issuer", CurrentBookValue: ptr(12.5)}}}}, func(c *Client) ([]CrossShareholdings, error) {
+		return c.CrossShareholdings(t.Context(), req)
+	})
+}
+
+func TestClient_LargeVolumeShareholders(t *testing.T) {
+	req := EdinetRequest{Code: ptr("7203")}
+	checkEndpoint(t, "/edinet/large-volume-shareholders", "code=7203", `{"Code":"7203","Hldrs":[{"AcqDisp":[{"Price":718.33}]}]}`, true, LargeVolumeShareholders{Code: "7203", Holders: []LargeVolumeHolder{{AcquisitionsDisposals: []LargeVolumeAcquisitionDisposal{{Price: 718.33}}}}}, func(c *Client) ([]LargeVolumeShareholders, error) {
+		return c.LargeVolumeShareholders(t.Context(), req)
+	})
+}
+
 // TestLargeVolumeAcquisitionDisposal_DecimalPrice pins the regression where the
 // live EDINET API returned a decimal transaction price (e.g. 718.33). The field
 // was previously int64, which aborted the entire fetch with a JSON unmarshal
@@ -36,63 +57,5 @@ func TestMajorShareholder_DecimalSharesHeld(t *testing.T) {
 	}
 	if got.SharesHeld != 140365.3 {
 		t.Errorf("SharesHeld = %v, want 140365.3", got.SharesHeld)
-	}
-}
-
-func TestClient_MajorShareholders(t *testing.T) {
-	code := "7203"
-	client := setupClient(t)
-	res, err := client.MajorShareholders(t.Context(), EdinetRequest{Code: &code})
-	if err != nil {
-		t.Errorf("Failed to get major shareholders: %s", err)
-	}
-	if len(res) == 0 {
-		t.Error("Empty major shareholders")
-	}
-}
-
-func TestClient_CrossShareholdings(t *testing.T) {
-	code := "7203"
-	client := setupClient(t)
-	res, err := client.CrossShareholdings(t.Context(), EdinetRequest{Code: &code})
-	if err != nil {
-		t.Errorf("Failed to get cross shareholdings: %s", err)
-	}
-	if len(res) == 0 {
-		t.Error("Empty cross shareholdings")
-	}
-}
-
-func TestClient_CrossShareholdingsWithLargest(t *testing.T) {
-	code := "8306"
-	client := setupClient(t)
-	res, err := client.CrossShareholdings(t.Context(), EdinetRequest{Code: &code})
-	if err != nil {
-		t.Errorf("Failed to get cross shareholdings: %s", err)
-	}
-	if len(res) == 0 {
-		t.Error("Empty cross shareholdings")
-	}
-	foundLargest := false
-	for _, r := range res {
-		if r.Largest != nil {
-			foundLargest = true
-			break
-		}
-	}
-	if !foundLargest {
-		t.Error("Expected at least one record with a non-null Largest holder")
-	}
-}
-
-func TestClient_LargeVolumeShareholders(t *testing.T) {
-	code := "7203"
-	client := setupClient(t)
-	res, err := client.LargeVolumeShareholders(t.Context(), EdinetRequest{Code: &code})
-	if err != nil {
-		t.Errorf("Failed to get large volume shareholders: %s", err)
-	}
-	if len(res) == 0 {
-		t.Error("Empty large volume shareholders")
 	}
 }

@@ -1,29 +1,20 @@
 package jquants
 
 import (
+	"encoding/json"
 	"testing"
 )
 
 func TestClient_IndexPrice(t *testing.T) {
-	var indexCode = "0000"
-	client := setupClient(t)
-	req := IndexPriceRequest{Code: &indexCode}
-	res, err := client.IndexPrice(t.Context(), req)
-	if err != nil {
-		t.Errorf("Failed to get index price: %s", err)
-	}
-	if len(res) == 0 {
-		t.Error("Empty index price")
-	}
+	req := IndexPriceRequest{Code: ptr("0000")}
+	checkEndpoint(t, "/indices/bars/daily", "code=0000", `{"Code":"0000","O":100.1,"H":102.2,"L":99.3,"C":101.4}`, true, IndexPrice{Code: "0000", Open: json.Number("100.1"), High: json.Number("102.2"), Low: json.Number("99.3"), Close: json.Number("101.4")}, func(c *Client) ([]IndexPrice, error) {
+		return c.IndexPrice(t.Context(), req)
+	})
 }
 
 func TestClient_TopixPrices(t *testing.T) {
-	client := setupClient(t)
-	res, err := client.TopixPrices(t.Context(), TopixPriceRequest{})
-	if err != nil {
-		t.Errorf("Failed to get topix price: %s", err)
-	}
-	if len(res) == 0 {
-		t.Error("Empty topix price")
-	}
+	req := TopixPriceRequest{From: ptr("2026-07-01"), To: ptr("2026-07-17")}
+	checkEndpoint(t, "/indices/bars/daily/topix", "from=2026-07-01&to=2026-07-17", `{"O":100.1,"H":102.2,"L":99.3,"C":101.4}`, true, TopixPrice{Open: json.Number("100.1"), High: json.Number("102.2"), Low: json.Number("99.3"), Close: json.Number("101.4")}, func(c *Client) ([]TopixPrice, error) {
+		return c.TopixPrices(t.Context(), req)
+	})
 }

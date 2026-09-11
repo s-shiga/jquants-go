@@ -1,76 +1,34 @@
 package jquants
 
 import (
-	"context"
+	"encoding/json"
 	"testing"
 )
 
 func TestClient_IndexOptionPrice(t *testing.T) {
-	date := "2025-01-06"
-	client := setupClient(t)
-	req := IndexOptionPriceRequest{Date: date}
-	resp, err := client.IndexOptionPrice(t.Context(), req)
-	if err != nil {
-		t.Errorf("Failed to get index option price: %v", err)
-	}
-	if len(resp) == 0 {
-		t.Error("Empty response")
-	}
+	req := IndexOptionPriceRequest{Date: "2026-07-17"}
+	checkEndpoint(t, "/derivatives/bars/daily/options/225", "date=2026-07-17", `{"Code":"123","PCDiv":"1","O":980,"EO":"","Strike":20000,"Theo":974.641}`, true, IndexOptionPrice{Code: "123", PutCallDivision: 1, WholeDayOpen: ptr(int32(980)), StrikePrice: 20000, TheoreticalPrice: ptr(json.Number("974.641"))}, func(c *Client) ([]IndexOptionPrice, error) {
+		return c.IndexOptionPrice(t.Context(), req)
+	})
 }
 
 func TestClient_IndexOptionPriceWithChannel(t *testing.T) {
-	date := "2025-01-06"
-	client := setupClient(t)
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
-	req := IndexOptionPriceRequest{Date: date}
-	ch := make(chan IndexOptionPrice)
-	go func() {
-		if e := client.IndexOptionPriceWithChannel(ctx, req, ch); e != nil {
-			t.Errorf("Failed to get index option price: %v", e)
-		}
-	}()
-	found := false
-	for range ch {
-		found = true
-	}
-	if !found {
-		t.Error("Empty response")
-	}
+	req := IndexOptionPriceRequest{Date: "2026-07-17"}
+	checkEndpoint(t, "/derivatives/bars/daily/options/225", "date=2026-07-17", `{"Code":"123","PCDiv":"1","O":980,"EO":"","Strike":20000,"Theo":974.641}`, true, IndexOptionPrice{Code: "123", PutCallDivision: 1, WholeDayOpen: ptr(int32(980)), StrikePrice: 20000, TheoreticalPrice: ptr(json.Number("974.641"))}, func(c *Client) ([]IndexOptionPrice, error) {
+		return collectChannel(func(ch chan<- IndexOptionPrice) error { return c.IndexOptionPriceWithChannel(t.Context(), req, ch) })
+	})
 }
 
 func TestClient_OptionPrice(t *testing.T) {
-	date := "2026-07-17"
-	category := "TOPIXE"
-	client := setupClient(t)
-	req := OptionPriceRequest{Date: date, Category: &category}
-	resp, err := client.OptionPrice(t.Context(), req)
-	if err != nil {
-		t.Errorf("Failed to get option price: %v", err)
-	}
-	if len(resp) == 0 {
-		t.Error("Empty response")
-	}
+	req := OptionPriceRequest{Date: "2026-07-17", Category: ptr("TOPIXE"), ContractFlag: ptr("1")}
+	checkEndpoint(t, "/derivatives/bars/daily/options", "date=2026-07-17&category=TOPIXE&contract_flag=1", `{"Code":"123","PCDiv":"2","O":980.5,"EO":"","Strike":20000.5}`, true, OptionPrice{Code: "123", PutCallDivision: 2, WholeDayOpen: ptr(json.Number("980.5")), StrikePrice: 20000.5}, func(c *Client) ([]OptionPrice, error) {
+		return c.OptionPrice(t.Context(), req)
+	})
 }
 
 func TestClient_OptionPriceWithChannel(t *testing.T) {
-	date := "2026-07-17"
-	category := "TOPIXE"
-	client := setupClient(t)
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
-	req := OptionPriceRequest{Date: date, Category: &category}
-	ch := make(chan OptionPrice)
-	go func() {
-		if e := client.OptionPriceWithChannel(ctx, req, ch); e != nil {
-			t.Errorf("Failed to get option price: %v", e)
-		}
-	}()
-	found := false
-	for range ch {
-		found = true
-	}
-	if !found {
-		t.Error("Empty response")
-	}
+	req := OptionPriceRequest{Date: "2026-07-17", Category: ptr("TOPIXE"), ContractFlag: ptr("1")}
+	checkEndpoint(t, "/derivatives/bars/daily/options", "date=2026-07-17&category=TOPIXE&contract_flag=1", `{"Code":"123","PCDiv":"2","O":980.5,"EO":"","Strike":20000.5}`, true, OptionPrice{Code: "123", PutCallDivision: 2, WholeDayOpen: ptr(json.Number("980.5")), StrikePrice: 20000.5}, func(c *Client) ([]OptionPrice, error) {
+		return collectChannel(func(ch chan<- OptionPrice) error { return c.OptionPriceWithChannel(t.Context(), req, ch) })
+	})
 }

@@ -3,16 +3,17 @@ package jquants
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
-	"net/http/httptest"
 	"net/url"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 )
 
 // transientTestItem and transientTestResponse are minimal in-package fixtures
-// used to exercise the paginated fetch loop against an httptest server without
+// used to exercise the paginated fetch loop against in-memory responses without
 // depending on a live J-Quants endpoint.
 type transientTestItem struct {
 	Value string `json:"value"`
@@ -41,17 +42,17 @@ func (p transientTestParams) values() (url.Values, error) {
 // fullBody is a complete, decodable single-page response.
 const fullBody = `{"data":[{"value":"ok"}]}`
 
-// truncatedBody declares a large Content-Length but writes only a prefix of the
-// JSON document, then closes the connection. The client's JSON decoder reads
-// fewer bytes than promised and fails with io.ErrUnexpectedEOF — the same
-// failure a huge option-price page produced in production.
-func writeTruncated(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Content-Length", "4096")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(`{"data":[{"value":"ok`))
-	// Returning without writing the remaining Content-Length bytes causes the
-	// server to close the connection, truncating the body mid-stream.
+// roundTripFunc lets tests simulate transport failures without opening sockets.
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) Do(req *http.Request) (*http.Response, error) { return f(req) }
+
+type failedReader struct{}
+
+func (failedReader) Read([]byte) (int, error) { return 0, io.ErrUnexpectedEOF }
+
+func truncatedResponse() *http.Response {
+	return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(io.MultiReader(strings.NewReader(`{"data":[{"value":"ok`), failedReader{}))}
 }
 
 func fetchTransientTest(ctx context.Context, c *Client) ([]transientTestItem, error) {
@@ -60,104 +61,62 @@ func fetchTransientTest(ctx context.Context, c *Client) ([]transientTestItem, er
 	})
 }
 
-// TestFetch_RetriesTruncatedBodyThenSucceeds verifies that a body truncated
-// mid-stream on the first request is retried and the fetch succeeds once the
-// server serves a complete body.
 func TestFetch_RetriesTruncatedBodyThenSucceeds(t *testing.T) {
 	var calls atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	client := NewClient("https://fixture.invalid", "fixture-key", WithRetryInterval(time.Millisecond), WithHTTPClient(roundTripFunc(func(req *http.Request) (*http.Response, error) {
 		if calls.Add(1) == 1 {
-			writeTruncated(w)
-			return
+			return truncatedResponse(), nil
 		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(fullBody))
-	}))
-	defer server.Close()
-
-	client := NewClient(server.URL, "test-key",
-		WithRetryInterval(1*time.Millisecond),
-		WithLoopTimeout(5*time.Second),
-	)
-
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(fullBody))}, nil
+	})))
 	items, err := fetchTransientTest(t.Context(), client)
-	if err != nil {
-		t.Fatalf("expected fetch to succeed after retry, got error: %v", err)
-	}
-	if len(items) != 1 || items[0].Value != "ok" {
-		t.Fatalf("unexpected items: %+v", items)
+	if err != nil || len(items) != 1 || items[0].Value != "ok" {
+		t.Fatalf("items = %#v, error = %v", items, err)
 	}
 	if got := calls.Load(); got != 2 {
-		t.Fatalf("expected exactly 2 requests (1 truncated + 1 success), got %d", got)
+		t.Fatalf("requests = %d, want 2", got)
 	}
 }
 
-// TestFetch_TruncatedBodyEveryRequestFailsWithTransientError verifies that when
-// every request truncates, the fetch gives up once the bounded retry budget
-// (LoopTimeout) is exhausted, and the returned error chain contains the typed
-// TransientTransportError.
 func TestFetch_TruncatedBodyEveryRequestFailsWithTransientError(t *testing.T) {
 	var calls atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	client := NewClient("https://fixture.invalid", "fixture-key", WithRetryInterval(2*time.Millisecond), WithLoopTimeout(50*time.Millisecond), WithHTTPClient(roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		if err := req.Context().Err(); err != nil {
+			return nil, err
+		}
 		calls.Add(1)
-		writeTruncated(w)
-	}))
-	defer server.Close()
-
-	client := NewClient(server.URL, "test-key",
-		WithRetryInterval(2*time.Millisecond),
-		WithLoopTimeout(50*time.Millisecond),
-	)
-
-	items, err := fetchTransientTest(t.Context(), client)
-	if err == nil {
-		t.Fatalf("expected fetch to fail, got items: %+v", items)
-	}
+		return truncatedResponse(), nil
+	})))
+	_, err := fetchTransientTest(t.Context(), client)
 	var transient TransientTransportError
-	if !errors.As(err, &transient) {
-		t.Fatalf("expected TransientTransportError in chain, got: %v", err)
-	}
-	if !isContextError(err) {
-		t.Fatalf("expected the exhausted retry budget (context deadline) in chain, got: %v", err)
+	if !errors.As(err, &transient) || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expected transient failure and deadline, got %v", err)
 	}
 	if calls.Load() < 2 {
-		t.Fatalf("expected multiple retry attempts, got %d", calls.Load())
+		t.Fatalf("expected retries, got %d requests", calls.Load())
 	}
 }
 
-// TestFetch_ContextCancellationDuringRetrySleepAbortsPromptly verifies that
-// cancelling the caller's context while the loop is sleeping between retries
-// aborts promptly and stays fatal (not reclassified as transient).
 func TestFetch_ContextCancellationDuringRetrySleepAbortsPromptly(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		writeTruncated(w)
-	}))
-	defer server.Close()
-
-	client := NewClient(server.URL, "test-key",
-		// A long retry interval guarantees the cancellation lands during the
-		// sleep between retries rather than during a round trip.
-		WithRetryInterval(10*time.Second),
-		WithLoopTimeout(30*time.Second),
-	)
-
 	ctx, cancel := context.WithCancel(t.Context())
-	go func() {
-		time.Sleep(20 * time.Millisecond)
+	defer cancel()
+	var calls atomic.Int32
+	client := NewClient("https://fixture.invalid", "fixture-key", WithRetryInterval(10*time.Second), WithHTTPClient(roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		calls.Add(1)
 		cancel()
-	}()
-
-	start := time.Now()
-	_, err := fetchTransientTest(ctx, client)
-	elapsed := time.Since(start)
-
-	if err == nil {
-		t.Fatal("expected fetch to fail after cancellation")
+		return truncatedResponse(), nil
+	})))
+	done := make(chan error, 1)
+	go func() { _, err := fetchTransientTest(ctx, client); done <- err }()
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("expected context cancellation, got %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("retry sleep did not stop after cancellation")
 	}
-	if !errors.Is(err, context.Canceled) {
-		t.Fatalf("expected context.Canceled in chain, got: %v", err)
-	}
-	if elapsed > 2*time.Second {
-		t.Fatalf("expected prompt abort, took %v", elapsed)
+	if calls.Load() != 1 {
+		t.Fatalf("requests = %d, want 1", calls.Load())
 	}
 }

@@ -567,3 +567,21 @@ Transient transport-level failures are retried under the same policy and surface
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
+
+## Testing
+
+Run the deterministic test suite with:
+
+```sh
+go test ./...
+go test -race ./...
+go vet ./...
+```
+
+Tests use synthetic, in-memory HTTP responses. They do not open network
+connections, read `J_QUANTS_API_KEY`, or require a subscription. Standard,
+Premium, and add-on endpoints are all tested offline. Fixtures check request
+paths, query parameters, authentication headers, decoded values, pagination,
+channel completion, compression, and retry/error handling. They verify the
+client's behavior against the fixtures, not current live API availability or
+plan entitlements.
