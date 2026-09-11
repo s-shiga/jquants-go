@@ -2,6 +2,8 @@ package jquants
 
 import (
 	"encoding/json"
+	"net/url"
+	"reflect"
 	"testing"
 )
 
@@ -18,7 +20,7 @@ func TestClient_BulkGet(t *testing.T) {
 		req   BulkGetRequest
 		query string
 	}{
-		{"key", BulkGetRequest{Key: ptr("equities/file +.csv.gz")}, "key=equities%2Ffile+%2B.csv.gz"},
+		{"key", BulkGetRequest{Key: ptr("equities/file +.csv.gz"), Endpoint: ptr("ignored"), Date: ptr("ignored")}, "key=equities%2Ffile+%2B.csv.gz"},
 		{"endpoint and date", BulkGetRequest{Endpoint: ptr("/equities/bars/daily"), Date: ptr("2026-07-17")}, "endpoint=%2Fequities%2Fbars%2Fdaily&date=2026-07-17"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -28,6 +30,38 @@ func TestClient_BulkGet(t *testing.T) {
 				t.Fatalf("BulkGet = %q, %v", got, err)
 			}
 		})
+	}
+}
+
+func TestBulkListParametersRejectInvalidCombinations(t *testing.T) {
+	for _, req := range []BulkListRequest{
+		{},
+		{Endpoint: ptr("/equities/bars/daily"), Date: ptr("2026-07-17")},
+		{Date: ptr("2026-07-17"), From: ptr("2026-07-01")},
+		{Date: ptr("2026-07-17"), To: ptr("2026-07-31")},
+	} {
+		if _, err := (bulkListParameters{req}).values(); err == nil {
+			t.Fatalf("values accepted invalid request: %#v", req)
+		}
+	}
+}
+
+func TestBulkGetParametersRequireCompleteSelector(t *testing.T) {
+	for _, req := range []BulkGetRequest{
+		{},
+		{Endpoint: ptr("/equities/bars/daily")},
+		{Date: ptr("2026-07-17")},
+	} {
+		if _, err := (bulkGetParameters{req}).values(); err == nil {
+			t.Fatalf("values accepted invalid request: %#v", req)
+		}
+	}
+
+	req := BulkGetRequest{Key: ptr("file"), Endpoint: ptr("ignored"), Date: ptr("ignored")}
+	got, err := (bulkGetParameters{req}).values()
+	want := url.Values{"key": {"file"}}
+	if err != nil || !reflect.DeepEqual(got, want) {
+		t.Fatalf("values = %v, %v; want %v", got, err, want)
 	}
 }
 

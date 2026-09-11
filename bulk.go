@@ -3,6 +3,7 @@ package jquants
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/url"
 )
 
@@ -62,6 +63,15 @@ type bulkListParameters struct {
 }
 
 func (p bulkListParameters) values() (url.Values, error) {
+	if p.Endpoint == nil && p.Date == nil {
+		return nil, errors.New("endpoint or date is required")
+	}
+	if p.Endpoint != nil && p.Date != nil {
+		return nil, errors.New("endpoint and date are mutually exclusive")
+	}
+	if p.Date != nil && (p.From != nil || p.To != nil) {
+		return nil, errors.New("from and to require endpoint")
+	}
 	v := url.Values{}
 	if p.Endpoint != nil {
 		v.Add("endpoint", *p.Endpoint)
@@ -114,13 +124,13 @@ func (p bulkGetParameters) values() (url.Values, error) {
 	v := url.Values{}
 	if p.Key != nil {
 		v.Add("key", *p.Key)
+		return v, nil
 	}
-	if p.Endpoint != nil {
-		v.Add("endpoint", *p.Endpoint)
+	if p.Endpoint == nil || p.Date == nil {
+		return nil, errors.New("key or endpoint and date are required")
 	}
-	if p.Date != nil {
-		v.Add("date", *p.Date)
-	}
+	v.Add("endpoint", *p.Endpoint)
+	v.Add("date", *p.Date)
 	return v, nil
 }
 
