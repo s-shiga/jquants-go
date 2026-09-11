@@ -117,13 +117,15 @@ type parameters interface {
 // either a code or a date, with an optional from/to range when querying by code.
 func codeDateRangeValues(code, date, from, to, paginationKey *string) (url.Values, error) {
 	v := url.Values{}
+	if code == nil && date == nil {
+		return nil, errors.New("code or date is required")
+	}
+	if code != nil {
+		v.Add("code", *code)
+	}
 	if date != nil {
 		v.Add("date", *date)
 	} else {
-		if code == nil {
-			return nil, errors.New("code or date is required")
-		}
-		v.Add("code", *code)
 		if from != nil {
 			v.Add("from", *from)
 		}
