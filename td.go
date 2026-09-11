@@ -3,6 +3,7 @@ package jquants
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 )
@@ -88,6 +89,15 @@ type timelyDisclosureParameters struct {
 }
 
 func (p timelyDisclosureParameters) values() (url.Values, error) {
+	if (p.Date == nil) == (p.Code == nil) {
+		return nil, errors.New("exactly one of date or code is required")
+	}
+	if p.Code == nil && (p.From != nil || p.To != nil) {
+		return nil, errors.New("from and to require code")
+	}
+	if (p.From == nil) != (p.To == nil) {
+		return nil, errors.New("from and to must be specified together")
+	}
 	v := url.Values{}
 	if p.Date != nil {
 		v.Add("date", *p.Date)

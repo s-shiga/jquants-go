@@ -18,6 +18,28 @@ func TestClient_TimelyDisclosureWithChannel(t *testing.T) {
 	})
 }
 
+func TestTimelyDisclosureParametersRejectInvalidCombinations(t *testing.T) {
+	for _, req := range []TimelyDisclosureRequest{
+		{},
+		{Date: ptr("2026-07-17"), Code: ptr("86970")},
+		{Date: ptr("2026-07-17"), From: ptr("2026-07-01"), To: ptr("2026-07-31")},
+		{Code: ptr("86970"), From: ptr("2026-07-01")},
+		{Code: ptr("86970"), To: ptr("2026-07-31")},
+	} {
+		if _, err := (timelyDisclosureParameters{TimelyDisclosureRequest: req}).values(); err == nil {
+			t.Fatalf("values accepted invalid request: %#v", req)
+		}
+	}
+}
+
+func TestTimelyDisclosureParametersAcceptCodeRange(t *testing.T) {
+	req := TimelyDisclosureRequest{Code: ptr("86970"), From: ptr("2026-07-01"), To: ptr("2026-07-31")}
+	got, err := (timelyDisclosureParameters{TimelyDisclosureRequest: req}).values()
+	if err != nil || got.Encode() != "code=86970&from=2026-07-01&to=2026-07-31" {
+		t.Fatalf("values = %v, %v", got, err)
+	}
+}
+
 func TestClient_TimelyDisclosureFiles(t *testing.T) {
 	c := fixtureClient(t, fixtureResponse{path: "/td/files", query: "discNo=20260717000001&docs=g%2Cx", body: `{"discNo":"20260717000001","files":{"pdf":"https://download.invalid/report.pdf","summaryPdf":null,"xbrl":"https://download.invalid/report.zip"}}`})
 	got, err := c.TimelyDisclosureFiles(t.Context(), TimelyDisclosureFilesRequest{DisclosureNumber: "20260717000001", Docs: ptr("g,x")})
