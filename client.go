@@ -428,7 +428,11 @@ func handleErrorResponse(resp *http.Response) error {
 	case 504:
 		return GatewayTimeout{HTTPError{504, "gateway timeout", err}}
 	default:
-		return err
+		message := http.StatusText(resp.StatusCode)
+		if message == "" {
+			message = "http error"
+		}
+		return HTTPError{resp.StatusCode, message, err}
 	}
 }
 

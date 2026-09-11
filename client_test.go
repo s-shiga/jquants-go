@@ -150,6 +150,15 @@ func TestGetJSON_HTTPError(t *testing.T) {
 	}
 }
 
+func TestGetJSON_PreservesUnknownHTTPStatus(t *testing.T) {
+	c := fixtureClient(t, fixtureResponse{path: "/test", status: http.StatusTeapot, body: `{"message":"short and stout"}`})
+	_, err := getJSON[page[transientTestItem]](t.Context(), c, "/test", transientTestParams{})
+	var httpErr HTTPError
+	if !errors.As(err, &httpErr) || httpErr.StatusCode != http.StatusTeapot || !strings.Contains(err.Error(), "short and stout") {
+		t.Fatalf("error = %v, want HTTPError with status %d", err, http.StatusTeapot)
+	}
+}
+
 func TestGetJSON_Compression(t *testing.T) {
 	var compressed bytes.Buffer
 	writer := gzip.NewWriter(&compressed)
