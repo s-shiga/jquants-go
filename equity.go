@@ -161,27 +161,27 @@ type StockPrice struct {
 
 func (sp *StockPrice) UnmarshalJSON(b []byte) error {
 	var raw struct {
-		Date             string       `json:"Date"`
-		Code             string       `json:"Code"`
-		Open             *json.Number `json:"O"`
-		High             *json.Number `json:"H"`
-		Low              *json.Number `json:"L"`
-		Close            *json.Number `json:"C"`
-		UpperLimit       string       `json:"UL"`
-		LowerLimit       string       `json:"LL"`
-		Volume           *float64     `json:"Vo"`
-		TurnoverValue    *float64     `json:"Va"`
-		AdjustmentFactor json.Number  `json:"AdjFactor"`
-		AdjustedOpen     *json.Number `json:"AdjO"`
-		AdjustedHigh     *json.Number `json:"AdjH"`
-		AdjustedLow      *json.Number `json:"AdjL"`
-		AdjustedClose    *json.Number `json:"AdjC"`
-		AdjustedVolume   *float64     `json:"AdjVo"`
+		Date             string         `json:"Date"`
+		Code             string         `json:"Code"`
+		Open             nullableNumber `json:"O"`
+		High             nullableNumber `json:"H"`
+		Low              nullableNumber `json:"L"`
+		Close            nullableNumber `json:"C"`
+		UpperLimit       string         `json:"UL"`
+		LowerLimit       string         `json:"LL"`
+		Volume           nullableNumber `json:"Vo"`
+		TurnoverValue    nullableNumber `json:"Va"`
+		AdjustmentFactor json.Number    `json:"AdjFactor"`
+		AdjustedOpen     nullableNumber `json:"AdjO"`
+		AdjustedHigh     nullableNumber `json:"AdjH"`
+		AdjustedLow      nullableNumber `json:"AdjL"`
+		AdjustedClose    nullableNumber `json:"AdjC"`
+		AdjustedVolume   nullableNumber `json:"AdjVo"`
 	}
-	var volume, turnoverValue *int64
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return err
 	}
+	u := &unmarshaler{}
 	upperLimit, err := unmarshalLimit(raw.UpperLimit)
 	if err != nil {
 		return err
@@ -190,36 +190,23 @@ func (sp *StockPrice) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	if raw.Volume != nil {
-		v := int64(*raw.Volume)
-		volume = &v
-	}
-	if raw.TurnoverValue != nil {
-		v := int64(*raw.TurnoverValue)
-		turnoverValue = &v
-	}
-	var adjustedVolume *int64
-	if raw.AdjustedVolume != nil {
-		v := int64(*raw.AdjustedVolume)
-		adjustedVolume = &v
-	}
 	sp.Date = raw.Date
 	sp.Code = raw.Code
-	sp.Open = raw.Open
-	sp.High = raw.High
-	sp.Low = raw.Low
-	sp.Close = raw.Close
+	sp.Open = u.jsonNumber(raw.Open)
+	sp.High = u.jsonNumber(raw.High)
+	sp.Low = u.jsonNumber(raw.Low)
+	sp.Close = u.jsonNumber(raw.Close)
 	sp.UpperLimit = upperLimit
 	sp.LowerLimit = lowerLimit
-	sp.Volume = volume
-	sp.TurnoverValue = turnoverValue
+	sp.Volume = u.volume(raw.Volume)
+	sp.TurnoverValue = u.volume(raw.TurnoverValue)
 	sp.AdjustmentFactor = raw.AdjustmentFactor
-	sp.AdjustedOpen = raw.AdjustedOpen
-	sp.AdjustedHigh = raw.AdjustedHigh
-	sp.AdjustedLow = raw.AdjustedLow
-	sp.AdjustedClose = raw.AdjustedClose
-	sp.AdjustedVolume = adjustedVolume
-	return nil
+	sp.AdjustedOpen = u.jsonNumber(raw.AdjustedOpen)
+	sp.AdjustedHigh = u.jsonNumber(raw.AdjustedHigh)
+	sp.AdjustedLow = u.jsonNumber(raw.AdjustedLow)
+	sp.AdjustedClose = u.jsonNumber(raw.AdjustedClose)
+	sp.AdjustedVolume = u.volume(raw.AdjustedVolume)
+	return u.err
 }
 
 func unmarshalLimit(s string) (bool, error) {
@@ -299,15 +286,15 @@ type MinuteStockPrice struct {
 
 func (m *MinuteStockPrice) UnmarshalJSON(b []byte) error {
 	var raw struct {
-		Date string `json:"Date"`
-		Time string `json:"Time"`
-		Code string `json:"Code"`
-		Open any    `json:"O"`
-		High any    `json:"H"`
-		Low  any    `json:"L"`
-		C    any    `json:"C"`
-		Vo   any    `json:"Vo"`
-		Va   any    `json:"Va"`
+		Date string         `json:"Date"`
+		Time string         `json:"Time"`
+		Code string         `json:"Code"`
+		Open nullableNumber `json:"O"`
+		High nullableNumber `json:"H"`
+		Low  nullableNumber `json:"L"`
+		C    nullableNumber `json:"C"`
+		Vo   nullableNumber `json:"Vo"`
+		Va   nullableNumber `json:"Va"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal minute stock price: %w", err)
@@ -394,14 +381,14 @@ type MorningSessionStockPrice struct {
 
 func (m *MorningSessionStockPrice) UnmarshalJSON(b []byte) error {
 	var raw struct {
-		Date string `json:"Date"`
-		Code string `json:"Code"`
-		Open any    `json:"MO"`
-		High any    `json:"MH"`
-		Low  any    `json:"ML"`
-		C    any    `json:"MC"`
-		Vo   any    `json:"MVo"`
-		Va   any    `json:"MVa"`
+		Date string         `json:"Date"`
+		Code string         `json:"Code"`
+		Open nullableNumber `json:"MO"`
+		High nullableNumber `json:"MH"`
+		Low  nullableNumber `json:"ML"`
+		C    nullableNumber `json:"MC"`
+		Vo   nullableNumber `json:"MVo"`
+		Va   nullableNumber `json:"MVa"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal morning session stock price: %w", err)

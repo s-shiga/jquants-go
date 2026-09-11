@@ -79,65 +79,63 @@ type unmarshaler struct {
 	err error
 }
 
-func (u *unmarshaler) price(v any) *int32 {
+func (u *unmarshaler) price(v nullableNumber) *int32 {
 	if u.err != nil {
 		return nil
 	}
-	result, err := unmarshalPrice(v)
+	result, err := v.int32()
 	u.err = err
 	return result
 }
 
-func (u *unmarshaler) volume(v any) *int64 {
+func (u *unmarshaler) volume(v nullableNumber) *int64 {
 	if u.err != nil {
 		return nil
 	}
-	result, err := unmarshalVolume(v)
+	result, err := v.int64()
 	u.err = err
 	return result
 }
 
-func (u *unmarshaler) jsonNumber(v any) *json.Number {
+func (u *unmarshaler) jsonNumber(v nullableNumber) *json.Number {
 	if u.err != nil {
 		return nil
 	}
-	result, err := unmarshalJSONNumber(v)
-	u.err = err
-	return result
+	return v.jsonNumber()
 }
 
 func (iop *IndexOptionPrice) UnmarshalJSON(b []byte) error {
 	var raw struct {
-		Date                           string  `json:"Date"`
-		Code                           string  `json:"Code"`
-		WholeDayOpen                   any     `json:"O"`
-		WholeDayHigh                   any     `json:"H"`
-		WholeDayLow                    any     `json:"L"`
-		WholeDayClose                  any     `json:"C"`
-		NightSessionOpen               any     `json:"EO"`
-		NightSessionHigh               any     `json:"EH"`
-		NightSessionLow                any     `json:"EL"`
-		NightSessionClose              any     `json:"EC"`
-		DaySessionOpen                 any     `json:"AO"`
-		DaySessionHigh                 any     `json:"AH"`
-		DaySessionLow                  any     `json:"AL"`
-		DaySessionClose                any     `json:"AC"`
-		Volume                         any     `json:"Vo"`
-		OpenInterest                   any     `json:"OI"`
-		TurnoverValue                  any     `json:"Va"`
-		ContractMonth                  string  `json:"CM"`
-		StrikePrice                    float64 `json:"Strike"`
-		VolumeOnlyAuction              any     `json:"VoOA"`
-		EmergencyMarginTriggerDivision string  `json:"EmMrgnTrgDiv"`
-		PutCallDivision                string  `json:"PCDiv"`
-		LastTradingDay                 string  `json:"LTD"`
-		SpecialQuotationDay            string  `json:"SQD"`
-		SettlementPrice                any     `json:"Settle"`
-		TheoreticalPrice               any     `json:"Theo"`
-		BaseVolatility                 any     `json:"BaseVol"`
-		UnderlyingPrice                any     `json:"UnderPx"`
-		ImpliedVolatility              any     `json:"IV"`
-		InterestRate                   any     `json:"IR"`
+		Date                           string         `json:"Date"`
+		Code                           string         `json:"Code"`
+		WholeDayOpen                   nullableNumber `json:"O"`
+		WholeDayHigh                   nullableNumber `json:"H"`
+		WholeDayLow                    nullableNumber `json:"L"`
+		WholeDayClose                  nullableNumber `json:"C"`
+		NightSessionOpen               nullableNumber `json:"EO"`
+		NightSessionHigh               nullableNumber `json:"EH"`
+		NightSessionLow                nullableNumber `json:"EL"`
+		NightSessionClose              nullableNumber `json:"EC"`
+		DaySessionOpen                 nullableNumber `json:"AO"`
+		DaySessionHigh                 nullableNumber `json:"AH"`
+		DaySessionLow                  nullableNumber `json:"AL"`
+		DaySessionClose                nullableNumber `json:"AC"`
+		Volume                         nullableNumber `json:"Vo"`
+		OpenInterest                   nullableNumber `json:"OI"`
+		TurnoverValue                  nullableNumber `json:"Va"`
+		ContractMonth                  string         `json:"CM"`
+		StrikePrice                    float64        `json:"Strike"`
+		VolumeOnlyAuction              nullableNumber `json:"VoOA"`
+		EmergencyMarginTriggerDivision string         `json:"EmMrgnTrgDiv"`
+		PutCallDivision                string         `json:"PCDiv"`
+		LastTradingDay                 string         `json:"LTD"`
+		SpecialQuotationDay            string         `json:"SQD"`
+		SettlementPrice                nullableNumber `json:"Settle"`
+		TheoreticalPrice               nullableNumber `json:"Theo"`
+		BaseVolatility                 nullableNumber `json:"BaseVol"`
+		UnderlyingPrice                nullableNumber `json:"UnderPx"`
+		ImpliedVolatility              nullableNumber `json:"IV"`
+		InterestRate                   nullableNumber `json:"IR"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal index option price: %w", err)
@@ -181,49 +179,6 @@ func (iop *IndexOptionPrice) UnmarshalJSON(b []byte) error {
 	iop.InterestRate = u.jsonNumber(raw.InterestRate)
 
 	return u.err
-}
-
-func unmarshalPrice(value any) (*int32, error) {
-	switch v := value.(type) {
-	case float64:
-		i := int32(v)
-		return &i, nil
-	case string:
-		return nil, nil
-	case nil:
-		return nil, nil
-	default:
-		return nil, fmt.Errorf("unmarshalPrice: unknown type %T", v)
-	}
-}
-
-func unmarshalVolume(value any) (*int64, error) {
-	switch v := value.(type) {
-	case float64:
-		i := int64(v)
-		return &i, nil
-	case string:
-		return nil, nil
-	case nil:
-		return nil, nil
-	default:
-		return nil, fmt.Errorf("unmarshalVolume: unknown type %T", v)
-	}
-}
-
-func unmarshalJSONNumber(value any) (*json.Number, error) {
-	switch v := value.(type) {
-	case float64:
-		s := strconv.FormatFloat(v, 'f', -1, 64)
-		n := json.Number(s)
-		return &n, nil
-	case string:
-		return nil, nil
-	case nil:
-		return nil, nil
-	default:
-		return nil, fmt.Errorf("unmarshalJSONNumber: unknown type %T", v)
-	}
 }
 
 func nilIfEmpty(value string) *string {
@@ -360,43 +315,43 @@ type OptionPrice struct {
 // numeric fields that may arrive as floats, strings, or null.
 func (op *OptionPrice) UnmarshalJSON(b []byte) error {
 	var raw struct {
-		Date                           string  `json:"Date"`
-		Code                           string  `json:"Code"`
-		ProductCategory                string  `json:"ProdCat"`
-		UnderlyingSSO                  string  `json:"UndSSO"`
-		WholeDayOpen                   any     `json:"O"`
-		WholeDayHigh                   any     `json:"H"`
-		WholeDayLow                    any     `json:"L"`
-		WholeDayClose                  any     `json:"C"`
-		MorningSessionOpen             any     `json:"MO"`
-		MorningSessionHigh             any     `json:"MH"`
-		MorningSessionLow              any     `json:"ML"`
-		MorningSessionClose            any     `json:"MC"`
-		NightSessionOpen               any     `json:"EO"`
-		NightSessionHigh               any     `json:"EH"`
-		NightSessionLow                any     `json:"EL"`
-		NightSessionClose              any     `json:"EC"`
-		DaySessionOpen                 any     `json:"AO"`
-		DaySessionHigh                 any     `json:"AH"`
-		DaySessionLow                  any     `json:"AL"`
-		DaySessionClose                any     `json:"AC"`
-		Volume                         any     `json:"Vo"`
-		OpenInterest                   any     `json:"OI"`
-		TurnoverValue                  any     `json:"Va"`
-		ContractMonth                  string  `json:"CM"`
-		StrikePrice                    float64 `json:"Strike"`
-		VolumeOnlyAuction              any     `json:"VoOA"`
-		EmergencyMarginTriggerDivision string  `json:"EmMrgnTrgDiv"`
-		PutCallDivision                string  `json:"PCDiv"`
-		LastTradingDay                 string  `json:"LTD"`
-		SpecialQuotationDay            string  `json:"SQD"`
-		SettlementPrice                any     `json:"Settle"`
-		TheoreticalPrice               any     `json:"Theo"`
-		BaseVolatility                 any     `json:"BaseVol"`
-		UnderlyingPrice                any     `json:"UnderPx"`
-		ImpliedVolatility              any     `json:"IV"`
-		InterestRate                   any     `json:"IR"`
-		CentralContractMonthFlag       string  `json:"CCMFlag"`
+		Date                           string         `json:"Date"`
+		Code                           string         `json:"Code"`
+		ProductCategory                string         `json:"ProdCat"`
+		UnderlyingSSO                  string         `json:"UndSSO"`
+		WholeDayOpen                   nullableNumber `json:"O"`
+		WholeDayHigh                   nullableNumber `json:"H"`
+		WholeDayLow                    nullableNumber `json:"L"`
+		WholeDayClose                  nullableNumber `json:"C"`
+		MorningSessionOpen             nullableNumber `json:"MO"`
+		MorningSessionHigh             nullableNumber `json:"MH"`
+		MorningSessionLow              nullableNumber `json:"ML"`
+		MorningSessionClose            nullableNumber `json:"MC"`
+		NightSessionOpen               nullableNumber `json:"EO"`
+		NightSessionHigh               nullableNumber `json:"EH"`
+		NightSessionLow                nullableNumber `json:"EL"`
+		NightSessionClose              nullableNumber `json:"EC"`
+		DaySessionOpen                 nullableNumber `json:"AO"`
+		DaySessionHigh                 nullableNumber `json:"AH"`
+		DaySessionLow                  nullableNumber `json:"AL"`
+		DaySessionClose                nullableNumber `json:"AC"`
+		Volume                         nullableNumber `json:"Vo"`
+		OpenInterest                   nullableNumber `json:"OI"`
+		TurnoverValue                  nullableNumber `json:"Va"`
+		ContractMonth                  string         `json:"CM"`
+		StrikePrice                    float64        `json:"Strike"`
+		VolumeOnlyAuction              nullableNumber `json:"VoOA"`
+		EmergencyMarginTriggerDivision string         `json:"EmMrgnTrgDiv"`
+		PutCallDivision                string         `json:"PCDiv"`
+		LastTradingDay                 string         `json:"LTD"`
+		SpecialQuotationDay            string         `json:"SQD"`
+		SettlementPrice                nullableNumber `json:"Settle"`
+		TheoreticalPrice               nullableNumber `json:"Theo"`
+		BaseVolatility                 nullableNumber `json:"BaseVol"`
+		UnderlyingPrice                nullableNumber `json:"UnderPx"`
+		ImpliedVolatility              nullableNumber `json:"IV"`
+		InterestRate                   nullableNumber `json:"IR"`
+		CentralContractMonthFlag       string         `json:"CCMFlag"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal option price: %w", err)

@@ -79,35 +79,35 @@ type FuturesPrice struct {
 // numeric fields that may arrive as floats, strings, or null.
 func (fp *FuturesPrice) UnmarshalJSON(b []byte) error {
 	var raw struct {
-		Date                           string `json:"Date"`
-		Code                           string `json:"Code"`
-		ProductCategory                string `json:"ProdCat"`
-		WholeDayOpen                   any    `json:"O"`
-		WholeDayHigh                   any    `json:"H"`
-		WholeDayLow                    any    `json:"L"`
-		WholeDayClose                  any    `json:"C"`
-		MorningSessionOpen             any    `json:"MO"`
-		MorningSessionHigh             any    `json:"MH"`
-		MorningSessionLow              any    `json:"ML"`
-		MorningSessionClose            any    `json:"MC"`
-		NightSessionOpen               any    `json:"EO"`
-		NightSessionHigh               any    `json:"EH"`
-		NightSessionLow                any    `json:"EL"`
-		NightSessionClose              any    `json:"EC"`
-		DaySessionOpen                 any    `json:"AO"`
-		DaySessionHigh                 any    `json:"AH"`
-		DaySessionLow                  any    `json:"AL"`
-		DaySessionClose                any    `json:"AC"`
-		Volume                         any    `json:"Vo"`
-		OpenInterest                   any    `json:"OI"`
-		TurnoverValue                  any    `json:"Va"`
-		ContractMonth                  string `json:"CM"`
-		VolumeOnlyAuction              any    `json:"VoOA"`
-		EmergencyMarginTriggerDivision string `json:"EmMrgnTrgDiv"`
-		LastTradingDay                 string `json:"LTD"`
-		SpecialQuotationDay            string `json:"SQD"`
-		SettlementPrice                any    `json:"Settle"`
-		CentralContractMonthFlag       string `json:"CCMFlag"`
+		Date                           string         `json:"Date"`
+		Code                           string         `json:"Code"`
+		ProductCategory                string         `json:"ProdCat"`
+		WholeDayOpen                   nullableNumber `json:"O"`
+		WholeDayHigh                   nullableNumber `json:"H"`
+		WholeDayLow                    nullableNumber `json:"L"`
+		WholeDayClose                  nullableNumber `json:"C"`
+		MorningSessionOpen             nullableNumber `json:"MO"`
+		MorningSessionHigh             nullableNumber `json:"MH"`
+		MorningSessionLow              nullableNumber `json:"ML"`
+		MorningSessionClose            nullableNumber `json:"MC"`
+		NightSessionOpen               nullableNumber `json:"EO"`
+		NightSessionHigh               nullableNumber `json:"EH"`
+		NightSessionLow                nullableNumber `json:"EL"`
+		NightSessionClose              nullableNumber `json:"EC"`
+		DaySessionOpen                 nullableNumber `json:"AO"`
+		DaySessionHigh                 nullableNumber `json:"AH"`
+		DaySessionLow                  nullableNumber `json:"AL"`
+		DaySessionClose                nullableNumber `json:"AC"`
+		Volume                         nullableNumber `json:"Vo"`
+		OpenInterest                   nullableNumber `json:"OI"`
+		TurnoverValue                  nullableNumber `json:"Va"`
+		ContractMonth                  string         `json:"CM"`
+		VolumeOnlyAuction              nullableNumber `json:"VoOA"`
+		EmergencyMarginTriggerDivision string         `json:"EmMrgnTrgDiv"`
+		LastTradingDay                 string         `json:"LTD"`
+		SpecialQuotationDay            string         `json:"SQD"`
+		SettlementPrice                nullableNumber `json:"Settle"`
+		CentralContractMonthFlag       string         `json:"CCMFlag"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal futures price: %w", err)

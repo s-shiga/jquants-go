@@ -5,22 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"strconv"
 )
 
 // parseFloatPtr parses a numeric string into a *float64.
 // Empty strings and the placeholder values "-" and "*" (used by the J-Quants
 // API to signal "no data") are converted to a nil pointer.
 func parseFloatPtr(s string) (*float64, error) {
-	switch s {
-	case "", "-", "*":
-		return nil, nil
-	}
-	f, err := strconv.ParseFloat(s, 64)
-	if err != nil {
+	var value nullableNumber
+	if err := value.set(s); err != nil {
 		return nil, err
 	}
-	return &f, nil
+	return value.float64()
 }
 
 // floatAccumulator accumulates the first error encountered while converting a
@@ -36,22 +31,6 @@ func (a *floatAccumulator) f(s string) *float64 {
 	result, err := parseFloatPtr(s)
 	a.err = err
 	return result
-}
-
-// unmarshalFloatFromAny converts a value decoded from JSON (which may be a
-// float64, or one of the placeholder strings ""/"-"/"*") into a *float64.
-// Placeholder strings and nil become a nil pointer.
-func unmarshalFloatFromAny(value any) (*float64, error) {
-	switch v := value.(type) {
-	case float64:
-		return &v, nil
-	case string:
-		return nil, nil
-	case nil:
-		return nil, nil
-	default:
-		return nil, fmt.Errorf("unmarshalFloatFromAny: unknown type %T", v)
-	}
 }
 
 // FinancialSummary represents a summary of financial statement data disclosed
@@ -710,29 +689,29 @@ type Dividend struct {
 
 func (d *Dividend) UnmarshalJSON(b []byte) error {
 	var raw struct {
-		PubDate          string `json:"PubDate"`
-		PubTime          string `json:"PubTime"`
-		Code             string `json:"Code"`
-		RefNo            string `json:"RefNo"`
-		StatCode         string `json:"StatCode"`
-		BoardDate        string `json:"BoardDate"`
-		IFCode           string `json:"IFCode"`
-		FRCode           string `json:"FRCode"`
-		IFTerm           string `json:"IFTerm"`
-		CommSpecCode     string `json:"CommSpecCode"`
-		CARefNo          string `json:"CARefNo"`
-		RecDate          string `json:"RecDate"`
-		ExDate           string `json:"ExDate"`
-		ActRecDate       string `json:"ActRecDate"`
-		PayDate          string `json:"PayDate"`
-		DivRate          any    `json:"DivRate"`
-		DistAmt          any    `json:"DistAmt"`
-		RetEarn          any    `json:"RetEarn"`
-		DeemDiv          any    `json:"DeemDiv"`
-		DeemCapGains     any    `json:"DeemCapGains"`
-		NetAssetDecRatio any    `json:"NetAssetDecRatio"`
-		CommDivRate      any    `json:"CommDivRate"`
-		SpecDivRate      any    `json:"SpecDivRate"`
+		PubDate          string         `json:"PubDate"`
+		PubTime          string         `json:"PubTime"`
+		Code             string         `json:"Code"`
+		RefNo            string         `json:"RefNo"`
+		StatCode         string         `json:"StatCode"`
+		BoardDate        string         `json:"BoardDate"`
+		IFCode           string         `json:"IFCode"`
+		FRCode           string         `json:"FRCode"`
+		IFTerm           string         `json:"IFTerm"`
+		CommSpecCode     string         `json:"CommSpecCode"`
+		CARefNo          string         `json:"CARefNo"`
+		RecDate          string         `json:"RecDate"`
+		ExDate           string         `json:"ExDate"`
+		ActRecDate       string         `json:"ActRecDate"`
+		PayDate          string         `json:"PayDate"`
+		DivRate          nullableNumber `json:"DivRate"`
+		DistAmt          nullableNumber `json:"DistAmt"`
+		RetEarn          nullableNumber `json:"RetEarn"`
+		DeemDiv          nullableNumber `json:"DeemDiv"`
+		DeemCapGains     nullableNumber `json:"DeemCapGains"`
+		NetAssetDecRatio nullableNumber `json:"NetAssetDecRatio"`
+		CommDivRate      nullableNumber `json:"CommDivRate"`
+		SpecDivRate      nullableNumber `json:"SpecDivRate"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal dividend: %w", err)
@@ -755,28 +734,28 @@ func (d *Dividend) UnmarshalJSON(b []byte) error {
 	d.PayDate = raw.PayDate
 
 	var err error
-	if d.DividendRate, err = unmarshalFloatFromAny(raw.DivRate); err != nil {
+	if d.DividendRate, err = raw.DivRate.float64(); err != nil {
 		return err
 	}
-	if d.DistributionAmount, err = unmarshalFloatFromAny(raw.DistAmt); err != nil {
+	if d.DistributionAmount, err = raw.DistAmt.float64(); err != nil {
 		return err
 	}
-	if d.RetainedEarnings, err = unmarshalFloatFromAny(raw.RetEarn); err != nil {
+	if d.RetainedEarnings, err = raw.RetEarn.float64(); err != nil {
 		return err
 	}
-	if d.DeemedDividend, err = unmarshalFloatFromAny(raw.DeemDiv); err != nil {
+	if d.DeemedDividend, err = raw.DeemDiv.float64(); err != nil {
 		return err
 	}
-	if d.DeemedCapitalGains, err = unmarshalFloatFromAny(raw.DeemCapGains); err != nil {
+	if d.DeemedCapitalGains, err = raw.DeemCapGains.float64(); err != nil {
 		return err
 	}
-	if d.NetAssetDecreaseRatio, err = unmarshalFloatFromAny(raw.NetAssetDecRatio); err != nil {
+	if d.NetAssetDecreaseRatio, err = raw.NetAssetDecRatio.float64(); err != nil {
 		return err
 	}
-	if d.CommemorativeDividendRate, err = unmarshalFloatFromAny(raw.CommDivRate); err != nil {
+	if d.CommemorativeDividendRate, err = raw.CommDivRate.float64(); err != nil {
 		return err
 	}
-	if d.SpecialDividendRate, err = unmarshalFloatFromAny(raw.SpecDivRate); err != nil {
+	if d.SpecialDividendRate, err = raw.SpecDivRate.float64(); err != nil {
 		return err
 	}
 	return nil

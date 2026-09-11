@@ -523,25 +523,25 @@ func (m *MarginAlert) UnmarshalJSON(b []byte) error {
 		ShrtStdOut    float64                      `json:"ShrtStdOut"`
 		LongNegOut    float64                      `json:"LongNegOut"`
 		LongStdOut    float64                      `json:"LongStdOut"`
-		ShrtOutChg    any                          `json:"ShrtOutChg"`
-		LongOutChg    any                          `json:"LongOutChg"`
-		ShrtNegOutChg any                          `json:"ShrtNegOutChg"`
-		ShrtStdOutChg any                          `json:"ShrtStdOutChg"`
-		LongNegOutChg any                          `json:"LongNegOutChg"`
-		LongStdOutChg any                          `json:"LongStdOutChg"`
-		ShrtOutRatio  any                          `json:"ShrtOutRatio"`
-		LongOutRatio  any                          `json:"LongOutRatio"`
+		ShrtOutChg    nullableNumber               `json:"ShrtOutChg"`
+		LongOutChg    nullableNumber               `json:"LongOutChg"`
+		ShrtNegOutChg nullableNumber               `json:"ShrtNegOutChg"`
+		ShrtStdOutChg nullableNumber               `json:"ShrtStdOutChg"`
+		LongNegOutChg nullableNumber               `json:"LongNegOutChg"`
+		LongStdOutChg nullableNumber               `json:"LongStdOutChg"`
+		ShrtOutRatio  nullableNumber               `json:"ShrtOutRatio"`
+		LongOutRatio  nullableNumber               `json:"LongOutRatio"`
 		TSEMrgnRegCls string                       `json:"TSEMrgnRegCls"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal margin alert: %w", err)
 	}
 	a := &floatAccumulator{}
-	fromAny := func(v any) *float64 {
+	fromNumber := func(v nullableNumber) *float64 {
 		if a.err != nil {
 			return nil
 		}
-		result, err := unmarshalFloatFromAny(v)
+		result, err := v.float64()
 		a.err = err
 		return result
 	}
@@ -556,14 +556,14 @@ func (m *MarginAlert) UnmarshalJSON(b []byte) error {
 	m.ShortStandardizedOutstanding = raw.ShrtStdOut
 	m.LongNegotiableOutstanding = raw.LongNegOut
 	m.LongStandardizedOutstanding = raw.LongStdOut
-	m.ShortOutstandingChange = fromAny(raw.ShrtOutChg)
-	m.LongOutstandingChange = fromAny(raw.LongOutChg)
-	m.ShortNegotiableOutstandingChange = fromAny(raw.ShrtNegOutChg)
-	m.ShortStandardizedOutstandingChange = fromAny(raw.ShrtStdOutChg)
-	m.LongNegotiableOutstandingChange = fromAny(raw.LongNegOutChg)
-	m.LongStandardizedOutstandingChange = fromAny(raw.LongStdOutChg)
-	m.ShortOutstandingRatio = fromAny(raw.ShrtOutRatio)
-	m.LongOutstandingRatio = fromAny(raw.LongOutRatio)
+	m.ShortOutstandingChange = fromNumber(raw.ShrtOutChg)
+	m.LongOutstandingChange = fromNumber(raw.LongOutChg)
+	m.ShortNegotiableOutstandingChange = fromNumber(raw.ShrtNegOutChg)
+	m.ShortStandardizedOutstandingChange = fromNumber(raw.ShrtStdOutChg)
+	m.LongNegotiableOutstandingChange = fromNumber(raw.LongNegOutChg)
+	m.LongStandardizedOutstandingChange = fromNumber(raw.LongStdOutChg)
+	m.ShortOutstandingRatio = fromNumber(raw.ShrtOutRatio)
+	m.LongOutstandingRatio = fromNumber(raw.LongOutRatio)
 	m.TSEMarginRegulationClass = raw.TSEMrgnRegCls
 	return a.err
 }
