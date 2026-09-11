@@ -653,6 +653,7 @@ type TradingCalendarRequest struct {
 
 type tradingCalendarParameters struct {
 	TradingCalendarRequest
+	PaginationKey *string
 }
 
 func (p tradingCalendarParameters) values() (url.Values, error) {
@@ -666,18 +667,16 @@ func (p tradingCalendarParameters) values() (url.Values, error) {
 	if p.To != nil {
 		v.Add("to", *p.To)
 	}
+	if p.PaginationKey != nil {
+		v.Add("pagination_key", *p.PaginationKey)
+	}
 	return v, nil
-}
-
-type tradingCalendarResponse struct {
-	Data []TradingCalendar `json:"data"`
 }
 
 // TradingCalendar retrieves the TSE trading calendar from the /markets/calendar endpoint.
 func (c *Client) TradingCalendar(ctx context.Context, req TradingCalendarRequest) ([]TradingCalendar, error) {
-	r, err := getJSONWithRetry[tradingCalendarResponse](ctx, c, "/markets/calendar", tradingCalendarParameters{req})
-	if err != nil {
-		return nil, err
-	}
-	return r.Data, nil
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[TradingCalendar], error) {
+		params := tradingCalendarParameters{TradingCalendarRequest: req, PaginationKey: paginationKey}
+		return getJSON[page[TradingCalendar]](ctx, c, "/markets/calendar", params)
+	})
 }

@@ -48,7 +48,7 @@ func TestClient_BreakdownTradingWithChannel(t *testing.T) {
 
 func TestClient_TradingCalendar(t *testing.T) {
 	req := TradingCalendarRequest{HolidayDivision: ptr(int8(1))}
-	checkEndpoint(t, "/markets/calendar", "hol_div=1", `{"Date":"2026-07-17","HolDiv":"1"}`, false, TradingCalendar{Date: "2026-07-17", DayType: 1}, func(c *Client) ([]TradingCalendar, error) {
+	checkEndpoint(t, "/markets/calendar", "hol_div=1", `{"Date":"2026-07-17","HolDiv":"1"}`, true, TradingCalendar{Date: "2026-07-17", DayType: 1}, func(c *Client) ([]TradingCalendar, error) {
 		return c.TradingCalendar(t.Context(), req)
 	})
 }
