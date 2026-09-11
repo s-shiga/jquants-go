@@ -320,8 +320,16 @@ func decodeResponse(resp *http.Response, body any) error {
 		}()
 		reader = gzipReader
 	}
-	if err := json.NewDecoder(reader).Decode(body); err != nil {
+	decoder := json.NewDecoder(reader)
+	if err := decoder.Decode(body); err != nil {
 		return fmt.Errorf("failed to decode response: %w", err)
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
+		if err == nil {
+			err = errors.New("multiple JSON values")
+		}
+		return fmt.Errorf("failed to decode response: trailing data: %w", err)
 	}
 	return nil
 }

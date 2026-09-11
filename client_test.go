@@ -176,6 +176,18 @@ func TestGetJSON_Compression(t *testing.T) {
 	}
 }
 
+func TestGetJSON_RejectsTrailingData(t *testing.T) {
+	for _, suffix := range []string{" garbage", ` {"data":[]}`} {
+		t.Run(suffix, func(t *testing.T) {
+			c := fixtureClient(t, fixtureResponse{path: "/test", body: fullBody + suffix})
+			_, err := getJSON[page[transientTestItem]](t.Context(), c, "/test", transientTestParams{})
+			if err == nil || !strings.Contains(err.Error(), "trailing data") {
+				t.Fatalf("error = %v, want trailing-data error", err)
+			}
+		})
+	}
+}
+
 func TestFetch_RetrySamePage(t *testing.T) {
 	for _, stream := range []bool{false, true} {
 		for _, status := range []int{429, 500, 502, 503, 504} {
