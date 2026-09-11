@@ -334,19 +334,17 @@ func getJSON[R any](ctx context.Context, c *Client, urlPath string, param parame
 	return r, nil
 }
 
-// getJSONWithRetry applies the same bounded retry policy as the pagination
-// helpers to endpoints that return a single response. Paginated callers use
-// getJSON directly so their existing deadline covers all pages and retries.
-func getJSONWithRetry[R any](ctx context.Context, c *Client, urlPath string, param parameters) (R, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
-	defer cancel()
+// withRetry runs operation until it succeeds, encounters a fatal error, or the
+// supplied context expires. Callers own the context deadline so a paginated
+// request can share one retry budget across all of its pages.
+func withRetry[R any](ctx context.Context, c *Client, operation func(context.Context) (R, error)) (R, error) {
 	var zero R
 	var lastRetryErr error
 	for {
 		if err := ctx.Err(); err != nil {
 			return zero, errors.Join(lastRetryErr, err)
 		}
-		r, err := getJSON[R](ctx, c, urlPath, param)
+		r, err := operation(ctx)
 		if err == nil {
 			return r, nil
 		}
@@ -363,6 +361,16 @@ func getJSONWithRetry[R any](ctx context.Context, c *Client, urlPath string, par
 			return zero, errors.Join(err, sleepErr)
 		}
 	}
+}
+
+// getJSONWithRetry applies the bounded retry policy to endpoints that return a
+// single response. Paginated callers establish one deadline around all pages.
+func getJSONWithRetry[R any](ctx context.Context, c *Client, urlPath string, param parameters) (R, error) {
+	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
+	defer cancel()
+	return withRetry(ctx, c, func(ctx context.Context) (R, error) {
+		return getJSON[R](ctx, c, urlPath, param)
+	})
 }
 
 // ErrResponse represents the error response body from the J-Quants API.
@@ -474,30 +482,15 @@ func fetchAllPages[T any, R Response[T]](
 ) ([]T, error) {
 	data := make([]T, 0)
 	var paginationKey *string
-	// lastRetryErr holds the most recent retryable failure so that if the retry
-	// budget (LoopTimeout) is exhausted — surfacing as a context deadline either
-	// while sleeping or on the next round trip — the cause we were retrying is
-	// preserved in the returned error chain instead of an opaque context error.
-	var lastRetryErr error
 	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
 	defer cancel()
 	for {
-		resp, err := fetchPage(ctx, paginationKey)
+		resp, err := withRetry(ctx, c, func(ctx context.Context) (R, error) {
+			return fetchPage(ctx, paginationKey)
+		})
 		if err != nil {
-			if delay, ok := retryDelay(err, c.RetryInterval); ok {
-				lastRetryErr = err
-				slog.Warn("Retrying HTTP request", "error", err.Error())
-				if sleepErr := sleep(ctx, delay); sleepErr != nil {
-					return nil, errors.Join(err, sleepErr)
-				}
-				continue
-			}
-			if lastRetryErr != nil && isContextError(err) {
-				return nil, errors.Join(lastRetryErr, err)
-			}
 			return nil, err
 		}
-		lastRetryErr = nil
 		data = append(data, resp.Items()...)
 		paginationKey = resp.NextPageKey()
 		if paginationKey == nil {
@@ -517,28 +510,15 @@ func fetchAllPagesWithChannel[T any, R Response[T]](
 ) error {
 	defer close(ch)
 	var paginationKey *string
-	// lastRetryErr preserves the retryable cause when the retry budget
-	// (LoopTimeout) is exhausted; see fetchAllPages for details.
-	var lastRetryErr error
 	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
 	defer cancel()
 	for {
-		resp, err := fetchPage(ctx, paginationKey)
+		resp, err := withRetry(ctx, c, func(ctx context.Context) (R, error) {
+			return fetchPage(ctx, paginationKey)
+		})
 		if err != nil {
-			if delay, ok := retryDelay(err, c.RetryInterval); ok {
-				lastRetryErr = err
-				slog.Warn("Retrying HTTP request", "error", err.Error())
-				if sleepErr := sleep(ctx, delay); sleepErr != nil {
-					return errors.Join(err, sleepErr)
-				}
-				continue
-			}
-			if lastRetryErr != nil && isContextError(err) {
-				return errors.Join(lastRetryErr, err)
-			}
 			return err
 		}
-		lastRetryErr = nil
 		for _, item := range resp.Items() {
 			select {
 			case ch <- item:
