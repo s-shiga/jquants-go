@@ -37,6 +37,8 @@ type IssueInformation struct {
 	MarginCode *int8
 	// MarginName is the name of the margin trading classification.
 	MarginName *string
+	// ProductCategory is the product category code (JSON key "ProdCat").
+	ProductCategory string
 }
 
 func (ii *IssueInformation) UnmarshalJSON(b []byte) error {
@@ -54,6 +56,7 @@ func (ii *IssueInformation) UnmarshalJSON(b []byte) error {
 		MarketCodeName     string  `json:"MktNm"`
 		MarginCode         *string `json:"Mrgn"`
 		MarginCodeName     *string `json:"MrgnNm"`
+		ProductCategory    string  `json:"ProdCat"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return err
@@ -82,6 +85,7 @@ func (ii *IssueInformation) UnmarshalJSON(b []byte) error {
 		ii.MarginCode = &v
 	}
 	ii.MarginName = raw.MarginCodeName
+	ii.ProductCategory = raw.ProductCategory
 	return nil
 }
 
