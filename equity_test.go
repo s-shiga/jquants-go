@@ -2,6 +2,7 @@ package jquants
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 )
 
@@ -24,6 +25,45 @@ func TestClient_StockPriceWithChannel(t *testing.T) {
 	checkEndpoint(t, "/equities/bars/daily", "code=86970&from=2026-07-01&to=2026-07-17", `{"Code":"86970","O":2047.5,"C":null,"UL":"0","LL":"1","Vo":1200.0,"AdjFactor":0.5,"AdjO":1023.75,"AdjVo":2400.0}`, true, StockPrice{Code: "86970", Open: ptr(json.Number("2047.5")), LowerLimit: true, Volume: ptr(int64(1200)), AdjustmentFactor: json.Number("0.5"), AdjustedOpen: ptr(json.Number("1023.75")), AdjustedVolume: ptr(int64(2400))}, func(c *Client) ([]StockPrice, error) {
 		return collectChannel(func(ch chan<- StockPrice) error { return c.StockPriceWithChannel(t.Context(), req, ch) })
 	})
+}
+
+func TestStockPrice_SessionFields(t *testing.T) {
+	wire := `{"UL":"0","LL":"0","MO":101.1,"MH":102.2,"ML":99.9,"MC":100.5,"MUL":"1","MLL":"0","MVo":111,"MVa":222,"MAdjO":50.55,"MAdjH":51.1,"MAdjL":49.95,"MAdjC":50.25,"MAdjVo":333,"AO":103.3,"AH":104.4,"AL":98.8,"AC":102.5,"AUL":"0","ALL":"1","AVo":444,"AVa":555,"AAdjO":51.65,"AAdjH":52.2,"AAdjL":49.4,"AAdjC":51.25,"AAdjVo":666}`
+	want := StockPrice{
+		MorningOpen:             ptr(json.Number("101.1")),
+		MorningHigh:             ptr(json.Number("102.2")),
+		MorningLow:              ptr(json.Number("99.9")),
+		MorningClose:            ptr(json.Number("100.5")),
+		MorningUpperLimit:       ptr(true),
+		MorningLowerLimit:       ptr(false),
+		MorningVolume:           ptr(int64(111)),
+		MorningTurnoverValue:    ptr(int64(222)),
+		MorningAdjustedOpen:     ptr(json.Number("50.55")),
+		MorningAdjustedHigh:     ptr(json.Number("51.1")),
+		MorningAdjustedLow:      ptr(json.Number("49.95")),
+		MorningAdjustedClose:    ptr(json.Number("50.25")),
+		MorningAdjustedVolume:   ptr(int64(333)),
+		AfternoonOpen:           ptr(json.Number("103.3")),
+		AfternoonHigh:           ptr(json.Number("104.4")),
+		AfternoonLow:            ptr(json.Number("98.8")),
+		AfternoonClose:          ptr(json.Number("102.5")),
+		AfternoonUpperLimit:     ptr(false),
+		AfternoonLowerLimit:     ptr(true),
+		AfternoonVolume:         ptr(int64(444)),
+		AfternoonTurnoverValue:  ptr(int64(555)),
+		AfternoonAdjustedOpen:   ptr(json.Number("51.65")),
+		AfternoonAdjustedHigh:   ptr(json.Number("52.2")),
+		AfternoonAdjustedLow:    ptr(json.Number("49.4")),
+		AfternoonAdjustedClose:  ptr(json.Number("51.25")),
+		AfternoonAdjustedVolume: ptr(int64(666)),
+	}
+	var got StockPrice
+	if err := json.Unmarshal([]byte(wire), &got); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("stock price = %#v, want %#v", got, want)
+	}
 }
 
 func TestClient_MinuteStockPrice(t *testing.T) {

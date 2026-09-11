@@ -161,26 +161,104 @@ type StockPrice struct {
 	AdjustedClose *json.Number
 	// AdjustedVolume is the split-adjusted trading volume.
 	AdjustedVolume *int64
+	// MorningOpen is the morning-session opening price.
+	MorningOpen *json.Number
+	// MorningHigh is the morning-session highest price.
+	MorningHigh *json.Number
+	// MorningLow is the morning-session lowest price.
+	MorningLow *json.Number
+	// MorningClose is the morning-session closing price.
+	MorningClose *json.Number
+	// MorningUpperLimit indicates whether the morning session hit the daily price limit up.
+	MorningUpperLimit *bool
+	// MorningLowerLimit indicates whether the morning session hit the daily price limit down.
+	MorningLowerLimit *bool
+	// MorningVolume is the morning-session trading volume in shares.
+	MorningVolume *int64
+	// MorningTurnoverValue is the morning-session trading value in yen.
+	MorningTurnoverValue *int64
+	// MorningAdjustedOpen is the split-adjusted morning-session opening price.
+	MorningAdjustedOpen *json.Number
+	// MorningAdjustedHigh is the split-adjusted morning-session highest price.
+	MorningAdjustedHigh *json.Number
+	// MorningAdjustedLow is the split-adjusted morning-session lowest price.
+	MorningAdjustedLow *json.Number
+	// MorningAdjustedClose is the split-adjusted morning-session closing price.
+	MorningAdjustedClose *json.Number
+	// MorningAdjustedVolume is the split-adjusted morning-session trading volume.
+	MorningAdjustedVolume *int64
+	// AfternoonOpen is the afternoon-session opening price.
+	AfternoonOpen *json.Number
+	// AfternoonHigh is the afternoon-session highest price.
+	AfternoonHigh *json.Number
+	// AfternoonLow is the afternoon-session lowest price.
+	AfternoonLow *json.Number
+	// AfternoonClose is the afternoon-session closing price.
+	AfternoonClose *json.Number
+	// AfternoonUpperLimit indicates whether the afternoon session hit the daily price limit up.
+	AfternoonUpperLimit *bool
+	// AfternoonLowerLimit indicates whether the afternoon session hit the daily price limit down.
+	AfternoonLowerLimit *bool
+	// AfternoonVolume is the afternoon-session trading volume in shares.
+	AfternoonVolume *int64
+	// AfternoonTurnoverValue is the afternoon-session trading value in yen.
+	AfternoonTurnoverValue *int64
+	// AfternoonAdjustedOpen is the split-adjusted afternoon-session opening price.
+	AfternoonAdjustedOpen *json.Number
+	// AfternoonAdjustedHigh is the split-adjusted afternoon-session highest price.
+	AfternoonAdjustedHigh *json.Number
+	// AfternoonAdjustedLow is the split-adjusted afternoon-session lowest price.
+	AfternoonAdjustedLow *json.Number
+	// AfternoonAdjustedClose is the split-adjusted afternoon-session closing price.
+	AfternoonAdjustedClose *json.Number
+	// AfternoonAdjustedVolume is the split-adjusted afternoon-session trading volume.
+	AfternoonAdjustedVolume *int64
 }
 
 func (sp *StockPrice) UnmarshalJSON(b []byte) error {
 	var raw struct {
-		Date             string         `json:"Date"`
-		Code             string         `json:"Code"`
-		Open             nullableNumber `json:"O"`
-		High             nullableNumber `json:"H"`
-		Low              nullableNumber `json:"L"`
-		Close            nullableNumber `json:"C"`
-		UpperLimit       string         `json:"UL"`
-		LowerLimit       string         `json:"LL"`
-		Volume           nullableNumber `json:"Vo"`
-		TurnoverValue    nullableNumber `json:"Va"`
-		AdjustmentFactor json.Number    `json:"AdjFactor"`
-		AdjustedOpen     nullableNumber `json:"AdjO"`
-		AdjustedHigh     nullableNumber `json:"AdjH"`
-		AdjustedLow      nullableNumber `json:"AdjL"`
-		AdjustedClose    nullableNumber `json:"AdjC"`
-		AdjustedVolume   nullableNumber `json:"AdjVo"`
+		Date                    string         `json:"Date"`
+		Code                    string         `json:"Code"`
+		Open                    nullableNumber `json:"O"`
+		High                    nullableNumber `json:"H"`
+		Low                     nullableNumber `json:"L"`
+		Close                   nullableNumber `json:"C"`
+		UpperLimit              string         `json:"UL"`
+		LowerLimit              string         `json:"LL"`
+		Volume                  nullableNumber `json:"Vo"`
+		TurnoverValue           nullableNumber `json:"Va"`
+		AdjustmentFactor        json.Number    `json:"AdjFactor"`
+		AdjustedOpen            nullableNumber `json:"AdjO"`
+		AdjustedHigh            nullableNumber `json:"AdjH"`
+		AdjustedLow             nullableNumber `json:"AdjL"`
+		AdjustedClose           nullableNumber `json:"AdjC"`
+		AdjustedVolume          nullableNumber `json:"AdjVo"`
+		MorningOpen             nullableNumber `json:"MO"`
+		MorningHigh             nullableNumber `json:"MH"`
+		MorningLow              nullableNumber `json:"ML"`
+		MorningClose            nullableNumber `json:"MC"`
+		MorningUpperLimit       string         `json:"MUL"`
+		MorningLowerLimit       string         `json:"MLL"`
+		MorningVolume           nullableNumber `json:"MVo"`
+		MorningTurnoverValue    nullableNumber `json:"MVa"`
+		MorningAdjustedOpen     nullableNumber `json:"MAdjO"`
+		MorningAdjustedHigh     nullableNumber `json:"MAdjH"`
+		MorningAdjustedLow      nullableNumber `json:"MAdjL"`
+		MorningAdjustedClose    nullableNumber `json:"MAdjC"`
+		MorningAdjustedVolume   nullableNumber `json:"MAdjVo"`
+		AfternoonOpen           nullableNumber `json:"AO"`
+		AfternoonHigh           nullableNumber `json:"AH"`
+		AfternoonLow            nullableNumber `json:"AL"`
+		AfternoonClose          nullableNumber `json:"AC"`
+		AfternoonUpperLimit     string         `json:"AUL"`
+		AfternoonLowerLimit     string         `json:"ALL"`
+		AfternoonVolume         nullableNumber `json:"AVo"`
+		AfternoonTurnoverValue  nullableNumber `json:"AVa"`
+		AfternoonAdjustedOpen   nullableNumber `json:"AAdjO"`
+		AfternoonAdjustedHigh   nullableNumber `json:"AAdjH"`
+		AfternoonAdjustedLow    nullableNumber `json:"AAdjL"`
+		AfternoonAdjustedClose  nullableNumber `json:"AAdjC"`
+		AfternoonAdjustedVolume nullableNumber `json:"AAdjVo"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return err
@@ -191,6 +269,22 @@ func (sp *StockPrice) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	lowerLimit, err := unmarshalLimit(raw.LowerLimit)
+	if err != nil {
+		return err
+	}
+	morningUpperLimit, err := unmarshalOptionalLimit(raw.MorningUpperLimit)
+	if err != nil {
+		return err
+	}
+	morningLowerLimit, err := unmarshalOptionalLimit(raw.MorningLowerLimit)
+	if err != nil {
+		return err
+	}
+	afternoonUpperLimit, err := unmarshalOptionalLimit(raw.AfternoonUpperLimit)
+	if err != nil {
+		return err
+	}
+	afternoonLowerLimit, err := unmarshalOptionalLimit(raw.AfternoonLowerLimit)
 	if err != nil {
 		return err
 	}
@@ -210,6 +304,32 @@ func (sp *StockPrice) UnmarshalJSON(b []byte) error {
 	sp.AdjustedLow = u.jsonNumber(raw.AdjustedLow)
 	sp.AdjustedClose = u.jsonNumber(raw.AdjustedClose)
 	sp.AdjustedVolume = u.volume(raw.AdjustedVolume)
+	sp.MorningOpen = u.jsonNumber(raw.MorningOpen)
+	sp.MorningHigh = u.jsonNumber(raw.MorningHigh)
+	sp.MorningLow = u.jsonNumber(raw.MorningLow)
+	sp.MorningClose = u.jsonNumber(raw.MorningClose)
+	sp.MorningUpperLimit = morningUpperLimit
+	sp.MorningLowerLimit = morningLowerLimit
+	sp.MorningVolume = u.volume(raw.MorningVolume)
+	sp.MorningTurnoverValue = u.volume(raw.MorningTurnoverValue)
+	sp.MorningAdjustedOpen = u.jsonNumber(raw.MorningAdjustedOpen)
+	sp.MorningAdjustedHigh = u.jsonNumber(raw.MorningAdjustedHigh)
+	sp.MorningAdjustedLow = u.jsonNumber(raw.MorningAdjustedLow)
+	sp.MorningAdjustedClose = u.jsonNumber(raw.MorningAdjustedClose)
+	sp.MorningAdjustedVolume = u.volume(raw.MorningAdjustedVolume)
+	sp.AfternoonOpen = u.jsonNumber(raw.AfternoonOpen)
+	sp.AfternoonHigh = u.jsonNumber(raw.AfternoonHigh)
+	sp.AfternoonLow = u.jsonNumber(raw.AfternoonLow)
+	sp.AfternoonClose = u.jsonNumber(raw.AfternoonClose)
+	sp.AfternoonUpperLimit = afternoonUpperLimit
+	sp.AfternoonLowerLimit = afternoonLowerLimit
+	sp.AfternoonVolume = u.volume(raw.AfternoonVolume)
+	sp.AfternoonTurnoverValue = u.volume(raw.AfternoonTurnoverValue)
+	sp.AfternoonAdjustedOpen = u.jsonNumber(raw.AfternoonAdjustedOpen)
+	sp.AfternoonAdjustedHigh = u.jsonNumber(raw.AfternoonAdjustedHigh)
+	sp.AfternoonAdjustedLow = u.jsonNumber(raw.AfternoonAdjustedLow)
+	sp.AfternoonAdjustedClose = u.jsonNumber(raw.AfternoonAdjustedClose)
+	sp.AfternoonAdjustedVolume = u.volume(raw.AfternoonAdjustedVolume)
 	return u.err
 }
 
@@ -222,6 +342,17 @@ func unmarshalLimit(s string) (bool, error) {
 	default:
 		return false, fmt.Errorf("unknown value: %s", s)
 	}
+}
+
+func unmarshalOptionalLimit(s string) (*bool, error) {
+	if s == "" {
+		return nil, nil
+	}
+	value, err := unmarshalLimit(s)
+	if err != nil {
+		return nil, err
+	}
+	return &value, nil
 }
 
 // StockPriceRequest specifies filter parameters for the StockPrice API.
