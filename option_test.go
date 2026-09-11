@@ -32,3 +32,13 @@ func TestClient_OptionPriceWithChannel(t *testing.T) {
 		return collectChannel(func(ch chan<- OptionPrice) error { return c.OptionPriceWithChannel(t.Context(), req, ch) })
 	})
 }
+
+func TestIndexOptionPriceRejectsInvalidStrikePrice(t *testing.T) {
+	for _, strike := range []string{"20000.5", "2147483648"} {
+		var price IndexOptionPrice
+		data := []byte(`{"PCDiv":"1","Strike":` + strike + `}`)
+		if err := json.Unmarshal(data, &price); err == nil {
+			t.Fatalf("json.Unmarshal accepted strike price %s", strike)
+		}
+	}
+}

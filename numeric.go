@@ -125,6 +125,14 @@ func (u *unmarshaler) integer(v nullableNumber) int64 {
 	return *result
 }
 
+func (u *unmarshaler) integer32(v nullableNumber) int32 {
+	result := u.price(v)
+	if result == nil {
+		return 0
+	}
+	return *result
+}
+
 func (u *unmarshaler) jsonNumber(v nullableNumber) *json.Number {
 	if u.err != nil {
 		return nil

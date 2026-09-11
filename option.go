@@ -94,7 +94,7 @@ func (iop *IndexOptionPrice) UnmarshalJSON(b []byte) error {
 		OpenInterest                   nullableNumber `json:"OI"`
 		TurnoverValue                  nullableNumber `json:"Va"`
 		ContractMonth                  string         `json:"CM"`
-		StrikePrice                    float64        `json:"Strike"`
+		StrikePrice                    nullableNumber `json:"Strike"`
 		VolumeOnlyAuction              nullableNumber `json:"VoOA"`
 		EmergencyMarginTriggerDivision string         `json:"EmMrgnTrgDiv"`
 		PutCallDivision                string         `json:"PCDiv"`
@@ -135,7 +135,7 @@ func (iop *IndexOptionPrice) UnmarshalJSON(b []byte) error {
 	iop.OpenInterest = u.volume(raw.OpenInterest)
 	iop.TurnoverValue = u.volume(raw.TurnoverValue)
 	iop.ContractMonth = raw.ContractMonth
-	iop.StrikePrice = int32(raw.StrikePrice)
+	iop.StrikePrice = u.integer32(raw.StrikePrice)
 	iop.VolumeOnlyAuction = u.volume(raw.VolumeOnlyAuction)
 	iop.EmergencyMarginTriggerDivision = raw.EmergencyMarginTriggerDivision
 	iop.PutCallDivision = int8(putCallDivision)
