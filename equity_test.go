@@ -100,3 +100,20 @@ func TestClient_InvestorType(t *testing.T) {
 		return c.InvestorType(t.Context(), req)
 	})
 }
+
+func TestInvestorTypePreservesIntegerPrecision(t *testing.T) {
+	var value InvestorType
+	if err := json.Unmarshal([]byte(`{"PropSell":9007199254740993}`), &value); err != nil {
+		t.Fatal(err)
+	}
+	if value.Proprietary.Sales != 9007199254740993 {
+		t.Fatalf("Proprietary.Sales = %d", value.Proprietary.Sales)
+	}
+}
+
+func TestInvestorTypeRejectsFractionalInteger(t *testing.T) {
+	var value InvestorType
+	if err := json.Unmarshal([]byte(`{"PropSell":1.5}`), &value); err == nil {
+		t.Fatal("json.Unmarshal accepted a fractional trading balance")
+	}
+}

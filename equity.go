@@ -656,12 +656,12 @@ type TradingBalance struct {
 	Balance int64
 }
 
-func newTradingBalance(sell, buy, total, balance float64) TradingBalance {
+func newTradingBalance(u *unmarshaler, sell, buy, total, balance nullableNumber) TradingBalance {
 	return TradingBalance{
-		Sales:     int64(sell),
-		Purchases: int64(buy),
-		Total:     int64(total),
-		Balance:   int64(balance),
+		Sales:     u.integer(sell),
+		Purchases: u.integer(buy),
+		Total:     u.integer(total),
+		Balance:   u.integer(balance),
 	}
 }
 
@@ -706,62 +706,62 @@ type InvestorType struct {
 
 func (it *InvestorType) UnmarshalJSON(b []byte) error {
 	var raw struct {
-		PubDate     string  `json:"PubDate"`
-		StDate      string  `json:"StDate"`
-		EnDate      string  `json:"EnDate"`
-		Section     string  `json:"Section"`
-		PropSell    float64 `json:"PropSell"`
-		PropBuy     float64 `json:"PropBuy"`
-		PropTot     float64 `json:"PropTot"`
-		PropBal     float64 `json:"PropBal"`
-		BrkSell     float64 `json:"BrkSell"`
-		BrkBuy      float64 `json:"BrkBuy"`
-		BrkTot      float64 `json:"BrkTot"`
-		BrkBal      float64 `json:"BrkBal"`
-		TotSell     float64 `json:"TotSell"`
-		TotBuy      float64 `json:"TotBuy"`
-		TotTot      float64 `json:"TotTot"`
-		TotBal      float64 `json:"TotBal"`
-		IndSell     float64 `json:"IndSell"`
-		IndBuy      float64 `json:"IndBuy"`
-		IndTot      float64 `json:"IndTot"`
-		IndBal      float64 `json:"IndBal"`
-		FrgnSell    float64 `json:"FrgnSell"`
-		FrgnBuy     float64 `json:"FrgnBuy"`
-		FrgnTot     float64 `json:"FrgnTot"`
-		FrgnBal     float64 `json:"FrgnBal"`
-		SecCoSell   float64 `json:"SecCoSell"`
-		SecCoBuy    float64 `json:"SecCoBuy"`
-		SecCoTot    float64 `json:"SecCoTot"`
-		SecCoBal    float64 `json:"SecCoBal"`
-		InvTrSell   float64 `json:"InvTrSell"`
-		InvTrBuy    float64 `json:"InvTrBuy"`
-		InvTrTot    float64 `json:"InvTrTot"`
-		InvTrBal    float64 `json:"InvTrBal"`
-		BusCoSell   float64 `json:"BusCoSell"`
-		BusCoBuy    float64 `json:"BusCoBuy"`
-		BusCoTot    float64 `json:"BusCoTot"`
-		BusCoBal    float64 `json:"BusCoBal"`
-		OthCoSell   float64 `json:"OthCoSell"`
-		OthCoBuy    float64 `json:"OthCoBuy"`
-		OthCoTot    float64 `json:"OthCoTot"`
-		OthCoBal    float64 `json:"OthCoBal"`
-		InsCoSell   float64 `json:"InsCoSell"`
-		InsCoBuy    float64 `json:"InsCoBuy"`
-		InsCoTot    float64 `json:"InsCoTot"`
-		InsCoBal    float64 `json:"InsCoBal"`
-		BankSell    float64 `json:"BankSell"`
-		BankBuy     float64 `json:"BankBuy"`
-		BankTot     float64 `json:"BankTot"`
-		BankBal     float64 `json:"BankBal"`
-		TrstBnkSell float64 `json:"TrstBnkSell"`
-		TrstBnkBuy  float64 `json:"TrstBnkBuy"`
-		TrstBnkTot  float64 `json:"TrstBnkTot"`
-		TrstBnkBal  float64 `json:"TrstBnkBal"`
-		OthFinSell  float64 `json:"OthFinSell"`
-		OthFinBuy   float64 `json:"OthFinBuy"`
-		OthFinTot   float64 `json:"OthFinTot"`
-		OthFinBal   float64 `json:"OthFinBal"`
+		PubDate     string         `json:"PubDate"`
+		StDate      string         `json:"StDate"`
+		EnDate      string         `json:"EnDate"`
+		Section     string         `json:"Section"`
+		PropSell    nullableNumber `json:"PropSell"`
+		PropBuy     nullableNumber `json:"PropBuy"`
+		PropTot     nullableNumber `json:"PropTot"`
+		PropBal     nullableNumber `json:"PropBal"`
+		BrkSell     nullableNumber `json:"BrkSell"`
+		BrkBuy      nullableNumber `json:"BrkBuy"`
+		BrkTot      nullableNumber `json:"BrkTot"`
+		BrkBal      nullableNumber `json:"BrkBal"`
+		TotSell     nullableNumber `json:"TotSell"`
+		TotBuy      nullableNumber `json:"TotBuy"`
+		TotTot      nullableNumber `json:"TotTot"`
+		TotBal      nullableNumber `json:"TotBal"`
+		IndSell     nullableNumber `json:"IndSell"`
+		IndBuy      nullableNumber `json:"IndBuy"`
+		IndTot      nullableNumber `json:"IndTot"`
+		IndBal      nullableNumber `json:"IndBal"`
+		FrgnSell    nullableNumber `json:"FrgnSell"`
+		FrgnBuy     nullableNumber `json:"FrgnBuy"`
+		FrgnTot     nullableNumber `json:"FrgnTot"`
+		FrgnBal     nullableNumber `json:"FrgnBal"`
+		SecCoSell   nullableNumber `json:"SecCoSell"`
+		SecCoBuy    nullableNumber `json:"SecCoBuy"`
+		SecCoTot    nullableNumber `json:"SecCoTot"`
+		SecCoBal    nullableNumber `json:"SecCoBal"`
+		InvTrSell   nullableNumber `json:"InvTrSell"`
+		InvTrBuy    nullableNumber `json:"InvTrBuy"`
+		InvTrTot    nullableNumber `json:"InvTrTot"`
+		InvTrBal    nullableNumber `json:"InvTrBal"`
+		BusCoSell   nullableNumber `json:"BusCoSell"`
+		BusCoBuy    nullableNumber `json:"BusCoBuy"`
+		BusCoTot    nullableNumber `json:"BusCoTot"`
+		BusCoBal    nullableNumber `json:"BusCoBal"`
+		OthCoSell   nullableNumber `json:"OthCoSell"`
+		OthCoBuy    nullableNumber `json:"OthCoBuy"`
+		OthCoTot    nullableNumber `json:"OthCoTot"`
+		OthCoBal    nullableNumber `json:"OthCoBal"`
+		InsCoSell   nullableNumber `json:"InsCoSell"`
+		InsCoBuy    nullableNumber `json:"InsCoBuy"`
+		InsCoTot    nullableNumber `json:"InsCoTot"`
+		InsCoBal    nullableNumber `json:"InsCoBal"`
+		BankSell    nullableNumber `json:"BankSell"`
+		BankBuy     nullableNumber `json:"BankBuy"`
+		BankTot     nullableNumber `json:"BankTot"`
+		BankBal     nullableNumber `json:"BankBal"`
+		TrstBnkSell nullableNumber `json:"TrstBnkSell"`
+		TrstBnkBuy  nullableNumber `json:"TrstBnkBuy"`
+		TrstBnkTot  nullableNumber `json:"TrstBnkTot"`
+		TrstBnkBal  nullableNumber `json:"TrstBnkBal"`
+		OthFinSell  nullableNumber `json:"OthFinSell"`
+		OthFinBuy   nullableNumber `json:"OthFinBuy"`
+		OthFinTot   nullableNumber `json:"OthFinTot"`
+		OthFinBal   nullableNumber `json:"OthFinBal"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return err
@@ -770,20 +770,21 @@ func (it *InvestorType) UnmarshalJSON(b []byte) error {
 	it.StartDate = raw.StDate
 	it.EndDate = raw.EnDate
 	it.Section = raw.Section
-	it.Proprietary = newTradingBalance(raw.PropSell, raw.PropBuy, raw.PropTot, raw.PropBal)
-	it.Brokerage = newTradingBalance(raw.BrkSell, raw.BrkBuy, raw.BrkTot, raw.BrkBal)
-	it.Total = newTradingBalance(raw.TotSell, raw.TotBuy, raw.TotTot, raw.TotBal)
-	it.Individuals = newTradingBalance(raw.IndSell, raw.IndBuy, raw.IndTot, raw.IndBal)
-	it.Foreigners = newTradingBalance(raw.FrgnSell, raw.FrgnBuy, raw.FrgnTot, raw.FrgnBal)
-	it.SecuritiesCos = newTradingBalance(raw.SecCoSell, raw.SecCoBuy, raw.SecCoTot, raw.SecCoBal)
-	it.InvestmentTrusts = newTradingBalance(raw.InvTrSell, raw.InvTrBuy, raw.InvTrTot, raw.InvTrBal)
-	it.BusinessCos = newTradingBalance(raw.BusCoSell, raw.BusCoBuy, raw.BusCoTot, raw.BusCoBal)
-	it.OtherCos = newTradingBalance(raw.OthCoSell, raw.OthCoBuy, raw.OthCoTot, raw.OthCoBal)
-	it.InsuranceCos = newTradingBalance(raw.InsCoSell, raw.InsCoBuy, raw.InsCoTot, raw.InsCoBal)
-	it.Banks = newTradingBalance(raw.BankSell, raw.BankBuy, raw.BankTot, raw.BankBal)
-	it.TrustBanks = newTradingBalance(raw.TrstBnkSell, raw.TrstBnkBuy, raw.TrstBnkTot, raw.TrstBnkBal)
-	it.OtherFinancialInstitutions = newTradingBalance(raw.OthFinSell, raw.OthFinBuy, raw.OthFinTot, raw.OthFinBal)
-	return nil
+	u := &unmarshaler{}
+	it.Proprietary = newTradingBalance(u, raw.PropSell, raw.PropBuy, raw.PropTot, raw.PropBal)
+	it.Brokerage = newTradingBalance(u, raw.BrkSell, raw.BrkBuy, raw.BrkTot, raw.BrkBal)
+	it.Total = newTradingBalance(u, raw.TotSell, raw.TotBuy, raw.TotTot, raw.TotBal)
+	it.Individuals = newTradingBalance(u, raw.IndSell, raw.IndBuy, raw.IndTot, raw.IndBal)
+	it.Foreigners = newTradingBalance(u, raw.FrgnSell, raw.FrgnBuy, raw.FrgnTot, raw.FrgnBal)
+	it.SecuritiesCos = newTradingBalance(u, raw.SecCoSell, raw.SecCoBuy, raw.SecCoTot, raw.SecCoBal)
+	it.InvestmentTrusts = newTradingBalance(u, raw.InvTrSell, raw.InvTrBuy, raw.InvTrTot, raw.InvTrBal)
+	it.BusinessCos = newTradingBalance(u, raw.BusCoSell, raw.BusCoBuy, raw.BusCoTot, raw.BusCoBal)
+	it.OtherCos = newTradingBalance(u, raw.OthCoSell, raw.OthCoBuy, raw.OthCoTot, raw.OthCoBal)
+	it.InsuranceCos = newTradingBalance(u, raw.InsCoSell, raw.InsCoBuy, raw.InsCoTot, raw.InsCoBal)
+	it.Banks = newTradingBalance(u, raw.BankSell, raw.BankBuy, raw.BankTot, raw.BankBal)
+	it.TrustBanks = newTradingBalance(u, raw.TrstBnkSell, raw.TrstBnkBuy, raw.TrstBnkTot, raw.TrstBnkBal)
+	it.OtherFinancialInstitutions = newTradingBalance(u, raw.OthFinSell, raw.OthFinBuy, raw.OthFinTot, raw.OthFinBal)
+	return u.err
 }
 
 // InvestorTypeRequest specifies filter parameters for the InvestorType API.
