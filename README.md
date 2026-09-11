@@ -54,7 +54,7 @@ client := jquants.NewClient(
     os.Getenv("J_QUANTS_API_KEY"),
     jquants.WithHTTPClient(customHTTPClient),       // custom *http.Client (default: http.DefaultClient)
     jquants.WithRetryInterval(10 * time.Second),    // retry interval for retryable errors (default: 5s)
-    jquants.WithLoopTimeout(60 * time.Second),      // timeout for paginated requests (default: 20s)
+    jquants.WithLoopTimeout(60 * time.Second),      // timeout per API call, including retries (default: 20s)
 )
 ```
 

@@ -54,12 +54,12 @@ type Client struct {
 
 	UserAgent string
 
-	// RetryInterval is the duration to wait before retrying after a 500 error.
+	// RetryInterval is the duration to wait before retrying a transient failure.
 	// Defaults to 5 seconds.
 	RetryInterval time.Duration
 
-	// LoopTimeout is the maximum duration for paginated requests.
-	// If fetching all pages takes longer than this, the request will be cancelled.
+	// LoopTimeout is the maximum duration for an API call, including retries
+	// and all pages of a paginated request.
 	// Defaults to 20 seconds.
 	LoopTimeout time.Duration
 }
@@ -332,6 +332,37 @@ func getJSON[R any](ctx context.Context, c *Client, urlPath string, param parame
 		return r, asTransientTransportError(fmt.Errorf("failed to decode HTTP response: %w", err))
 	}
 	return r, nil
+}
+
+// getJSONWithRetry applies the same bounded retry policy as the pagination
+// helpers to endpoints that return a single response. Paginated callers use
+// getJSON directly so their existing deadline covers all pages and retries.
+func getJSONWithRetry[R any](ctx context.Context, c *Client, urlPath string, param parameters) (R, error) {
+	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
+	defer cancel()
+	var zero R
+	var lastRetryErr error
+	for {
+		if err := ctx.Err(); err != nil {
+			return zero, errors.Join(lastRetryErr, err)
+		}
+		r, err := getJSON[R](ctx, c, urlPath, param)
+		if err == nil {
+			return r, nil
+		}
+		if isContextError(err) {
+			return zero, errors.Join(lastRetryErr, err)
+		}
+		delay, retry := retryDelay(err, c.RetryInterval)
+		if !retry {
+			return zero, err
+		}
+		lastRetryErr = err
+		slog.Warn("Retrying HTTP request", "error", err.Error())
+		if sleepErr := sleep(ctx, delay); sleepErr != nil {
+			return zero, errors.Join(err, sleepErr)
+		}
+	}
 }
 
 // ErrResponse represents the error response body from the J-Quants API.

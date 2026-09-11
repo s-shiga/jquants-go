@@ -81,7 +81,7 @@ type bulkListResponse struct {
 // valid together with Endpoint.
 // See https://jpx-jquants.com/en/spec/bulk-list for API details.
 func (c *Client) BulkList(ctx context.Context, req BulkListRequest) ([]BulkFile, error) {
-	r, err := getJSON[bulkListResponse](ctx, c, "/bulk/list", bulkListParameters{req})
+	r, err := getJSONWithRetry[bulkListResponse](ctx, c, "/bulk/list", bulkListParameters{req})
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ type bulkGetResponse struct {
 // plan) are delivered exclusively via keys under "equities/trades/".
 // See https://jpx-jquants.com/en/spec/bulk-get for API details.
 func (c *Client) BulkGet(ctx context.Context, req BulkGetRequest) (string, error) {
-	r, err := getJSON[bulkGetResponse](ctx, c, "/bulk/get", bulkGetParameters{req})
+	r, err := getJSONWithRetry[bulkGetResponse](ctx, c, "/bulk/get", bulkGetParameters{req})
 	if err != nil {
 		return "", err
 	}

@@ -715,7 +715,7 @@ type tradingCalendarResponse struct {
 
 // TradingCalendar retrieves the TSE trading calendar from the /markets/calendar endpoint.
 func (c *Client) TradingCalendar(ctx context.Context, req TradingCalendarRequest) ([]TradingCalendar, error) {
-	r, err := getJSON[tradingCalendarResponse](ctx, c, "/markets/calendar", tradingCalendarParameters{req})
+	r, err := getJSONWithRetry[tradingCalendarResponse](ctx, c, "/markets/calendar", tradingCalendarParameters{req})
 	if err != nil {
 		return nil, err
 	}

@@ -115,7 +115,7 @@ type issueInformationResponse struct {
 // IssueInformation retrieves master data for listed securities from the /equities/master endpoint.
 // It returns company information, sector classifications, and market details.
 func (c *Client) IssueInformation(ctx context.Context, req IssueInformationRequest) ([]IssueInformation, error) {
-	r, err := getJSON[issueInformationResponse](ctx, c, "/equities/master", issueInformationParameters{req})
+	r, err := getJSONWithRetry[issueInformationResponse](ctx, c, "/equities/master", issueInformationParameters{req})
 	if err != nil {
 		return nil, err
 	}

@@ -192,7 +192,7 @@ func (p timelyDisclosureFilesParameters) values() (url.Values, error) {
 // This endpoint requires the TimelyDisclosure add-on plan.
 // See https://jpx-jquants.com/en/spec/td-files for API details.
 func (c *Client) TimelyDisclosureFiles(ctx context.Context, req TimelyDisclosureFilesRequest) (TimelyDisclosureFiles, error) {
-	return getJSON[TimelyDisclosureFiles](ctx, c, "/td/files", timelyDisclosureFilesParameters{req})
+	return getJSONWithRetry[TimelyDisclosureFiles](ctx, c, "/td/files", timelyDisclosureFilesParameters{req})
 }
 
 // TimelyDisclosureBulk represents a signed download URL for the bulk TDnet
@@ -218,5 +218,5 @@ func (p timelyDisclosureBulkParameters) values() (url.Values, error) {
 // This endpoint requires the TimelyDisclosure add-on plan.
 // See https://jpx-jquants.com/en/spec/td-bulk for API details.
 func (c *Client) TimelyDisclosureBulk(ctx context.Context) (TimelyDisclosureBulk, error) {
-	return getJSON[TimelyDisclosureBulk](ctx, c, "/td/bulk", timelyDisclosureBulkParameters{})
+	return getJSONWithRetry[TimelyDisclosureBulk](ctx, c, "/td/bulk", timelyDisclosureBulkParameters{})
 }
