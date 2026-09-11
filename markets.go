@@ -34,15 +34,15 @@ type MarginTradingOutstanding struct {
 
 func (mtv *MarginTradingOutstanding) UnmarshalJSON(b []byte) error {
 	var raw struct {
-		Date                               string  `json:"Date"`
-		Code                               string  `json:"Code"`
-		ShortMarginTradeVolume             float64 `json:"ShrtVol"`
-		LongMarginTradeVolume              float64 `json:"LongVol"`
-		ShortNegotiableMarginTradeVolume   float64 `json:"ShrtNegVol"`
-		LongNegotiableMarginTradeVolume    float64 `json:"LongNegVol"`
-		ShortStandardizedMarginTradeVolume float64 `json:"ShrtStdVol"`
-		LongStandardizedMarginTradeVolume  float64 `json:"LongStdVol"`
-		IssueType                          string  `json:"IssType"`
+		Date                               string         `json:"Date"`
+		Code                               string         `json:"Code"`
+		ShortMarginTradeVolume             nullableNumber `json:"ShrtVol"`
+		LongMarginTradeVolume              nullableNumber `json:"LongVol"`
+		ShortNegotiableMarginTradeVolume   nullableNumber `json:"ShrtNegVol"`
+		LongNegotiableMarginTradeVolume    nullableNumber `json:"LongNegVol"`
+		ShortStandardizedMarginTradeVolume nullableNumber `json:"ShrtStdVol"`
+		LongStandardizedMarginTradeVolume  nullableNumber `json:"LongStdVol"`
+		IssueType                          string         `json:"IssType"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal margin trading outstanding: %w", err)
@@ -54,14 +54,15 @@ func (mtv *MarginTradingOutstanding) UnmarshalJSON(b []byte) error {
 		return fmt.Errorf("failed to unmarshal margin trading outstanding: %w", err)
 	}
 	mtv.Code = raw.Code
-	mtv.TotalShortBalance = int64(raw.ShortMarginTradeVolume)
-	mtv.TotalLongBalance = int64(raw.LongMarginTradeVolume)
-	mtv.ShortNegotiableBalance = int64(raw.ShortNegotiableMarginTradeVolume)
-	mtv.LongNegotiableBalance = int64(raw.LongNegotiableMarginTradeVolume)
-	mtv.ShortStandardizedBalance = int64(raw.ShortStandardizedMarginTradeVolume)
-	mtv.LongStandardizedBalance = int64(raw.LongStandardizedMarginTradeVolume)
+	u := &unmarshaler{}
+	mtv.TotalShortBalance = u.integer(raw.ShortMarginTradeVolume)
+	mtv.TotalLongBalance = u.integer(raw.LongMarginTradeVolume)
+	mtv.ShortNegotiableBalance = u.integer(raw.ShortNegotiableMarginTradeVolume)
+	mtv.LongNegotiableBalance = u.integer(raw.LongNegotiableMarginTradeVolume)
+	mtv.ShortStandardizedBalance = u.integer(raw.ShortStandardizedMarginTradeVolume)
+	mtv.LongStandardizedBalance = u.integer(raw.LongStandardizedMarginTradeVolume)
 	mtv.IssueType = int8(issueType)
-	return nil
+	return u.err
 }
 
 // MarginTradingOutstandingRequest specifies filter parameters for the MarginTradingOutstanding API.
@@ -113,21 +114,22 @@ type ShortSellingValue struct {
 
 func (sst *ShortSellingValue) UnmarshalJSON(b []byte) error {
 	var raw struct {
-		Date                                         string  `json:"Date"`
-		Sector33Code                                 string  `json:"S33"`
-		SellingExcludingShortSellingTurnoverValue    float64 `json:"SellExShortVa"`
-		ShortSellingWithRestrictionsTurnoverValue    float64 `json:"ShrtWithResVa"`
-		ShortSellingWithoutRestrictionsTurnoverValue float64 `json:"ShrtNoResVa"`
+		Date                                         string         `json:"Date"`
+		Sector33Code                                 string         `json:"S33"`
+		SellingExcludingShortSellingTurnoverValue    nullableNumber `json:"SellExShortVa"`
+		ShortSellingWithRestrictionsTurnoverValue    nullableNumber `json:"ShrtWithResVa"`
+		ShortSellingWithoutRestrictionsTurnoverValue nullableNumber `json:"ShrtNoResVa"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal short selling value: %w", err)
 	}
 	sst.Date = raw.Date
 	sst.Sector33Code = raw.Sector33Code
-	sst.LongSellingValue = int64(raw.SellingExcludingShortSellingTurnoverValue)
-	sst.ShortSellingWithRestrictions = int64(raw.ShortSellingWithRestrictionsTurnoverValue)
-	sst.ShortSellingWithoutRestrictions = int64(raw.ShortSellingWithoutRestrictionsTurnoverValue)
-	return nil
+	u := &unmarshaler{}
+	sst.LongSellingValue = u.integer(raw.SellingExcludingShortSellingTurnoverValue)
+	sst.ShortSellingWithRestrictions = u.integer(raw.ShortSellingWithRestrictionsTurnoverValue)
+	sst.ShortSellingWithoutRestrictions = u.integer(raw.ShortSellingWithoutRestrictionsTurnoverValue)
+	return u.err
 }
 
 // ShortSellingValueRequest specifies filter parameters for the ShortSellingValue API.
@@ -233,22 +235,22 @@ type BreakdownTrading struct {
 
 func (bt *BreakdownTrading) UnmarshalJSON(b []byte) error {
 	var raw struct {
-		Date            string  `json:"Date"`
-		Code            string  `json:"Code"`
-		LongSellVa      float64 `json:"LongSellVa"`
-		ShrtNoMrgnVa    float64 `json:"ShrtNoMrgnVa"`
-		MrgnSellNewVa   float64 `json:"MrgnSellNewVa"`
-		MrgnSellCloseVa float64 `json:"MrgnSellCloseVa"`
-		LongBuyVa       float64 `json:"LongBuyVa"`
-		MrgnBuyNewVa    float64 `json:"MrgnBuyNewVa"`
-		MrgnBuyCloseVa  float64 `json:"MrgnBuyCloseVa"`
-		LongSellVo      float64 `json:"LongSellVo"`
-		ShrtNoMrgnVo    float64 `json:"ShrtNoMrgnVo"`
-		MrgnSellNewVo   float64 `json:"MrgnSellNewVo"`
-		MrgnSellCloseVo float64 `json:"MrgnSellCloseVo"`
-		LongBuyVo       float64 `json:"LongBuyVo"`
-		MrgnBuyNewVo    float64 `json:"MrgnBuyNewVo"`
-		MrgnBuyCloseVo  float64 `json:"MrgnBuyCloseVo"`
+		Date            string         `json:"Date"`
+		Code            string         `json:"Code"`
+		LongSellVa      float64        `json:"LongSellVa"`
+		ShrtNoMrgnVa    float64        `json:"ShrtNoMrgnVa"`
+		MrgnSellNewVa   float64        `json:"MrgnSellNewVa"`
+		MrgnSellCloseVa float64        `json:"MrgnSellCloseVa"`
+		LongBuyVa       float64        `json:"LongBuyVa"`
+		MrgnBuyNewVa    float64        `json:"MrgnBuyNewVa"`
+		MrgnBuyCloseVa  float64        `json:"MrgnBuyCloseVa"`
+		LongSellVo      nullableNumber `json:"LongSellVo"`
+		ShrtNoMrgnVo    nullableNumber `json:"ShrtNoMrgnVo"`
+		MrgnSellNewVo   nullableNumber `json:"MrgnSellNewVo"`
+		MrgnSellCloseVo nullableNumber `json:"MrgnSellCloseVo"`
+		LongBuyVo       nullableNumber `json:"LongBuyVo"`
+		MrgnBuyNewVo    nullableNumber `json:"MrgnBuyNewVo"`
+		MrgnBuyCloseVo  nullableNumber `json:"MrgnBuyCloseVo"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal breakdown trading: %w", err)
@@ -262,14 +264,15 @@ func (bt *BreakdownTrading) UnmarshalJSON(b []byte) error {
 	bt.LongBuyValue = raw.LongBuyVa
 	bt.MarginBuyNewValue = raw.MrgnBuyNewVa
 	bt.MarginBuyCloseValue = raw.MrgnBuyCloseVa
-	bt.LongSellVolume = int64(raw.LongSellVo)
-	bt.ShortSellWithoutMarginVolume = int64(raw.ShrtNoMrgnVo)
-	bt.MarginSellNewVolume = int64(raw.MrgnSellNewVo)
-	bt.MarginSellCloseVolume = int64(raw.MrgnSellCloseVo)
-	bt.LongBuyVolume = int64(raw.LongBuyVo)
-	bt.MarginBuyNewVolume = int64(raw.MrgnBuyNewVo)
-	bt.MarginBuyCloseVolume = int64(raw.MrgnBuyCloseVo)
-	return nil
+	u := &unmarshaler{}
+	bt.LongSellVolume = u.integer(raw.LongSellVo)
+	bt.ShortSellWithoutMarginVolume = u.integer(raw.ShrtNoMrgnVo)
+	bt.MarginSellNewVolume = u.integer(raw.MrgnSellNewVo)
+	bt.MarginSellCloseVolume = u.integer(raw.MrgnSellCloseVo)
+	bt.LongBuyVolume = u.integer(raw.LongBuyVo)
+	bt.MarginBuyNewVolume = u.integer(raw.MrgnBuyNewVo)
+	bt.MarginBuyCloseVolume = u.integer(raw.MrgnBuyCloseVo)
+	return u.err
 }
 
 // BreakdownTradingRequest specifies filter parameters for the BreakdownTrading API.

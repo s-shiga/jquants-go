@@ -1,6 +1,7 @@
 package jquants
 
 import (
+	"encoding/json"
 	"testing"
 )
 
@@ -51,4 +52,56 @@ func TestClient_TradingCalendar(t *testing.T) {
 	checkEndpoint(t, "/markets/calendar", "hol_div=1", `{"Date":"2026-07-17","HolDiv":"1"}`, true, TradingCalendar{Date: "2026-07-17", DayType: 1}, func(c *Client) ([]TradingCalendar, error) {
 		return c.TradingCalendar(t.Context(), req)
 	})
+}
+
+func TestMarketIntegerFieldsPreservePrecision(t *testing.T) {
+	const exact = int64(9007199254740993)
+	for _, tc := range []struct {
+		name string
+		data string
+		got  func() (int64, error)
+	}{
+		{
+			name: "margin interest",
+			data: `{"IssType":"1","ShrtVol":9007199254740993}`,
+			got: func() (int64, error) {
+				var value MarginTradingOutstanding
+				err := json.Unmarshal([]byte(`{"IssType":"1","ShrtVol":9007199254740993}`), &value)
+				return value.TotalShortBalance, err
+			},
+		},
+		{
+			name: "short selling",
+			data: `{"SellExShortVa":9007199254740993}`,
+			got: func() (int64, error) {
+				var value ShortSellingValue
+				err := json.Unmarshal([]byte(`{"SellExShortVa":9007199254740993}`), &value)
+				return value.LongSellingValue, err
+			},
+		},
+		{
+			name: "breakdown volume",
+			data: `{"LongSellVo":9007199254740993}`,
+			got: func() (int64, error) {
+				var value BreakdownTrading
+				err := json.Unmarshal([]byte(`{"LongSellVo":9007199254740993}`), &value)
+				return value.LongSellVolume, err
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := tc.got()
+			if err != nil || got != exact {
+				t.Fatalf("decoded integer = %d, %v; want %d", got, err, exact)
+			}
+		})
+	}
+}
+
+func TestMarketIntegerFieldsRejectFractions(t *testing.T) {
+	for _, target := range []any{&MarginTradingOutstanding{}, &ShortSellingValue{}, &BreakdownTrading{}} {
+		if err := json.Unmarshal([]byte(`{"IssType":"1","ShrtVol":1.5,"SellExShortVa":1.5,"LongSellVo":1.5}`), target); err == nil {
+			t.Fatalf("json.Unmarshal into %T accepted a fractional integer", target)
+		}
+	}
 }
