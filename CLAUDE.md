@@ -56,8 +56,7 @@ Custom error types in `client.go` wrap HTTP status codes: `NoContent` (210), `Ba
 
 ### Module Organization
 
-- `client.go` - Client initialization, HTTP request handling, error types, pagination helpers (`fetchAllPages`, `fetchAllPagesWithChannel`)
-- `generics.go` - Generic `Request` and `Response` interfaces
+- `client.go` - Client initialization, HTTP request handling, error types, generic response envelope, and pagination helpers (`fetchAllPages`, `fetchAllPagesWithChannel`)
 - `equity.go` - Stock-related APIs:
   - Issue information (`/equities/master`)
   - Stock prices (`/equities/bars/daily`)
