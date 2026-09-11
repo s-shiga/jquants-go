@@ -66,20 +66,12 @@ func (p indexPriceParameters) values() (url.Values, error) {
 	return codeDateRangeValues(p.Code, p.Date, p.From, p.To, p.PaginationKey)
 }
 
-type indexPriceResponse struct {
-	Data          []IndexPrice `json:"data"`
-	PaginationKey *string      `json:"pagination_key"`
-}
-
-func (r indexPriceResponse) Items() []IndexPrice  { return r.Data }
-func (r indexPriceResponse) NextPageKey() *string { return r.PaginationKey }
-
 // IndexPrice retrieves daily index prices from the /indices/bars/daily endpoint.
 // It automatically handles pagination to fetch all matching records.
 func (c *Client) IndexPrice(ctx context.Context, req IndexPriceRequest) ([]IndexPrice, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (indexPriceResponse, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[IndexPrice], error) {
 		params := indexPriceParameters{IndexPriceRequest: req, PaginationKey: paginationKey}
-		return getJSON[indexPriceResponse](ctx, c, "/indices/bars/daily", params)
+		return getJSON[page[IndexPrice]](ctx, c, "/indices/bars/daily", params)
 	})
 }
 
@@ -143,19 +135,11 @@ func (p topixPriceParameters) values() (url.Values, error) {
 	return v, nil
 }
 
-type topixPriceResponse struct {
-	Data          []TopixPrice `json:"data"`
-	PaginationKey *string      `json:"pagination_key"`
-}
-
-func (r topixPriceResponse) Items() []TopixPrice  { return r.Data }
-func (r topixPriceResponse) NextPageKey() *string { return r.PaginationKey }
-
 // TopixPrices retrieves daily TOPIX index prices from the /indices/bars/daily/topix endpoint.
 // It automatically handles pagination to fetch all matching records.
 func (c *Client) TopixPrices(ctx context.Context, req TopixPriceRequest) ([]TopixPrice, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (topixPriceResponse, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[TopixPrice], error) {
 		params := topixPriceParameters{TopixPriceRequest: req, PaginationKey: paginationKey}
-		return getJSON[topixPriceResponse](ctx, c, "/indices/bars/daily/topix", params)
+		return getJSON[page[TopixPrice]](ctx, c, "/indices/bars/daily/topix", params)
 	})
 }

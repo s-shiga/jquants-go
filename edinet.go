@@ -88,21 +88,13 @@ func (p majorShareholdersParameters) values() (url.Values, error) {
 	return edinetValues(p.EdinetCode, p.Code, p.Date, p.PaginationKey)
 }
 
-type majorShareholdersResponse struct {
-	Data          []MajorShareholders `json:"data"`
-	PaginationKey *string             `json:"pagination_key"`
-}
-
-func (r majorShareholdersResponse) Items() []MajorShareholders { return r.Data }
-func (r majorShareholdersResponse) NextPageKey() *string       { return r.PaginationKey }
-
 // MajorShareholders retrieves major-shareholders filings from the /edinet/major-shareholders endpoint.
 // It automatically handles pagination to fetch all matching records.
 // See https://jpx-jquants.com/en/spec/edinet-major-shareholders for API details.
 func (c *Client) MajorShareholders(ctx context.Context, req EdinetRequest) ([]MajorShareholders, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (majorShareholdersResponse, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[MajorShareholders], error) {
 		params := majorShareholdersParameters{EdinetRequest: req, PaginationKey: paginationKey}
-		return getJSON[majorShareholdersResponse](ctx, c, "/edinet/major-shareholders", params)
+		return getJSON[page[MajorShareholders]](ctx, c, "/edinet/major-shareholders", params)
 	})
 }
 
@@ -225,22 +217,14 @@ func (p crossShareholdingsParameters) values() (url.Values, error) {
 	return edinetValues(p.EdinetCode, p.Code, p.Date, p.PaginationKey)
 }
 
-type crossShareholdingsResponse struct {
-	Data          []CrossShareholdings `json:"data"`
-	PaginationKey *string              `json:"pagination_key"`
-}
-
-func (r crossShareholdingsResponse) Items() []CrossShareholdings { return r.Data }
-func (r crossShareholdingsResponse) NextPageKey() *string        { return r.PaginationKey }
-
 // CrossShareholdings retrieves cross-shareholdings filings from the /edinet/cross-shareholdings endpoint.
 // It automatically handles pagination to fetch all matching records.
 // Some fields are extracted by an LLM and may be nil; callers should handle nil pointers.
 // See https://jpx-jquants.com/en/spec/edinet-cross-shareholdings for API details.
 func (c *Client) CrossShareholdings(ctx context.Context, req EdinetRequest) ([]CrossShareholdings, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (crossShareholdingsResponse, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[CrossShareholdings], error) {
 		params := crossShareholdingsParameters{EdinetRequest: req, PaginationKey: paginationKey}
-		return getJSON[crossShareholdingsResponse](ctx, c, "/edinet/cross-shareholdings", params)
+		return getJSON[page[CrossShareholdings]](ctx, c, "/edinet/cross-shareholdings", params)
 	})
 }
 
@@ -388,20 +372,12 @@ func (p largeVolumeShareholdersParameters) values() (url.Values, error) {
 	return edinetValues(p.EdinetCode, p.Code, p.Date, p.PaginationKey)
 }
 
-type largeVolumeShareholdersResponse struct {
-	Data          []LargeVolumeShareholders `json:"data"`
-	PaginationKey *string                   `json:"pagination_key"`
-}
-
-func (r largeVolumeShareholdersResponse) Items() []LargeVolumeShareholders { return r.Data }
-func (r largeVolumeShareholdersResponse) NextPageKey() *string             { return r.PaginationKey }
-
 // LargeVolumeShareholders retrieves large-volume holding reports from the /edinet/large-volume-shareholders endpoint.
 // It automatically handles pagination to fetch all matching records.
 // See https://jpx-jquants.com/en/spec/edinet-large-volume-shareholders for API details.
 func (c *Client) LargeVolumeShareholders(ctx context.Context, req EdinetRequest) ([]LargeVolumeShareholders, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (largeVolumeShareholdersResponse, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[LargeVolumeShareholders], error) {
 		params := largeVolumeShareholdersParameters{EdinetRequest: req, PaginationKey: paginationKey}
-		return getJSON[largeVolumeShareholdersResponse](ctx, c, "/edinet/large-volume-shareholders", params)
+		return getJSON[page[LargeVolumeShareholders]](ctx, c, "/edinet/large-volume-shareholders", params)
 	})
 }

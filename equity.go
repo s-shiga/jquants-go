@@ -255,20 +255,12 @@ func (p stockPriceParameters) values() (url.Values, error) {
 	return codeDateRangeValues(p.Code, p.Date, p.From, p.To, p.PaginationKey)
 }
 
-type stockPriceResponse struct {
-	Data          []StockPrice `json:"data"`
-	PaginationKey *string      `json:"pagination_key"`
-}
-
-func (r stockPriceResponse) Items() []StockPrice  { return r.Data }
-func (r stockPriceResponse) NextPageKey() *string { return r.PaginationKey }
-
 // StockPrice retrieves daily stock prices from the /equities/bars/daily endpoint.
 // It automatically handles pagination to fetch all matching records.
 func (c *Client) StockPrice(ctx context.Context, req StockPriceRequest) ([]StockPrice, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (stockPriceResponse, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[StockPrice], error) {
 		params := stockPriceParameters{StockPriceRequest: req, PaginationKey: paginationKey}
-		return getJSON[stockPriceResponse](ctx, c, "/equities/bars/daily", params)
+		return getJSON[page[StockPrice]](ctx, c, "/equities/bars/daily", params)
 	})
 }
 
@@ -277,9 +269,9 @@ func (c *Client) StockPrice(ctx context.Context, req StockPriceRequest) ([]Stock
 // On error the channel is closed and the error is returned from this method, so callers
 // must check the returned error after the channel closes; ranging the channel alone will not surface it.
 func (c *Client) StockPriceWithChannel(ctx context.Context, req StockPriceRequest, ch chan<- StockPrice) error {
-	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (stockPriceResponse, error) {
+	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (page[StockPrice], error) {
 		params := stockPriceParameters{StockPriceRequest: req, PaginationKey: paginationKey}
-		return getJSON[stockPriceResponse](ctx, c, "/equities/bars/daily", params)
+		return getJSON[page[StockPrice]](ctx, c, "/equities/bars/daily", params)
 	})
 }
 
@@ -355,22 +347,14 @@ func (p minuteStockPriceParameters) values() (url.Values, error) {
 	return codeDateRangeValues(p.Code, p.Date, p.From, p.To, p.PaginationKey)
 }
 
-type minuteStockPriceResponse struct {
-	Data          []MinuteStockPrice `json:"data"`
-	PaginationKey *string            `json:"pagination_key"`
-}
-
-func (r minuteStockPriceResponse) Items() []MinuteStockPrice { return r.Data }
-func (r minuteStockPriceResponse) NextPageKey() *string      { return r.PaginationKey }
-
 // MinuteStockPrice retrieves one-minute stock prices from the /equities/bars/minute endpoint.
 // It automatically handles pagination to fetch all matching records.
 // This endpoint requires the minute-bars add-on plan.
 // See https://jpx-jquants.com/en/spec/eq-bars-minute for API details.
 func (c *Client) MinuteStockPrice(ctx context.Context, req MinuteStockPriceRequest) ([]MinuteStockPrice, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (minuteStockPriceResponse, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[MinuteStockPrice], error) {
 		params := minuteStockPriceParameters{MinuteStockPriceRequest: req, PaginationKey: paginationKey}
-		return getJSON[minuteStockPriceResponse](ctx, c, "/equities/bars/minute", params)
+		return getJSON[page[MinuteStockPrice]](ctx, c, "/equities/bars/minute", params)
 	})
 }
 
@@ -381,9 +365,9 @@ func (c *Client) MinuteStockPrice(ctx context.Context, req MinuteStockPriceReque
 // This endpoint requires the minute-bars add-on plan.
 // See https://jpx-jquants.com/en/spec/eq-bars-minute for API details.
 func (c *Client) MinuteStockPriceWithChannel(ctx context.Context, req MinuteStockPriceRequest, ch chan<- MinuteStockPrice) error {
-	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (minuteStockPriceResponse, error) {
+	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (page[MinuteStockPrice], error) {
 		params := minuteStockPriceParameters{MinuteStockPriceRequest: req, PaginationKey: paginationKey}
-		return getJSON[minuteStockPriceResponse](ctx, c, "/equities/bars/minute", params)
+		return getJSON[page[MinuteStockPrice]](ctx, c, "/equities/bars/minute", params)
 	})
 }
 
@@ -456,14 +440,6 @@ func (p morningSessionStockPriceParameters) values() (url.Values, error) {
 	return v, nil
 }
 
-type morningSessionStockPriceResponse struct {
-	Data          []MorningSessionStockPrice `json:"data"`
-	PaginationKey *string                    `json:"pagination_key"`
-}
-
-func (r morningSessionStockPriceResponse) Items() []MorningSessionStockPrice { return r.Data }
-func (r morningSessionStockPriceResponse) NextPageKey() *string              { return r.PaginationKey }
-
 // MorningSessionStockPrice retrieves the current day's morning-session OHLCV data
 // from the /equities/bars/daily/am endpoint.
 // It automatically handles pagination to fetch all matching records.
@@ -472,9 +448,9 @@ func (r morningSessionStockPriceResponse) NextPageKey() *string              { r
 // which is surfaced as a NoContent error.
 // See https://jpx-jquants.com/en/spec/eq-bars-daily-am for API details.
 func (c *Client) MorningSessionStockPrice(ctx context.Context, req MorningSessionStockPriceRequest) ([]MorningSessionStockPrice, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (morningSessionStockPriceResponse, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[MorningSessionStockPrice], error) {
 		params := morningSessionStockPriceParameters{MorningSessionStockPriceRequest: req, PaginationKey: paginationKey}
-		return getJSON[morningSessionStockPriceResponse](ctx, c, "/equities/bars/daily/am", params)
+		return getJSON[page[MorningSessionStockPrice]](ctx, c, "/equities/bars/daily/am", params)
 	})
 }
 
@@ -536,21 +512,13 @@ func (p earningsCalendarParameters) values() (url.Values, error) {
 	return v, nil
 }
 
-type earningsCalendarResponse struct {
-	Data          []EarningsCalendar `json:"data"`
-	PaginationKey *string            `json:"pagination_key"`
-}
-
-func (r earningsCalendarResponse) Items() []EarningsCalendar { return r.Data }
-func (r earningsCalendarResponse) NextPageKey() *string      { return r.PaginationKey }
-
 // EarningsCalendar retrieves the earnings announcement calendar from the /equities/earnings-calendar endpoint.
 // It automatically handles pagination to fetch all matching records.
 // See https://jpx-jquants.com/en/spec/eq-earnings-cal for API details.
 func (c *Client) EarningsCalendar(ctx context.Context, req EarningsCalendarRequest) ([]EarningsCalendar, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (earningsCalendarResponse, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[EarningsCalendar], error) {
 		params := earningsCalendarParameters{EarningsCalendarRequest: req, PaginationKey: paginationKey}
-		return getJSON[earningsCalendarResponse](ctx, c, "/equities/earnings-calendar", params)
+		return getJSON[page[EarningsCalendar]](ctx, c, "/equities/earnings-calendar", params)
 	})
 }
 
@@ -729,20 +697,12 @@ func (p investorTypeParameters) values() (url.Values, error) {
 	return v, nil
 }
 
-type investorTypeResponse struct {
-	Data          []InvestorType `json:"data"`
-	PaginationKey *string        `json:"pagination_key"`
-}
-
-func (r investorTypeResponse) Items() []InvestorType { return r.Data }
-func (r investorTypeResponse) NextPageKey() *string  { return r.PaginationKey }
-
 // InvestorType retrieves weekly trading data by investor type from the /equities/investor-types endpoint.
 // It automatically handles pagination to fetch all matching records.
 // See https://jpx-jquants.com/en/spec/eq-investor-types for API details.
 func (c *Client) InvestorType(ctx context.Context, req InvestorTypeRequest) ([]InvestorType, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (investorTypeResponse, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[InvestorType], error) {
 		params := investorTypeParameters{InvestorTypeRequest: req, PaginationKey: paginationKey}
-		return getJSON[investorTypeResponse](ctx, c, "/equities/investor-types", params)
+		return getJSON[page[InvestorType]](ctx, c, "/equities/investor-types", params)
 	})
 }

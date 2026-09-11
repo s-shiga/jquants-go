@@ -86,21 +86,13 @@ func (p marginTradingOutstandingParameters) values() (url.Values, error) {
 	return codeDateRangeValues(p.Code, p.Date, p.From, p.To, p.PaginationKey)
 }
 
-type marginTradingOutstandingResponse struct {
-	Data          []MarginTradingOutstanding `json:"data"`
-	PaginationKey *string                    `json:"pagination_key"`
-}
-
-func (r marginTradingOutstandingResponse) Items() []MarginTradingOutstanding { return r.Data }
-func (r marginTradingOutstandingResponse) NextPageKey() *string              { return r.PaginationKey }
-
 // MarginTradingOutstanding retrieves margin trading balance data from the /markets/margin-interest endpoint.
 // It automatically handles pagination to fetch all matching records.
 // See https://jpx-jquants.com/en/spec/mkt-margin-int for API details.
 func (c *Client) MarginTradingOutstanding(ctx context.Context, req MarginTradingOutstandingRequest) ([]MarginTradingOutstanding, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (marginTradingOutstandingResponse, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[MarginTradingOutstanding], error) {
 		params := marginTradingOutstandingParameters{MarginTradingOutstandingRequest: req, PaginationKey: paginationKey}
-		return getJSON[marginTradingOutstandingResponse](ctx, c, "/markets/margin-interest", params)
+		return getJSON[page[MarginTradingOutstanding]](ctx, c, "/markets/margin-interest", params)
 	})
 }
 
@@ -182,20 +174,12 @@ func (p shortSellingValueParameters) values() (url.Values, error) {
 	return v, nil
 }
 
-type shortSellingValueResponse struct {
-	Data          []ShortSellingValue `json:"data"`
-	PaginationKey *string             `json:"pagination_key"`
-}
-
-func (r shortSellingValueResponse) Items() []ShortSellingValue { return r.Data }
-func (r shortSellingValueResponse) NextPageKey() *string       { return r.PaginationKey }
-
 // ShortSellingValue retrieves short selling turnover data from the /markets/short-ratio endpoint.
 // It automatically handles pagination to fetch all matching records.
 func (c *Client) ShortSellingValue(ctx context.Context, req ShortSellingValueRequest) ([]ShortSellingValue, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (shortSellingValueResponse, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[ShortSellingValue], error) {
 		params := shortSellingValueParameters{ShortSellingValueRequest: req, PaginationKey: paginationKey}
-		return getJSON[shortSellingValueResponse](ctx, c, "/markets/short-ratio", params)
+		return getJSON[page[ShortSellingValue]](ctx, c, "/markets/short-ratio", params)
 	})
 }
 
@@ -310,23 +294,15 @@ func (p breakdownTradingParameters) values() (url.Values, error) {
 	return codeDateRangeValues(p.Code, p.Date, p.From, p.To, p.PaginationKey)
 }
 
-type breakdownTradingResponse struct {
-	Data          []BreakdownTrading `json:"data"`
-	PaginationKey *string            `json:"pagination_key"`
-}
-
-func (r breakdownTradingResponse) Items() []BreakdownTrading { return r.Data }
-func (r breakdownTradingResponse) NextPageKey() *string      { return r.PaginationKey }
-
 // BreakdownTrading retrieves the daily breakdown of trading value and volume by
 // trade type from the /markets/breakdown endpoint.
 // It automatically handles pagination to fetch all matching records.
 // This endpoint requires the Premium plan.
 // See https://jpx-jquants.com/en/spec/mkt-breakdown for API details.
 func (c *Client) BreakdownTrading(ctx context.Context, req BreakdownTradingRequest) ([]BreakdownTrading, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (breakdownTradingResponse, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[BreakdownTrading], error) {
 		params := breakdownTradingParameters{BreakdownTradingRequest: req, PaginationKey: paginationKey}
-		return getJSON[breakdownTradingResponse](ctx, c, "/markets/breakdown", params)
+		return getJSON[page[BreakdownTrading]](ctx, c, "/markets/breakdown", params)
 	})
 }
 
@@ -338,9 +314,9 @@ func (c *Client) BreakdownTrading(ctx context.Context, req BreakdownTradingReque
 // This endpoint requires the Premium plan.
 // See https://jpx-jquants.com/en/spec/mkt-breakdown for API details.
 func (c *Client) BreakdownTradingWithChannel(ctx context.Context, req BreakdownTradingRequest, ch chan<- BreakdownTrading) error {
-	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (breakdownTradingResponse, error) {
+	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (page[BreakdownTrading], error) {
 		params := breakdownTradingParameters{BreakdownTradingRequest: req, PaginationKey: paginationKey}
-		return getJSON[breakdownTradingResponse](ctx, c, "/markets/breakdown", params)
+		return getJSON[page[BreakdownTrading]](ctx, c, "/markets/breakdown", params)
 	})
 }
 
@@ -461,21 +437,13 @@ func (p outstandingShortPositionParameters) values() (url.Values, error) {
 	return v, nil
 }
 
-type outstandingShortPositionResponse struct {
-	Data          []OutstandingShortPosition `json:"data"`
-	PaginationKey *string                    `json:"pagination_key"`
-}
-
-func (r outstandingShortPositionResponse) Items() []OutstandingShortPosition { return r.Data }
-func (r outstandingShortPositionResponse) NextPageKey() *string              { return r.PaginationKey }
-
 // OutstandingShortPosition retrieves outstanding short position reports from the /markets/short-sale-report endpoint.
 // It automatically handles pagination to fetch all matching records.
 // See https://jpx-jquants.com/en/spec/mkt-short-sale for API details.
 func (c *Client) OutstandingShortPosition(ctx context.Context, req OutstandingShortPositionRequest) ([]OutstandingShortPosition, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (outstandingShortPositionResponse, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[OutstandingShortPosition], error) {
 		params := outstandingShortPositionParameters{OutstandingShortPositionRequest: req, PaginationKey: paginationKey}
-		return getJSON[outstandingShortPositionResponse](ctx, c, "/markets/short-sale-report", params)
+		return getJSON[page[OutstandingShortPosition]](ctx, c, "/markets/short-sale-report", params)
 	})
 }
 
@@ -638,21 +606,13 @@ func (p marginAlertParameters) values() (url.Values, error) {
 	return v, nil
 }
 
-type marginAlertResponse struct {
-	Data          []MarginAlert `json:"data"`
-	PaginationKey *string       `json:"pagination_key"`
-}
-
-func (r marginAlertResponse) Items() []MarginAlert { return r.Data }
-func (r marginAlertResponse) NextPageKey() *string { return r.PaginationKey }
-
 // MarginAlert retrieves margin trading alert data from the /markets/margin-alert endpoint.
 // It automatically handles pagination to fetch all matching records.
 // See https://jpx-jquants.com/en/spec/mkt-margin-alert for API details.
 func (c *Client) MarginAlert(ctx context.Context, req MarginAlertRequest) ([]MarginAlert, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (marginAlertResponse, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[MarginAlert], error) {
 		params := marginAlertParameters{MarginAlertRequest: req, PaginationKey: paginationKey}
-		return getJSON[marginAlertResponse](ctx, c, "/markets/margin-alert", params)
+		return getJSON[page[MarginAlert]](ctx, c, "/markets/margin-alert", params)
 	})
 }
 

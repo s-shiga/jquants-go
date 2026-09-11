@@ -24,7 +24,7 @@ func TestGetJSON_HTTPError(t *testing.T) {
 	} {
 		t.Run(fmt.Sprint(tc.status), func(t *testing.T) {
 			c := fixtureClient(t, fixtureResponse{path: "/test", status: tc.status, header: http.Header{"Retry-After": {"2"}}, body: `{"message":"fixture error"}`})
-			_, err := getJSON[transientTestResponse](t.Context(), c, "/test", transientTestParams{})
+			_, err := getJSON[page[transientTestItem]](t.Context(), c, "/test", transientTestParams{})
 			if !errors.As(err, tc.target) || !strings.Contains(err.Error(), "fixture error") {
 				t.Fatalf("error = %v, want %T", err, tc.target)
 			}
@@ -53,7 +53,7 @@ func TestGetJSON_Compression(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			c := fixtureClient(t, fixtureResponse{path: "/test", body: tc.body, header: tc.header})
-			got, err := getJSON[transientTestResponse](t.Context(), c, "/test", transientTestParams{})
+			got, err := getJSON[page[transientTestItem]](t.Context(), c, "/test", transientTestParams{})
 			if err != nil || len(got.Data) != 1 || got.Data[0].Value != "ok" {
 				t.Fatalf("response = %#v, %v", got, err)
 			}
@@ -70,8 +70,8 @@ func TestFetch_RetrySamePage(t *testing.T) {
 					fixtureResponse{path: "/test", query: "pagination_key=page2", status: status, body: `{"message":"retry"}`},
 					fixtureResponse{path: "/test", query: "pagination_key=page2", body: `{"data":[{"value":"second"}]}`},
 				)
-				fetch := func(ctx context.Context, key *string) (transientTestResponse, error) {
-					return getJSON[transientTestResponse](ctx, c, "/test", transientTestParams{key})
+				fetch := func(ctx context.Context, key *string) (page[transientTestItem], error) {
+					return getJSON[page[transientTestItem]](ctx, c, "/test", transientTestParams{key})
 				}
 				var got []transientTestItem
 				var err error
@@ -101,8 +101,8 @@ func TestFetch_FatalErrors(t *testing.T) {
 		} {
 			t.Run(fmt.Sprintf("%s/stream=%t", tc.name, stream), func(t *testing.T) {
 				c := fixtureClient(t, fixtureResponse{path: "/test", status: tc.status, body: tc.body})
-				fetch := func(ctx context.Context, key *string) (transientTestResponse, error) {
-					return getJSON[transientTestResponse](ctx, c, "/test", transientTestParams{key})
+				fetch := func(ctx context.Context, key *string) (page[transientTestItem], error) {
+					return getJSON[page[transientTestItem]](ctx, c, "/test", transientTestParams{key})
 				}
 				var err error
 				if stream {
@@ -129,8 +129,8 @@ func TestChannel_CancellationWhileBlocked(t *testing.T) {
 	fetched := make(chan struct{})
 	done := make(chan error, 1)
 	go func() {
-		done <- fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, key *string) (transientTestResponse, error) {
-			r, err := getJSON[transientTestResponse](ctx, c, "/test", transientTestParams{key})
+		done <- fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, key *string) (page[transientTestItem], error) {
+			r, err := getJSON[page[transientTestItem]](ctx, c, "/test", transientTestParams{key})
 			close(fetched)
 			return r, err
 		})

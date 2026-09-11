@@ -475,24 +475,24 @@ func sleep(ctx context.Context, d time.Duration) error {
 }
 
 // fetchAllPages fetches all pages of a paginated API endpoint.
-func fetchAllPages[T any, R Response[T]](
+func fetchAllPages[T any](
 	ctx context.Context,
 	c *Client,
-	fetchPage func(ctx context.Context, paginationKey *string) (R, error),
+	fetchPage func(ctx context.Context, paginationKey *string) (page[T], error),
 ) ([]T, error) {
 	data := make([]T, 0)
 	var paginationKey *string
 	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
 	defer cancel()
 	for {
-		resp, err := withRetry(ctx, c, func(ctx context.Context) (R, error) {
+		resp, err := withRetry(ctx, c, func(ctx context.Context) (page[T], error) {
 			return fetchPage(ctx, paginationKey)
 		})
 		if err != nil {
 			return nil, err
 		}
-		data = append(data, resp.Items()...)
-		paginationKey = resp.NextPageKey()
+		data = append(data, resp.Data...)
+		paginationKey = resp.PaginationKey
 		if paginationKey == nil {
 			break
 		}
@@ -502,31 +502,31 @@ func fetchAllPages[T any, R Response[T]](
 
 // fetchAllPagesWithChannel fetches all pages and sends each item to a channel.
 // The channel is closed when all items have been sent or an error occurs.
-func fetchAllPagesWithChannel[T any, R Response[T]](
+func fetchAllPagesWithChannel[T any](
 	ctx context.Context,
 	c *Client,
 	ch chan<- T,
-	fetchPage func(ctx context.Context, paginationKey *string) (R, error),
+	fetchPage func(ctx context.Context, paginationKey *string) (page[T], error),
 ) error {
 	defer close(ch)
 	var paginationKey *string
 	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
 	defer cancel()
 	for {
-		resp, err := withRetry(ctx, c, func(ctx context.Context) (R, error) {
+		resp, err := withRetry(ctx, c, func(ctx context.Context) (page[T], error) {
 			return fetchPage(ctx, paginationKey)
 		})
 		if err != nil {
 			return err
 		}
-		for _, item := range resp.Items() {
+		for _, item := range resp.Data {
 			select {
 			case ch <- item:
 			case <-ctx.Done():
 				return ctx.Err()
 			}
 		}
-		paginationKey = resp.NextPageKey()
+		paginationKey = resp.PaginationKey
 		if paginationKey == nil {
 			break
 		}

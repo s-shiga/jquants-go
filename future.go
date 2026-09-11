@@ -178,22 +178,14 @@ func (p futuresPriceParameters) values() (url.Values, error) {
 	return v, nil
 }
 
-type futuresPriceResponse struct {
-	Data          []FuturesPrice `json:"data"`
-	PaginationKey *string        `json:"pagination_key"`
-}
-
-func (r futuresPriceResponse) Items() []FuturesPrice { return r.Data }
-func (r futuresPriceResponse) NextPageKey() *string  { return r.PaginationKey }
-
 // FuturesPrice retrieves futures prices from the /derivatives/bars/daily/futures endpoint.
 // It automatically handles pagination to fetch all matching records.
 // This endpoint requires the J-Quants Premium plan.
 // See https://jpx-jquants.com/en/spec/drv-bars-daily-fut for details.
 func (c *Client) FuturesPrice(ctx context.Context, req FuturesPriceRequest) ([]FuturesPrice, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (futuresPriceResponse, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[FuturesPrice], error) {
 		params := futuresPriceParameters{FuturesPriceRequest: req, PaginationKey: paginationKey}
-		return getJSON[futuresPriceResponse](ctx, c, "/derivatives/bars/daily/futures", params)
+		return getJSON[page[FuturesPrice]](ctx, c, "/derivatives/bars/daily/futures", params)
 	})
 }
 
@@ -204,8 +196,8 @@ func (c *Client) FuturesPrice(ctx context.Context, req FuturesPriceRequest) ([]F
 // This endpoint requires the J-Quants Premium plan.
 // See https://jpx-jquants.com/en/spec/drv-bars-daily-fut for details.
 func (c *Client) FuturesPriceWithChannel(ctx context.Context, req FuturesPriceRequest, ch chan<- FuturesPrice) error {
-	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (futuresPriceResponse, error) {
+	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (page[FuturesPrice], error) {
 		params := futuresPriceParameters{FuturesPriceRequest: req, PaginationKey: paginationKey}
-		return getJSON[futuresPriceResponse](ctx, c, "/derivatives/bars/daily/futures", params)
+		return getJSON[page[FuturesPrice]](ctx, c, "/derivatives/bars/daily/futures", params)
 	})
 }

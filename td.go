@@ -110,22 +110,14 @@ func (p timelyDisclosureParameters) values() (url.Values, error) {
 	return v, nil
 }
 
-type timelyDisclosureResponse struct {
-	Data          []TimelyDisclosure `json:"data"`
-	PaginationKey *string            `json:"pagination_key"`
-}
-
-func (r timelyDisclosureResponse) Items() []TimelyDisclosure { return r.Data }
-func (r timelyDisclosureResponse) NextPageKey() *string      { return r.PaginationKey }
-
 // TimelyDisclosure retrieves the TDnet timely disclosure index list from the /td/list endpoint.
 // It automatically handles pagination to fetch all matching records.
 // This endpoint requires the TimelyDisclosure add-on plan.
 // See https://jpx-jquants.com/en/spec/td-list for API details.
 func (c *Client) TimelyDisclosure(ctx context.Context, req TimelyDisclosureRequest) ([]TimelyDisclosure, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (timelyDisclosureResponse, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[TimelyDisclosure], error) {
 		params := timelyDisclosureParameters{TimelyDisclosureRequest: req, PaginationKey: paginationKey}
-		return getJSON[timelyDisclosureResponse](ctx, c, "/td/list", params)
+		return getJSON[page[TimelyDisclosure]](ctx, c, "/td/list", params)
 	})
 }
 
@@ -137,9 +129,9 @@ func (c *Client) TimelyDisclosure(ctx context.Context, req TimelyDisclosureReque
 // This endpoint requires the TimelyDisclosure add-on plan.
 // See https://jpx-jquants.com/en/spec/td-list for API details.
 func (c *Client) TimelyDisclosureWithChannel(ctx context.Context, req TimelyDisclosureRequest, ch chan<- TimelyDisclosure) error {
-	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (timelyDisclosureResponse, error) {
+	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (page[TimelyDisclosure], error) {
 		params := timelyDisclosureParameters{TimelyDisclosureRequest: req, PaginationKey: paginationKey}
-		return getJSON[timelyDisclosureResponse](ctx, c, "/td/list", params)
+		return getJSON[page[TimelyDisclosure]](ctx, c, "/td/list", params)
 	})
 }
 

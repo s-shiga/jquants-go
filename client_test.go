@@ -12,20 +12,12 @@ import (
 	"time"
 )
 
-// transientTestItem and transientTestResponse are minimal in-package fixtures
+// transientTestItem and page[transientTestItem] are minimal in-package fixtures
 // used to exercise the paginated fetch loop against in-memory responses without
 // depending on a live J-Quants endpoint.
 type transientTestItem struct {
 	Value string `json:"value"`
 }
-
-type transientTestResponse struct {
-	Data          []transientTestItem `json:"data"`
-	PaginationKey *string             `json:"pagination_key"`
-}
-
-func (r transientTestResponse) Items() []transientTestItem { return r.Data }
-func (r transientTestResponse) NextPageKey() *string       { return r.PaginationKey }
 
 type transientTestParams struct {
 	paginationKey *string
@@ -56,8 +48,8 @@ func truncatedResponse() *http.Response {
 }
 
 func fetchTransientTest(ctx context.Context, c *Client) ([]transientTestItem, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (transientTestResponse, error) {
-		return getJSON[transientTestResponse](ctx, c, "/test", transientTestParams{paginationKey: paginationKey})
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[transientTestItem], error) {
+		return getJSON[page[transientTestItem]](ctx, c, "/test", transientTestParams{paginationKey: paginationKey})
 	})
 }
 

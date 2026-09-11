@@ -253,20 +253,12 @@ func (p indexOptionPriceParameters) values() (url.Values, error) {
 	return v, nil
 }
 
-type indexOptionPriceResponse struct {
-	Data          []IndexOptionPrice `json:"data"`
-	PaginationKey *string            `json:"pagination_key"`
-}
-
-func (r indexOptionPriceResponse) Items() []IndexOptionPrice { return r.Data }
-func (r indexOptionPriceResponse) NextPageKey() *string      { return r.PaginationKey }
-
 // IndexOptionPrice retrieves Nikkei 225 index option prices from the /derivatives/bars/daily/options/225 endpoint.
 // It automatically handles pagination to fetch all matching records.
 func (c *Client) IndexOptionPrice(ctx context.Context, req IndexOptionPriceRequest) ([]IndexOptionPrice, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (indexOptionPriceResponse, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[IndexOptionPrice], error) {
 		params := indexOptionPriceParameters{IndexOptionPriceRequest: req, PaginationKey: paginationKey}
-		return getJSON[indexOptionPriceResponse](ctx, c, "/derivatives/bars/daily/options/225", params)
+		return getJSON[page[IndexOptionPrice]](ctx, c, "/derivatives/bars/daily/options/225", params)
 	})
 }
 
@@ -275,9 +267,9 @@ func (c *Client) IndexOptionPrice(ctx context.Context, req IndexOptionPriceReque
 // On error the channel is closed and the error is returned from this method, so callers
 // must check the returned error after the channel closes; ranging the channel alone will not surface it.
 func (c *Client) IndexOptionPriceWithChannel(ctx context.Context, req IndexOptionPriceRequest, ch chan<- IndexOptionPrice) error {
-	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (indexOptionPriceResponse, error) {
+	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (page[IndexOptionPrice], error) {
 		params := indexOptionPriceParameters{IndexOptionPriceRequest: req, PaginationKey: paginationKey}
-		return getJSON[indexOptionPriceResponse](ctx, c, "/derivatives/bars/daily/options/225", params)
+		return getJSON[page[IndexOptionPrice]](ctx, c, "/derivatives/bars/daily/options/225", params)
 	})
 }
 
@@ -492,22 +484,14 @@ func (p optionPriceParameters) values() (url.Values, error) {
 	return v, nil
 }
 
-type optionPriceResponse struct {
-	Data          []OptionPrice `json:"data"`
-	PaginationKey *string       `json:"pagination_key"`
-}
-
-func (r optionPriceResponse) Items() []OptionPrice { return r.Data }
-func (r optionPriceResponse) NextPageKey() *string { return r.PaginationKey }
-
 // OptionPrice retrieves option prices for all underlyings from the /derivatives/bars/daily/options endpoint.
 // It automatically handles pagination to fetch all matching records.
 // This endpoint requires the J-Quants Premium plan.
 // See https://jpx-jquants.com/en/spec/drv-bars-daily-opt for details.
 func (c *Client) OptionPrice(ctx context.Context, req OptionPriceRequest) ([]OptionPrice, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (optionPriceResponse, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[OptionPrice], error) {
 		params := optionPriceParameters{OptionPriceRequest: req, PaginationKey: paginationKey}
-		return getJSON[optionPriceResponse](ctx, c, "/derivatives/bars/daily/options", params)
+		return getJSON[page[OptionPrice]](ctx, c, "/derivatives/bars/daily/options", params)
 	})
 }
 
@@ -518,8 +502,8 @@ func (c *Client) OptionPrice(ctx context.Context, req OptionPriceRequest) ([]Opt
 // This endpoint requires the J-Quants Premium plan.
 // See https://jpx-jquants.com/en/spec/drv-bars-daily-opt for details.
 func (c *Client) OptionPriceWithChannel(ctx context.Context, req OptionPriceRequest, ch chan<- OptionPrice) error {
-	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (optionPriceResponse, error) {
+	return fetchAllPagesWithChannel(ctx, c, ch, func(ctx context.Context, paginationKey *string) (page[OptionPrice], error) {
 		params := optionPriceParameters{OptionPriceRequest: req, PaginationKey: paginationKey}
-		return getJSON[optionPriceResponse](ctx, c, "/derivatives/bars/daily/options", params)
+		return getJSON[page[OptionPrice]](ctx, c, "/derivatives/bars/daily/options", params)
 	})
 }

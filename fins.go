@@ -564,21 +564,13 @@ func (p financialSummaryParameters) values() (url.Values, error) {
 	return v, nil
 }
 
-type financialSummaryResponse struct {
-	Data          []FinancialSummary `json:"data"`
-	PaginationKey *string            `json:"pagination_key"`
-}
-
-func (r financialSummaryResponse) Items() []FinancialSummary { return r.Data }
-func (r financialSummaryResponse) NextPageKey() *string      { return r.PaginationKey }
-
 // FinancialSummary retrieves financial statement summary data from the /fins/summary endpoint.
 // It automatically handles pagination to fetch all matching records.
 // See https://jpx-jquants.com/en/spec/fin-summary for API details.
 func (c *Client) FinancialSummary(ctx context.Context, req FinancialSummaryRequest) ([]FinancialSummary, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (financialSummaryResponse, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[FinancialSummary], error) {
 		params := financialSummaryParameters{FinancialSummaryRequest: req, PaginationKey: paginationKey}
-		return getJSON[financialSummaryResponse](ctx, c, "/fins/summary", params)
+		return getJSON[page[FinancialSummary]](ctx, c, "/fins/summary", params)
 	})
 }
 
@@ -651,22 +643,14 @@ func (p financialDetailsParameters) values() (url.Values, error) {
 	return v, nil
 }
 
-type financialDetailsResponse struct {
-	Data          []FinancialDetails `json:"data"`
-	PaginationKey *string            `json:"pagination_key"`
-}
-
-func (r financialDetailsResponse) Items() []FinancialDetails { return r.Data }
-func (r financialDetailsResponse) NextPageKey() *string      { return r.PaginationKey }
-
 // FinancialDetails retrieves detailed financial statement data from the /fins/details endpoint.
 // It automatically handles pagination to fetch all matching records.
 // This endpoint requires a Premium plan subscription.
 // See https://jpx-jquants.com/en/spec/fin-details for API details.
 func (c *Client) FinancialDetails(ctx context.Context, req FinancialDetailsRequest) ([]FinancialDetails, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (financialDetailsResponse, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[FinancialDetails], error) {
 		params := financialDetailsParameters{FinancialDetailsRequest: req, PaginationKey: paginationKey}
-		return getJSON[financialDetailsResponse](ctx, c, "/fins/details", params)
+		return getJSON[page[FinancialDetails]](ctx, c, "/fins/details", params)
 	})
 }
 
@@ -821,21 +805,13 @@ func (p dividendParameters) values() (url.Values, error) {
 	return codeDateRangeValues(p.Code, p.Date, p.From, p.To, p.PaginationKey)
 }
 
-type dividendResponse struct {
-	Data          []Dividend `json:"data"`
-	PaginationKey *string    `json:"pagination_key"`
-}
-
-func (r dividendResponse) Items() []Dividend    { return r.Data }
-func (r dividendResponse) NextPageKey() *string { return r.PaginationKey }
-
 // Dividend retrieves cash dividend data from the /fins/dividend endpoint.
 // It automatically handles pagination to fetch all matching records.
 // This endpoint requires a Premium plan subscription.
 // See https://jpx-jquants.com/en/spec/fin-dividend for API details.
 func (c *Client) Dividend(ctx context.Context, req DividendRequest) ([]Dividend, error) {
-	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (dividendResponse, error) {
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[Dividend], error) {
 		params := dividendParameters{DividendRequest: req, PaginationKey: paginationKey}
-		return getJSON[dividendResponse](ctx, c, "/fins/dividend", params)
+		return getJSON[page[Dividend]](ctx, c, "/fins/dividend", params)
 	})
 }
