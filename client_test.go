@@ -216,6 +216,30 @@ func TestFetch_RetrySamePage(t *testing.T) {
 	}
 }
 
+func TestFetch_EmptyPaginationKeyEndsPagination(t *testing.T) {
+	for _, stream := range []bool{false, true} {
+		t.Run(fmt.Sprint(stream), func(t *testing.T) {
+			c := fixtureClient(t, fixtureResponse{path: "/test", body: `{"data":[{"value":"only"}],"pagination_key":""}`})
+			fetch := func(ctx context.Context, key *string) (page[transientTestItem], error) {
+				return getJSON[page[transientTestItem]](ctx, c, "/test", transientTestParams{key})
+			}
+			var got []transientTestItem
+			var err error
+			if stream {
+				got, err = collectChannel(func(ch chan<- transientTestItem) error {
+					return fetchAllPagesWithChannel(t.Context(), c, ch, fetch)
+				})
+			} else {
+				got, err = fetchAllPages(t.Context(), c, fetch)
+			}
+			want := []transientTestItem{{Value: "only"}}
+			if err != nil || !reflect.DeepEqual(got, want) {
+				t.Fatalf("items = %#v, error = %v; want %#v", got, err, want)
+			}
+		})
+	}
+}
+
 func TestFetch_FatalErrors(t *testing.T) {
 	for _, stream := range []bool{false, true} {
 		for _, tc := range []struct {

@@ -519,7 +519,7 @@ func fetchAllPages[T any](
 		}
 		data = append(data, resp.Data...)
 		paginationKey = resp.PaginationKey
-		if paginationKey == nil {
+		if paginationKey == nil || *paginationKey == "" {
 			break
 		}
 	}
@@ -553,7 +553,7 @@ func fetchAllPagesWithChannel[T any](
 			}
 		}
 		paginationKey = resp.PaginationKey
-		if paginationKey == nil {
+		if paginationKey == nil || *paginationKey == "" {
 			break
 		}
 	}
