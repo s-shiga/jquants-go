@@ -8,7 +8,7 @@ import (
 
 func TestClient_IssueInformation(t *testing.T) {
 	req := IssueInformationRequest{Code: ptr("86970")}
-	checkEndpoint(t, "/equities/master", "code=86970", `{"Code":"86970","CoName":"日本取引所","S17":"16","Mrgn":"2","ProdCat":"011"}`, false, IssueInformation{Code: "86970", CompanyName: "日本取引所", Sector17Code: 16, MarginCode: ptr(int8(2)), ProductCategory: "011"}, func(c *Client) ([]IssueInformation, error) {
+	checkEndpoint(t, "/equities/master", "code=86970", `{"Code":"86970","CoName":"日本取引所","S17":"16","Mrgn":"2","ProdCat":"011"}`, true, IssueInformation{Code: "86970", CompanyName: "日本取引所", Sector17Code: 16, MarginCode: ptr(int8(2)), ProductCategory: "011"}, func(c *Client) ([]IssueInformation, error) {
 		return c.IssueInformation(t.Context(), req)
 	})
 }

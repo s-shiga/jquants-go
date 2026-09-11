@@ -99,6 +99,7 @@ type IssueInformationRequest struct {
 
 type issueInformationParameters struct {
 	IssueInformationRequest
+	PaginationKey *string
 }
 
 func (p issueInformationParameters) values() (url.Values, error) {
@@ -109,21 +110,19 @@ func (p issueInformationParameters) values() (url.Values, error) {
 	if p.Date != nil {
 		v.Add("date", *p.Date)
 	}
+	if p.PaginationKey != nil {
+		v.Add("pagination_key", *p.PaginationKey)
+	}
 	return v, nil
-}
-
-type issueInformationResponse struct {
-	Information []IssueInformation `json:"data"`
 }
 
 // IssueInformation retrieves master data for listed securities from the /equities/master endpoint.
 // It returns company information, sector classifications, and market details.
 func (c *Client) IssueInformation(ctx context.Context, req IssueInformationRequest) ([]IssueInformation, error) {
-	r, err := getJSONWithRetry[issueInformationResponse](ctx, c, "/equities/master", issueInformationParameters{req})
-	if err != nil {
-		return nil, err
-	}
-	return r.Information, nil
+	return fetchAllPages(ctx, c, func(ctx context.Context, paginationKey *string) (page[IssueInformation], error) {
+		params := issueInformationParameters{IssueInformationRequest: req, PaginationKey: paginationKey}
+		return getJSON[page[IssueInformation]](ctx, c, "/equities/master", params)
+	})
 }
 
 // StockPrice represents daily OHLCV (Open, High, Low, Close, Volume) data for a security.
