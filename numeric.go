@@ -92,3 +92,42 @@ func (n nullableNumber) int32() (*int32, error) {
 	result := int32(*value)
 	return &result, nil
 }
+
+// unmarshaler accumulates conversion errors while assigning related numeric
+// fields in a custom JSON unmarshaler.
+type unmarshaler struct {
+	err error
+}
+
+func (u *unmarshaler) price(v nullableNumber) *int32 {
+	if u.err != nil {
+		return nil
+	}
+	result, err := v.int32()
+	u.err = err
+	return result
+}
+
+func (u *unmarshaler) volume(v nullableNumber) *int64 {
+	if u.err != nil {
+		return nil
+	}
+	result, err := v.int64()
+	u.err = err
+	return result
+}
+
+func (u *unmarshaler) integer(v nullableNumber) int64 {
+	result := u.volume(v)
+	if result == nil {
+		return 0
+	}
+	return *result
+}
+
+func (u *unmarshaler) jsonNumber(v nullableNumber) *json.Number {
+	if u.err != nil {
+		return nil
+	}
+	return v.jsonNumber()
+}

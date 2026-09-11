@@ -74,36 +74,6 @@ type IndexOptionPrice struct {
 	InterestRate *json.Number
 }
 
-// unmarshaler accumulates errors during unmarshaling, allowing cleaner code flow.
-type unmarshaler struct {
-	err error
-}
-
-func (u *unmarshaler) price(v nullableNumber) *int32 {
-	if u.err != nil {
-		return nil
-	}
-	result, err := v.int32()
-	u.err = err
-	return result
-}
-
-func (u *unmarshaler) volume(v nullableNumber) *int64 {
-	if u.err != nil {
-		return nil
-	}
-	result, err := v.int64()
-	u.err = err
-	return result
-}
-
-func (u *unmarshaler) jsonNumber(v nullableNumber) *json.Number {
-	if u.err != nil {
-		return nil
-	}
-	return v.jsonNumber()
-}
-
 func (iop *IndexOptionPrice) UnmarshalJSON(b []byte) error {
 	var raw struct {
 		Date                           string         `json:"Date"`
