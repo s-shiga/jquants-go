@@ -73,6 +73,7 @@ func TestMarginTradingOutstandingHistoricalRecords(t *testing.T) {
 	}{
 		{"null fields", `{"Date":"2026-09-18","Code":"86970","IssType":"2","ShrtVol":1200,"LongVol":3400,"PubDate":null,"ShrtVal":null,"LongVal":null,"ShrtNegVal":null,"LongNegVal":null,"ShrtStdVal":null,"LongStdVal":null}`},
 		{"omitted fields", `{"Date":"2026-09-18","Code":"86970","IssType":"2","ShrtVol":1200,"LongVol":3400}`},
+		{"placeholder fields", `{"Date":"2026-09-18","Code":"86970","IssType":"2","ShrtVol":1200,"LongVol":3400,"ShrtVal":"","LongVal":"-","ShrtNegVal":"*","LongNegVal":"","ShrtStdVal":"-","LongStdVal":"*"}`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var value MarginTradingOutstanding
@@ -102,6 +103,28 @@ func TestMarginTradingOutstandingZeroValues(t *testing.T) {
 	}
 	if !reflect.DeepEqual(value, want) {
 		t.Fatalf("zero values = %#v, want %#v", value, want)
+	}
+}
+
+func TestMarginTradingOutstandingStringValues(t *testing.T) {
+	var value MarginTradingOutstanding
+	if err := json.Unmarshal([]byte(`{"IssType":"1","ShrtVal":"514800000.0","LongVal":"450000000","ShrtNegVal":"485600000","LongNegVal":"163800000","ShrtStdVal":"29200000","LongStdVal":"286200000"}`), &value); err != nil {
+		t.Fatal(err)
+	}
+	want := MarginTradingOutstanding{
+		IssueType: 1, TotalShortValue: ptr(514800000.0), TotalLongValue: ptr(450000000.0),
+		ShortNegotiableValue: ptr(485600000.0), LongNegotiableValue: ptr(163800000.0),
+		ShortStandardizedValue: ptr(29200000.0), LongStandardizedValue: ptr(286200000.0),
+	}
+	if !reflect.DeepEqual(value, want) {
+		t.Fatalf("string values = %#v, want %#v", value, want)
+	}
+}
+
+func TestMarginTradingOutstandingRejectsInvalidValue(t *testing.T) {
+	var value MarginTradingOutstanding
+	if err := json.Unmarshal([]byte(`{"IssType":"1","ShrtVal":"abc"}`), &value); err == nil {
+		t.Fatal("expected invalid value error")
 	}
 }
 

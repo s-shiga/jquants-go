@@ -32,17 +32,17 @@ type MarginTradingOutstanding struct {
 	ShortStandardizedBalance int64
 	// LongStandardizedBalance is the long balance for standardized margin trades.
 	LongStandardizedBalance int64
-	// TotalShortValue is the total value of short margin positions (JSON key "ShrtVal").
+	// TotalShortValue is the total value of short margin positions in yen (JSON key "ShrtVal").
 	TotalShortValue *float64
-	// TotalLongValue is the total value of long margin positions (JSON key "LongVal").
+	// TotalLongValue is the total value of long margin positions in yen (JSON key "LongVal").
 	TotalLongValue *float64
-	// ShortNegotiableValue is the value of negotiable short margin positions (JSON key "ShrtNegVal").
+	// ShortNegotiableValue is the value of negotiable short margin positions in yen (JSON key "ShrtNegVal").
 	ShortNegotiableValue *float64
-	// LongNegotiableValue is the value of negotiable long margin positions (JSON key "LongNegVal").
+	// LongNegotiableValue is the value of negotiable long margin positions in yen (JSON key "LongNegVal").
 	LongNegotiableValue *float64
-	// ShortStandardizedValue is the value of standardized short margin positions (JSON key "ShrtStdVal").
+	// ShortStandardizedValue is the value of standardized short margin positions in yen (JSON key "ShrtStdVal").
 	ShortStandardizedValue *float64
-	// LongStandardizedValue is the value of standardized long margin positions (JSON key "LongStdVal").
+	// LongStandardizedValue is the value of standardized long margin positions in yen (JSON key "LongStdVal").
 	LongStandardizedValue *float64
 	// IssueType is the issue classification (1: margin issue, 2: loan issue, 3: other issue).
 	IssueType int8
@@ -59,12 +59,12 @@ func (mtv *MarginTradingOutstanding) UnmarshalJSON(b []byte) error {
 		LongNegotiableMarginTradeVolume    nullableNumber `json:"LongNegVol"`
 		ShortStandardizedMarginTradeVolume nullableNumber `json:"ShrtStdVol"`
 		LongStandardizedMarginTradeVolume  nullableNumber `json:"LongStdVol"`
-		TotalShortValue                    *float64       `json:"ShrtVal"`
-		TotalLongValue                     *float64       `json:"LongVal"`
-		ShortNegotiableValue               *float64       `json:"ShrtNegVal"`
-		LongNegotiableValue                *float64       `json:"LongNegVal"`
-		ShortStandardizedValue             *float64       `json:"ShrtStdVal"`
-		LongStandardizedValue              *float64       `json:"LongStdVal"`
+		TotalShortValue                    nullableNumber `json:"ShrtVal"`
+		TotalLongValue                     nullableNumber `json:"LongVal"`
+		ShortNegotiableValue               nullableNumber `json:"ShrtNegVal"`
+		LongNegotiableValue                nullableNumber `json:"LongNegVal"`
+		ShortStandardizedValue             nullableNumber `json:"ShrtStdVal"`
+		LongStandardizedValue              nullableNumber `json:"LongStdVal"`
 		IssueType                          string         `json:"IssType"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
@@ -84,12 +84,12 @@ func (mtv *MarginTradingOutstanding) UnmarshalJSON(b []byte) error {
 	mtv.LongNegotiableBalance = u.integer(raw.LongNegotiableMarginTradeVolume)
 	mtv.ShortStandardizedBalance = u.integer(raw.ShortStandardizedMarginTradeVolume)
 	mtv.LongStandardizedBalance = u.integer(raw.LongStandardizedMarginTradeVolume)
-	mtv.TotalShortValue = raw.TotalShortValue
-	mtv.TotalLongValue = raw.TotalLongValue
-	mtv.ShortNegotiableValue = raw.ShortNegotiableValue
-	mtv.LongNegotiableValue = raw.LongNegotiableValue
-	mtv.ShortStandardizedValue = raw.ShortStandardizedValue
-	mtv.LongStandardizedValue = raw.LongStandardizedValue
+	mtv.TotalShortValue = u.float(raw.TotalShortValue)
+	mtv.TotalLongValue = u.float(raw.TotalLongValue)
+	mtv.ShortNegotiableValue = u.float(raw.ShortNegotiableValue)
+	mtv.LongNegotiableValue = u.float(raw.LongNegotiableValue)
+	mtv.ShortStandardizedValue = u.float(raw.ShortStandardizedValue)
+	mtv.LongStandardizedValue = u.float(raw.LongStandardizedValue)
 	mtv.IssueType = int8(issueType)
 	return u.err
 }

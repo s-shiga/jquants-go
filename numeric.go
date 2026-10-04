@@ -133,6 +133,15 @@ func (u *unmarshaler) integer32(v nullableNumber) int32 {
 	return *result
 }
 
+func (u *unmarshaler) float(v nullableNumber) *float64 {
+	if u.err != nil {
+		return nil
+	}
+	result, err := v.float64()
+	u.err = err
+	return result
+}
+
 func (u *unmarshaler) jsonNumber(v nullableNumber) *json.Number {
 	if u.err != nil {
 		return nil
