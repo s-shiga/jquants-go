@@ -1,21 +1,41 @@
 package jquants
 
 import (
+	"encoding/json"
 	"testing"
 )
 
 func TestClient_TimelyDisclosure(t *testing.T) {
 	req := TimelyDisclosureRequest{Date: ptr("2026-07-17"), DiscItems: ptr("101,102")}
-	checkEndpoint(t, "/td/list", "date=2026-07-17&discItems=101%2C102", `{"DiscNo":"20260717000001","RevNo":"1","DiscStatus":"revision","Docs":["g","x"],"DiscItems":["101","102"]}`, true, TimelyDisclosure{DisclosureNumber: "20260717000001", RevisionNumber: "1", DisclosureStatus: ptr("revision"), Documents: []string{"g", "x"}, DisclosureItems: []string{"101", "102"}}, func(c *Client) ([]TimelyDisclosure, error) {
+	checkEndpoint(t, "/td/list", "date=2026-07-17&discItems=101%2C102", `{"DiscNo":"20260717000001","RevNo":1,"DiscStatus":"revision","Docs":["g","x"],"DiscItems":["101","102"]}`, true, TimelyDisclosure{DisclosureNumber: "20260717000001", RevisionNumber: "1", DisclosureStatus: ptr("revision"), Documents: []string{"g", "x"}, DisclosureItems: []string{"101", "102"}}, func(c *Client) ([]TimelyDisclosure, error) {
 		return c.TimelyDisclosure(t.Context(), req)
 	})
 }
 
 func TestClient_TimelyDisclosureWithChannel(t *testing.T) {
 	req := TimelyDisclosureRequest{Date: ptr("2026-07-17"), DiscItems: ptr("101,102")}
-	checkEndpoint(t, "/td/list", "date=2026-07-17&discItems=101%2C102", `{"DiscNo":"20260717000001","RevNo":"1","DiscStatus":"revision","Docs":["g","x"],"DiscItems":["101","102"]}`, true, TimelyDisclosure{DisclosureNumber: "20260717000001", RevisionNumber: "1", DisclosureStatus: ptr("revision"), Documents: []string{"g", "x"}, DisclosureItems: []string{"101", "102"}}, func(c *Client) ([]TimelyDisclosure, error) {
+	checkEndpoint(t, "/td/list", "date=2026-07-17&discItems=101%2C102", `{"DiscNo":"20260717000001","RevNo":1,"DiscStatus":"revision","Docs":["g","x"],"DiscItems":["101","102"]}`, true, TimelyDisclosure{DisclosureNumber: "20260717000001", RevisionNumber: "1", DisclosureStatus: ptr("revision"), Documents: []string{"g", "x"}, DisclosureItems: []string{"101", "102"}}, func(c *Client) ([]TimelyDisclosure, error) {
 		return collectChannel(func(ch chan<- TimelyDisclosure) error { return c.TimelyDisclosureWithChannel(t.Context(), req, ch) })
 	})
+}
+
+func TestTimelyDisclosureRevisionNumber(t *testing.T) {
+	for _, tc := range []struct{ name, data, want string }{
+		{"number", `{"RevNo":2}`, "2"},
+		{"quoted number", `{"RevNo":"2"}`, "2"},
+		{"null", `{"RevNo":null}`, ""},
+		{"omitted", `{}`, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var got TimelyDisclosure
+			if err := json.Unmarshal([]byte(tc.data), &got); err != nil {
+				t.Fatal(err)
+			}
+			if got.RevisionNumber != tc.want {
+				t.Fatalf("RevisionNumber = %q, want %q", got.RevisionNumber, tc.want)
+			}
+		})
+	}
 }
 
 func TestTimelyDisclosureParametersRejectInvalidCombinations(t *testing.T) {

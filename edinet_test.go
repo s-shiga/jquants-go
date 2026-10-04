@@ -21,7 +21,7 @@ func TestClient_CrossShareholdings(t *testing.T) {
 
 func TestClient_LargeVolumeShareholders(t *testing.T) {
 	req := EdinetRequest{Code: ptr("7203")}
-	checkEndpoint(t, "/edinet/large-volume-shareholders", "code=7203", `{"Code":"7203","Hldrs":[{"AcqDisp":[{"Price":718.33}]}]}`, true, LargeVolumeShareholders{Code: "7203", Holders: []LargeVolumeHolder{{AcquisitionsDisposals: []LargeVolumeAcquisitionDisposal{{Price: 718.33}}}}}, func(c *Client) ([]LargeVolumeShareholders, error) {
+	checkEndpoint(t, "/edinet/large-volume-shareholders", "code=7203", `{"Code":"7203","Hldrs":[{"AcqDisp":[{"Price":718.33}]}]}`, true, LargeVolumeShareholders{Code: "7203", Holders: []LargeVolumeHolder{{AcquisitionsDisposals: []LargeVolumeAcquisitionDisposal{{Price: ptr(718.33)}}}}}, func(c *Client) ([]LargeVolumeShareholders, error) {
 		return c.LargeVolumeShareholders(t.Context(), req)
 	})
 }
@@ -36,11 +36,23 @@ func TestLargeVolumeAcquisitionDisposal_DecimalPrice(t *testing.T) {
 	if err := json.Unmarshal([]byte(raw), &got); err != nil {
 		t.Fatalf("failed to unmarshal decimal price: %s", err)
 	}
-	if got.Price != 718.33 {
+	if got.Price == nil || *got.Price != 718.33 {
 		t.Errorf("Price = %v, want 718.33", got.Price)
 	}
 	if got.Shares != 1000 {
 		t.Errorf("Shares = %v, want 1000", got.Shares)
+	}
+}
+
+// An undisclosed price is null, with the extracted text in PriceRaw. It must
+// not read as a 0-yen transaction.
+func TestLargeVolumeAcquisitionDisposal_NullPrice(t *testing.T) {
+	var got LargeVolumeAcquisitionDisposal
+	if err := json.Unmarshal([]byte(`{"Price":null,"PriceRaw":"非開示"}`), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Price != nil || got.PriceRaw == nil || *got.PriceRaw != "非開示" {
+		t.Errorf("Price = %v, PriceRaw = %v; want nil and the raw text", got.Price, got.PriceRaw)
 	}
 }
 

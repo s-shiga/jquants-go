@@ -13,35 +13,39 @@ type IndexPrice struct {
 	Date string
 	// Code is the index code (e.g., "0000" for TOPIX, "0028" for TOPIX Core30).
 	Code string
-	// Open is the opening value of the index.
-	Open json.Number
-	// High is the highest value of the index for the day.
-	High json.Number
-	// Low is the lowest value of the index for the day.
-	Low json.Number
+	// Open is the opening value of the index, or nil for indices that publish
+	// only a closing value.
+	Open *json.Number
+	// High is the highest value of the index for the day, or nil for indices
+	// that publish only a closing value.
+	High *json.Number
+	// Low is the lowest value of the index for the day, or nil for indices that
+	// publish only a closing value.
+	Low *json.Number
 	// Close is the closing value of the index.
 	Close json.Number
 }
 
 func (ip *IndexPrice) UnmarshalJSON(b []byte) error {
 	var raw struct {
-		Date  string      `json:"Date"`
-		Code  string      `json:"Code"`
-		Open  json.Number `json:"O"`
-		High  json.Number `json:"H"`
-		Low   json.Number `json:"L"`
-		Close json.Number `json:"C"`
+		Date  string         `json:"Date"`
+		Code  string         `json:"Code"`
+		Open  nullableNumber `json:"O"`
+		High  nullableNumber `json:"H"`
+		Low   nullableNumber `json:"L"`
+		Close json.Number    `json:"C"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal index price: %w", err)
 	}
 	ip.Date = raw.Date
 	ip.Code = raw.Code
-	ip.Open = raw.Open
-	ip.High = raw.High
-	ip.Low = raw.Low
+	u := &unmarshaler{}
+	ip.Open = u.jsonNumber(raw.Open)
+	ip.High = u.jsonNumber(raw.High)
+	ip.Low = u.jsonNumber(raw.Low)
 	ip.Close = raw.Close
-	return nil
+	return u.err
 }
 
 // IndexPriceRequest specifies filter parameters for the IndexPrice API.

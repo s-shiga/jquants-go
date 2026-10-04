@@ -28,7 +28,8 @@ type TimelyDisclosure struct {
 	// It is nil for new disclosures, "revision" for corrected disclosures, and
 	// "delete" for deleted disclosures.
 	DisclosureStatus *string
-	// RevisionNumber is the revision number, returned by the API as a JSON string (JSON key "RevNo").
+	// RevisionNumber is the revision number as decimal text (JSON key "RevNo").
+	// The API documents RevNo as a JSON number; a quoted number is also accepted.
 	RevisionNumber string
 	// DisclosureItems holds the public item codes classifying the disclosure (JSON key "DiscItems").
 	DisclosureItems []string
@@ -39,16 +40,16 @@ type TimelyDisclosure struct {
 
 func (td *TimelyDisclosure) UnmarshalJSON(b []byte) error {
 	var raw struct {
-		DiscNo     string   `json:"DiscNo"`
-		Code       string   `json:"Code"`
-		Name       string   `json:"Name"`
-		DiscDate   string   `json:"DiscDate"`
-		DiscTime   string   `json:"DiscTime"`
-		Title      string   `json:"Title"`
-		DiscStatus *string  `json:"DiscStatus"`
-		RevNo      string   `json:"RevNo"`
-		DiscItems  []string `json:"DiscItems"`
-		Docs       []string `json:"Docs"`
+		DiscNo     string         `json:"DiscNo"`
+		Code       string         `json:"Code"`
+		Name       string         `json:"Name"`
+		DiscDate   string         `json:"DiscDate"`
+		DiscTime   string         `json:"DiscTime"`
+		Title      string         `json:"Title"`
+		DiscStatus *string        `json:"DiscStatus"`
+		RevNo      nullableNumber `json:"RevNo"`
+		DiscItems  []string       `json:"DiscItems"`
+		Docs       []string       `json:"Docs"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal timely disclosure: %w", err)
@@ -60,7 +61,9 @@ func (td *TimelyDisclosure) UnmarshalJSON(b []byte) error {
 	td.DisclosureTime = raw.DiscTime
 	td.Title = raw.Title
 	td.DisclosureStatus = raw.DiscStatus
-	td.RevisionNumber = raw.RevNo
+	if revNo := raw.RevNo.jsonNumber(); revNo != nil {
+		td.RevisionNumber = revNo.String()
+	}
 	td.DisclosureItems = raw.DiscItems
 	td.Documents = raw.Docs
 	return nil

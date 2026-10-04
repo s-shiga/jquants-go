@@ -92,7 +92,7 @@ func TestStockPricePreservesLargeInteger(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Volume == nil || *got.Volume != 9007199254740993 || got.TurnoverValue == nil || *got.TurnoverValue != 9007199254740995 || got.AdjustedVolume == nil || *got.AdjustedVolume != 9007199254740997 {
+	if got.Volume == nil || *got.Volume != 9007199254740993 || got.TurnoverValue == nil || *got.TurnoverValue != 9007199254740995 || got.AdjustedVolume == nil || *got.AdjustedVolume != "9007199254740997" {
 		t.Fatalf("large integer fields lost precision: %#v", got)
 	}
 }

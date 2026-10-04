@@ -294,6 +294,7 @@ A `BreakdownTradingWithChannel` streaming variant is also available.
 #### Index Prices
 
 Retrieves daily OHLC data for market indices from the `/indices/bars/daily` endpoint.
+`Open`, `High`, and `Low` are pointers and are `nil` for indices that publish only a closing value.
 See [API reference](https://jpx-jquants.com/en/spec/idx-bars-daily) for details.
 
 ```go

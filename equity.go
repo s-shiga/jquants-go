@@ -159,8 +159,9 @@ type StockPrice struct {
 	AdjustedLow *json.Number
 	// AdjustedClose is the split-adjusted closing price.
 	AdjustedClose *json.Number
-	// AdjustedVolume is the split-adjusted trading volume.
-	AdjustedVolume *int64
+	// AdjustedVolume is the split-adjusted trading volume, rounded by the API to
+	// one decimal place, so it can be fractional.
+	AdjustedVolume *json.Number
 	// MorningOpen is the morning-session opening price.
 	MorningOpen *json.Number
 	// MorningHigh is the morning-session highest price.
@@ -185,8 +186,9 @@ type StockPrice struct {
 	MorningAdjustedLow *json.Number
 	// MorningAdjustedClose is the split-adjusted morning-session closing price.
 	MorningAdjustedClose *json.Number
-	// MorningAdjustedVolume is the split-adjusted morning-session trading volume.
-	MorningAdjustedVolume *int64
+	// MorningAdjustedVolume is the split-adjusted morning-session trading volume,
+	// rounded by the API to one decimal place, so it can be fractional.
+	MorningAdjustedVolume *json.Number
 	// AfternoonOpen is the afternoon-session opening price.
 	AfternoonOpen *json.Number
 	// AfternoonHigh is the afternoon-session highest price.
@@ -211,8 +213,9 @@ type StockPrice struct {
 	AfternoonAdjustedLow *json.Number
 	// AfternoonAdjustedClose is the split-adjusted afternoon-session closing price.
 	AfternoonAdjustedClose *json.Number
-	// AfternoonAdjustedVolume is the split-adjusted afternoon-session trading volume.
-	AfternoonAdjustedVolume *int64
+	// AfternoonAdjustedVolume is the split-adjusted afternoon-session trading volume,
+	// rounded by the API to one decimal place, so it can be fractional.
+	AfternoonAdjustedVolume *json.Number
 }
 
 func (sp *StockPrice) UnmarshalJSON(b []byte) error {
@@ -303,7 +306,7 @@ func (sp *StockPrice) UnmarshalJSON(b []byte) error {
 	sp.AdjustedHigh = u.jsonNumber(raw.AdjustedHigh)
 	sp.AdjustedLow = u.jsonNumber(raw.AdjustedLow)
 	sp.AdjustedClose = u.jsonNumber(raw.AdjustedClose)
-	sp.AdjustedVolume = u.volume(raw.AdjustedVolume)
+	sp.AdjustedVolume = u.jsonNumber(raw.AdjustedVolume)
 	sp.MorningOpen = u.jsonNumber(raw.MorningOpen)
 	sp.MorningHigh = u.jsonNumber(raw.MorningHigh)
 	sp.MorningLow = u.jsonNumber(raw.MorningLow)
@@ -316,7 +319,7 @@ func (sp *StockPrice) UnmarshalJSON(b []byte) error {
 	sp.MorningAdjustedHigh = u.jsonNumber(raw.MorningAdjustedHigh)
 	sp.MorningAdjustedLow = u.jsonNumber(raw.MorningAdjustedLow)
 	sp.MorningAdjustedClose = u.jsonNumber(raw.MorningAdjustedClose)
-	sp.MorningAdjustedVolume = u.volume(raw.MorningAdjustedVolume)
+	sp.MorningAdjustedVolume = u.jsonNumber(raw.MorningAdjustedVolume)
 	sp.AfternoonOpen = u.jsonNumber(raw.AfternoonOpen)
 	sp.AfternoonHigh = u.jsonNumber(raw.AfternoonHigh)
 	sp.AfternoonLow = u.jsonNumber(raw.AfternoonLow)
@@ -329,7 +332,7 @@ func (sp *StockPrice) UnmarshalJSON(b []byte) error {
 	sp.AfternoonAdjustedHigh = u.jsonNumber(raw.AfternoonAdjustedHigh)
 	sp.AfternoonAdjustedLow = u.jsonNumber(raw.AfternoonAdjustedLow)
 	sp.AfternoonAdjustedClose = u.jsonNumber(raw.AfternoonAdjustedClose)
-	sp.AfternoonAdjustedVolume = u.volume(raw.AfternoonAdjustedVolume)
+	sp.AfternoonAdjustedVolume = u.jsonNumber(raw.AfternoonAdjustedVolume)
 	return u.err
 }
 

@@ -249,8 +249,8 @@ type LargeVolumeAcquisitionDisposal struct {
 	TransactionTypeCode string `json:"TxnTypeCode"`
 	// Counterparty is the counterparty name, or nil (JSON key "Cptty").
 	Counterparty *string `json:"Cptty"`
-	// Price is the transaction price (JSON key "Price").
-	Price float64 `json:"Price"`
+	// Price is the transaction price, or nil when not disclosed (JSON key "Price").
+	Price *float64 `json:"Price"`
 	// PriceRaw is the raw price text as extracted, or nil (JSON key "PriceRaw").
 	PriceRaw *string `json:"PriceRaw"`
 }
