@@ -2,14 +2,107 @@ package jquants
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 )
 
+const marginTradingOutstandingDailyJSON = `{
+	"PubDate":"2026-09-28","Date":"2026-09-25","Code":"86970","IssType":"2",
+	"ShrtVol":1200.0,"LongVol":3400.0,"ShrtNegVol":1000.0,"LongNegVol":3000.0,
+	"ShrtStdVol":200.0,"LongStdVol":400.0,
+	"ShrtVal":120000.5,"LongVal":340000.0,"ShrtNegVal":100000.25,"LongNegVal":300000.0,
+	"ShrtStdVal":20000.25,"LongStdVal":40000.0
+}`
+
 func TestClient_MarginTradingOutstanding(t *testing.T) {
-	req := MarginTradingOutstandingRequest{Code: ptr("86970")}
-	checkEndpoint(t, "/markets/margin-interest", "code=86970", `{"Code":"86970","IssType":"2","ShrtVol":1200,"LongVol":3400}`, true, MarginTradingOutstanding{Code: "86970", IssueType: 2, TotalShortBalance: 1200, TotalLongBalance: 3400}, func(c *Client) ([]MarginTradingOutstanding, error) {
-		return c.MarginTradingOutstanding(t.Context(), req)
-	})
+	want := MarginTradingOutstanding{
+		PublicationDate: ptr("2026-09-28"), Date: "2026-09-25", Code: "86970", IssueType: 2,
+		TotalShortBalance: 1200, TotalLongBalance: 3400,
+		ShortNegotiableBalance: 1000, LongNegotiableBalance: 3000,
+		ShortStandardizedBalance: 200, LongStandardizedBalance: 400,
+		TotalShortValue: ptr(120000.5), TotalLongValue: ptr(340000.0),
+		ShortNegotiableValue: ptr(100000.25), LongNegotiableValue: ptr(300000.0),
+		ShortStandardizedValue: ptr(20000.25), LongStandardizedValue: ptr(40000.0),
+	}
+	for _, tc := range []struct {
+		name  string
+		req   MarginTradingOutstandingRequest
+		query string
+	}{
+		{"code", MarginTradingOutstandingRequest{Code: ptr("86970")}, "code=86970"},
+		{"code and date", MarginTradingOutstandingRequest{Code: ptr("86970"), Date: ptr("2026-09-25")}, "code=86970&date=2026-09-25"},
+		{"code and range", MarginTradingOutstandingRequest{Code: ptr("86970"), From: ptr("2026-09-25"), To: ptr("2026-09-30")}, "code=86970&from=2026-09-25&to=2026-09-30"},
+		{"date", MarginTradingOutstandingRequest{Date: ptr("2026-09-25")}, "date=2026-09-25"},
+		{"published date", MarginTradingOutstandingRequest{PublishedDate: ptr("2026-09-28")}, "published_date=2026-09-28"},
+		{"code and published date", MarginTradingOutstandingRequest{Code: ptr("86970"), PublishedDate: ptr("20260928")}, "code=86970&published_date=20260928"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			checkEndpoint(t, "/markets/margin-interest", tc.query, marginTradingOutstandingDailyJSON, true, want, func(c *Client) ([]MarginTradingOutstanding, error) {
+				return c.MarginTradingOutstanding(t.Context(), tc.req)
+			})
+		})
+	}
+}
+
+func TestClient_MarginTradingOutstandingRejectsInvalidFilters(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		req  MarginTradingOutstandingRequest
+	}{
+		{"missing selector", MarginTradingOutstandingRequest{}},
+		{"range without selector", MarginTradingOutstandingRequest{From: ptr("2026-09-25"), To: ptr("2026-09-30")}},
+		{"published date and date", MarginTradingOutstandingRequest{PublishedDate: ptr("2026-09-28"), Date: ptr("2026-09-25")}},
+		{"published date and from", MarginTradingOutstandingRequest{PublishedDate: ptr("2026-09-28"), From: ptr("2026-09-25")}},
+		{"published date and to", MarginTradingOutstandingRequest{PublishedDate: ptr("2026-09-28"), To: ptr("2026-09-30")}},
+		{"code and conflicting dates", MarginTradingOutstandingRequest{Code: ptr("86970"), PublishedDate: ptr("2026-09-28"), Date: ptr("2026-09-25")}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// No fixture responses: invalid filters must fail before any HTTP request.
+			_, err := fixtureClient(t).MarginTradingOutstanding(t.Context(), tc.req)
+			if err == nil {
+				t.Fatal("expected invalid filter error")
+			}
+		})
+	}
+}
+
+func TestMarginTradingOutstandingHistoricalRecords(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		data string
+	}{
+		{"null fields", `{"Date":"2026-09-18","Code":"86970","IssType":"2","ShrtVol":1200,"LongVol":3400,"PubDate":null,"ShrtVal":null,"LongVal":null,"ShrtNegVal":null,"LongNegVal":null,"ShrtStdVal":null,"LongStdVal":null}`},
+		{"omitted fields", `{"Date":"2026-09-18","Code":"86970","IssType":"2","ShrtVol":1200,"LongVol":3400}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var value MarginTradingOutstanding
+			if err := json.Unmarshal([]byte(marginTradingOutstandingDailyJSON), &value); err != nil {
+				t.Fatal(err)
+			}
+			if err := json.Unmarshal([]byte(tc.data), &value); err != nil {
+				t.Fatal(err)
+			}
+			want := MarginTradingOutstanding{Date: "2026-09-18", Code: "86970", IssueType: 2, TotalShortBalance: 1200, TotalLongBalance: 3400}
+			if !reflect.DeepEqual(value, want) {
+				t.Fatalf("historical record = %#v, want %#v", value, want)
+			}
+		})
+	}
+}
+
+func TestMarginTradingOutstandingZeroValues(t *testing.T) {
+	var value MarginTradingOutstanding
+	if err := json.Unmarshal([]byte(`{"IssType":"3","ShrtVal":0,"LongVal":0,"ShrtNegVal":0,"LongNegVal":0,"ShrtStdVal":0,"LongStdVal":0}`), &value); err != nil {
+		t.Fatal(err)
+	}
+	want := MarginTradingOutstanding{
+		IssueType: 3, TotalShortValue: ptr(0.0), TotalLongValue: ptr(0.0),
+		ShortNegotiableValue: ptr(0.0), LongNegotiableValue: ptr(0.0),
+		ShortStandardizedValue: ptr(0.0), LongStandardizedValue: ptr(0.0),
+	}
+	if !reflect.DeepEqual(value, want) {
+		t.Fatalf("zero values = %#v, want %#v", value, want)
+	}
 }
 
 func TestClient_ShortSellingValue(t *testing.T) {

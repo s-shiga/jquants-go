@@ -197,7 +197,9 @@ calendar, err := client.EarningsCalendar(ctx, jquants.EarningsCalendarRequest{})
 
 #### Margin Trading Outstanding
 
-Retrieves margin trading balance data from the `/markets/margin-interest` endpoint.
+Retrieves margin trading balances in shares and value from the `/markets/margin-interest` endpoint.
+Data is daily from September 25, 2026; earlier records remain weekly. `PublicationDate`
+and the six value fields are pointers and are `nil` for earlier records.
 See [API reference](https://jpx-jquants.com/en/spec/mkt-margin-int) for details.
 
 ```go
@@ -206,6 +208,18 @@ data, err := client.MarginTradingOutstanding(ctx, jquants.MarginTradingOutstandi
     Code: &code,
 })
 ```
+
+Specify at least one of `Code`, `Date`, or `PublishedDate`. To retrieve all issues
+published on a given day:
+
+```go
+publishedDate := "2026-09-28"
+data, err := client.MarginTradingOutstanding(ctx, jquants.MarginTradingOutstandingRequest{
+    PublishedDate: &publishedDate,
+})
+```
+
+`PublishedDate` can be combined with `Code`, but not with `Date`, `From`, or `To`.
 
 #### Short Selling Value
 

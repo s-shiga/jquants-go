@@ -11,7 +11,11 @@ import (
 
 // MarginTradingOutstanding represents margin trading balance data for a security.
 // It shows the outstanding short and long positions broken down by trade type.
+// Data is daily from 2026-09-25 and weekly before that date. PublicationDate and
+// the value fields are nil for earlier records.
 type MarginTradingOutstanding struct {
+	// PublicationDate is the published date in YYYY-MM-DD format (JSON key "PubDate").
+	PublicationDate *string
 	// Date is the data date in YYYY-MM-DD format.
 	Date string
 	// Code is the security code (ticker symbol).
@@ -28,12 +32,25 @@ type MarginTradingOutstanding struct {
 	ShortStandardizedBalance int64
 	// LongStandardizedBalance is the long balance for standardized margin trades.
 	LongStandardizedBalance int64
-	// IssueType indicates the type of issue (1: Prime, 2: Standard, 3: Growth).
+	// TotalShortValue is the total value of short margin positions (JSON key "ShrtVal").
+	TotalShortValue *float64
+	// TotalLongValue is the total value of long margin positions (JSON key "LongVal").
+	TotalLongValue *float64
+	// ShortNegotiableValue is the value of negotiable short margin positions (JSON key "ShrtNegVal").
+	ShortNegotiableValue *float64
+	// LongNegotiableValue is the value of negotiable long margin positions (JSON key "LongNegVal").
+	LongNegotiableValue *float64
+	// ShortStandardizedValue is the value of standardized short margin positions (JSON key "ShrtStdVal").
+	ShortStandardizedValue *float64
+	// LongStandardizedValue is the value of standardized long margin positions (JSON key "LongStdVal").
+	LongStandardizedValue *float64
+	// IssueType is the issue classification (1: margin issue, 2: loan issue, 3: other issue).
 	IssueType int8
 }
 
 func (mtv *MarginTradingOutstanding) UnmarshalJSON(b []byte) error {
 	var raw struct {
+		PublicationDate                    *string        `json:"PubDate"`
 		Date                               string         `json:"Date"`
 		Code                               string         `json:"Code"`
 		ShortMarginTradeVolume             nullableNumber `json:"ShrtVol"`
@@ -42,12 +59,18 @@ func (mtv *MarginTradingOutstanding) UnmarshalJSON(b []byte) error {
 		LongNegotiableMarginTradeVolume    nullableNumber `json:"LongNegVol"`
 		ShortStandardizedMarginTradeVolume nullableNumber `json:"ShrtStdVol"`
 		LongStandardizedMarginTradeVolume  nullableNumber `json:"LongStdVol"`
+		TotalShortValue                    *float64       `json:"ShrtVal"`
+		TotalLongValue                     *float64       `json:"LongVal"`
+		ShortNegotiableValue               *float64       `json:"ShrtNegVal"`
+		LongNegotiableValue                *float64       `json:"LongNegVal"`
+		ShortStandardizedValue             *float64       `json:"ShrtStdVal"`
+		LongStandardizedValue              *float64       `json:"LongStdVal"`
 		IssueType                          string         `json:"IssType"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal margin trading outstanding: %w", err)
 	}
-	var err error
+	mtv.PublicationDate = raw.PublicationDate
 	mtv.Date = raw.Date
 	issueType, err := strconv.ParseInt(raw.IssueType, 10, 8)
 	if err != nil {
@@ -61,21 +84,31 @@ func (mtv *MarginTradingOutstanding) UnmarshalJSON(b []byte) error {
 	mtv.LongNegotiableBalance = u.integer(raw.LongNegotiableMarginTradeVolume)
 	mtv.ShortStandardizedBalance = u.integer(raw.ShortStandardizedMarginTradeVolume)
 	mtv.LongStandardizedBalance = u.integer(raw.LongStandardizedMarginTradeVolume)
+	mtv.TotalShortValue = raw.TotalShortValue
+	mtv.TotalLongValue = raw.TotalLongValue
+	mtv.ShortNegotiableValue = raw.ShortNegotiableValue
+	mtv.LongNegotiableValue = raw.LongNegotiableValue
+	mtv.ShortStandardizedValue = raw.ShortStandardizedValue
+	mtv.LongStandardizedValue = raw.LongStandardizedValue
 	mtv.IssueType = int8(issueType)
 	return u.err
 }
 
 // MarginTradingOutstandingRequest specifies filter parameters for the MarginTradingOutstanding API.
-// Either Code or Date must be provided.
+// At least one of Code, Date, or PublishedDate must be provided.
 type MarginTradingOutstandingRequest struct {
-	// Code filters by security code. Required if Date is not specified.
+	// Code filters by security code. Required if neither Date nor PublishedDate is specified.
 	Code *string
-	// Date filters by a specific date in YYYY-MM-DD format. Can be combined with Code to select a single security or index.
+	// Date filters by a specific record date in YYYY-MM-DD or YYYYMMDD format.
 	Date *string
 	// From specifies the start date for a date range query (used with Code).
 	From *string
 	// To specifies the end date for a date range query (used with Code).
 	To *string
+	// PublishedDate filters by published date in YYYY-MM-DD or YYYYMMDD format.
+	// It can be combined with Code, but not with Date, From, or To.
+	// Historical records without a publication date are excluded.
+	PublishedDate *string
 }
 
 type marginTradingOutstandingParameters struct {
@@ -84,7 +117,23 @@ type marginTradingOutstandingParameters struct {
 }
 
 func (p marginTradingOutstandingParameters) values() (url.Values, error) {
-	return codeDateRangeValues(p.Code, p.Date, p.From, p.To, p.PaginationKey)
+	if p.Code == nil && p.Date == nil && p.PublishedDate == nil {
+		return nil, errors.New("code, date, or published_date is required")
+	}
+	if p.PublishedDate == nil {
+		return codeDateRangeValues(p.Code, p.Date, p.From, p.To, p.PaginationKey)
+	}
+	if p.Date != nil || p.From != nil || p.To != nil {
+		return nil, errors.New("published_date cannot be combined with date, from, or to")
+	}
+	v := url.Values{"published_date": {*p.PublishedDate}}
+	if p.Code != nil {
+		v.Add("code", *p.Code)
+	}
+	if p.PaginationKey != nil {
+		v.Add("pagination_key", *p.PaginationKey)
+	}
+	return v, nil
 }
 
 // MarginTradingOutstanding retrieves margin trading balance data from the /markets/margin-interest endpoint.
