@@ -221,3 +221,52 @@ func TestMarketIntegerFieldsRejectFractions(t *testing.T) {
 		}
 	}
 }
+
+func TestShortSellingValueParameters(t *testing.T) {
+	p := func(req ShortSellingValueRequest) parameters {
+		return shortSellingValueParameters{ShortSellingValueRequest: req}
+	}
+	checkValues(t, []valuesCase{
+		{p(ShortSellingValueRequest{Date: ptr("2026-07-17")}), "date=2026-07-17"},
+		{p(ShortSellingValueRequest{Sector33Code: ptr("0050")}), "s33=0050"},
+		{p(ShortSellingValueRequest{Sector33Code: ptr("0050"), Date: ptr("2026-07-17")}), "date=2026-07-17&s33=0050"},
+		{p(ShortSellingValueRequest{Sector33Code: ptr("0050"), From: ptr("2026-07-01"), To: ptr("2026-07-17")}), "from=2026-07-01&s33=0050&to=2026-07-17"},
+		{p(ShortSellingValueRequest{}), rejected},
+		{p(ShortSellingValueRequest{From: ptr("2026-07-01"), To: ptr("2026-07-17")}), rejected},
+		{p(ShortSellingValueRequest{Sector33Code: ptr("0050"), Date: ptr("2026-07-17"), From: ptr("2026-07-01")}), rejected},
+	})
+}
+
+func TestOutstandingShortPositionParameters(t *testing.T) {
+	p := func(req OutstandingShortPositionRequest) parameters {
+		return outstandingShortPositionParameters{OutstandingShortPositionRequest: req}
+	}
+	code, day := ptr("86970"), ptr("2026-07-17")
+	checkValues(t, []valuesCase{
+		// The six combinations the spec allows.
+		{p(OutstandingShortPositionRequest{Code: code}), "code=86970"},
+		{p(OutstandingShortPositionRequest{Code: code, DisclosureDate: day}), "code=86970&disc_date=2026-07-17"},
+		{p(OutstandingShortPositionRequest{Code: code, DisclosureDateFrom: ptr("2026-07-01"), DisclosureDateTo: day}), "code=86970&disc_date_from=2026-07-01&disc_date_to=2026-07-17"},
+		{p(OutstandingShortPositionRequest{Code: code, CalculationDate: day}), "calc_date=2026-07-17&code=86970"},
+		{p(OutstandingShortPositionRequest{DisclosureDate: day}), "disc_date=2026-07-17"},
+		{p(OutstandingShortPositionRequest{CalculationDate: day}), "calc_date=2026-07-17"},
+		{p(OutstandingShortPositionRequest{}), rejected},
+		{p(OutstandingShortPositionRequest{DisclosureDateFrom: ptr("2026-07-01"), DisclosureDateTo: day}), rejected},
+		{p(OutstandingShortPositionRequest{DisclosureDate: day, CalculationDate: day}), rejected},
+		{p(OutstandingShortPositionRequest{Code: code, DisclosureDate: day, DisclosureDateTo: day}), rejected},
+		{p(OutstandingShortPositionRequest{Code: code, DisclosureDateFrom: day, CalculationDate: day}), rejected},
+	})
+}
+
+func TestMarginAlertParameters(t *testing.T) {
+	p := func(req MarginAlertRequest) parameters { return marginAlertParameters{MarginAlertRequest: req} }
+	checkValues(t, []valuesCase{
+		{p(MarginAlertRequest{Code: ptr("86970")}), "code=86970"},
+		{p(MarginAlertRequest{Code: ptr("86970"), Date: ptr("2026-07-17")}), "code=86970&date=2026-07-17"},
+		{p(MarginAlertRequest{Code: ptr("86970"), From: ptr("2026-07-01"), To: ptr("2026-07-17")}), "code=86970&from=2026-07-01&to=2026-07-17"},
+		{p(MarginAlertRequest{Date: ptr("2026-07-17")}), "date=2026-07-17"},
+		{p(MarginAlertRequest{}), rejected},
+		{p(MarginAlertRequest{From: ptr("2026-07-01"), To: ptr("2026-07-17")}), rejected},
+		{p(MarginAlertRequest{Date: ptr("2026-07-17"), From: ptr("2026-07-01")}), rejected},
+	})
+}

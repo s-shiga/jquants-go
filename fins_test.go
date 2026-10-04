@@ -24,3 +24,14 @@ func TestClient_Dividend(t *testing.T) {
 		return c.Dividend(t.Context(), req)
 	})
 }
+
+func TestFinsParameters(t *testing.T) {
+	checkValues(t, []valuesCase{
+		{financialSummaryParameters{FinancialSummaryRequest: FinancialSummaryRequest{Code: ptr("86970")}}, "code=86970"},
+		{financialSummaryParameters{FinancialSummaryRequest: FinancialSummaryRequest{Date: ptr("2026-07-17")}}, "date=2026-07-17"},
+		{financialSummaryParameters{}, rejected},
+		{financialDetailsParameters{FinancialDetailsRequest: FinancialDetailsRequest{Code: ptr("86970")}}, "code=86970"},
+		{financialDetailsParameters{}, rejected},
+		{dividendParameters{DividendRequest: DividendRequest{Code: ptr("86970"), Date: ptr("2026-07-17"), From: ptr("2026-07-01")}}, rejected},
+	})
+}

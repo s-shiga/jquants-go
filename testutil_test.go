@@ -108,3 +108,29 @@ func collectChannel[T any](fetch func(chan<- T) error) ([]T, error) {
 	}
 	return items, <-done
 }
+
+// rejected marks a valuesCase whose request values() must refuse.
+const rejected = "<rejected>"
+
+type valuesCase struct {
+	params parameters
+	want   string
+}
+
+// checkValues asserts that each request encodes to the wanted query, or that
+// values() refuses it, which happens before any HTTP request is sent.
+func checkValues(t *testing.T, cases []valuesCase) {
+	t.Helper()
+	for _, tc := range cases {
+		got, err := tc.params.values()
+		if tc.want == rejected {
+			if err == nil {
+				t.Errorf("values accepted %#v as %q", tc.params, got.Encode())
+			}
+			continue
+		}
+		if err != nil || got.Encode() != tc.want {
+			t.Errorf("values(%#v) = %q, %v; want %q", tc.params, got.Encode(), err, tc.want)
+		}
+	}
+}

@@ -2,12 +2,16 @@ package jquants
 
 import (
 	"context"
+	"errors"
 	"net/url"
 )
 
 // edinetValues builds query parameters common to the EDINET endpoints, all of
 // which accept optional edinet_code, code, and date filters plus pagination.
 func edinetValues(edinetCode, code, date, paginationKey *string) (url.Values, error) {
+	if edinetCode != nil && code != nil {
+		return nil, errors.New("edinet_code and code cannot be combined")
+	}
 	v := url.Values{}
 	if edinetCode != nil {
 		v.Add("edinet_code", *edinetCode)
@@ -25,8 +29,7 @@ func edinetValues(edinetCode, code, date, paginationKey *string) (url.Values, er
 }
 
 // EdinetRequest specifies the filter parameters shared by the EDINET endpoints.
-// All parameters are optional. Note that supplying both EdinetCode and Code
-// together is rejected by the API with a 400 response.
+// All parameters are optional, but EdinetCode and Code cannot be combined.
 type EdinetRequest struct {
 	// EdinetCode filters by EDINET code.
 	EdinetCode *string

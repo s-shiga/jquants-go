@@ -42,3 +42,12 @@ func TestIndexOptionPriceRejectsInvalidStrikePrice(t *testing.T) {
 		}
 	}
 }
+
+func TestOptionParametersRequireDate(t *testing.T) {
+	checkValues(t, []valuesCase{
+		{indexOptionPriceParameters{IndexOptionPriceRequest: IndexOptionPriceRequest{Date: "2026-07-17"}}, "date=2026-07-17"},
+		{indexOptionPriceParameters{}, rejected},
+		{optionPriceParameters{OptionPriceRequest: OptionPriceRequest{Date: "2026-07-17"}}, "date=2026-07-17"},
+		{optionPriceParameters{}, rejected},
+	})
+}

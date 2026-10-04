@@ -363,11 +363,12 @@ func unmarshalOptionalLimit(s string) (*bool, error) {
 type StockPriceRequest struct {
 	// Code filters by security code. Required if Date is not specified.
 	Code *string
-	// Date filters by a specific date in YYYY-MM-DD format. Can be combined with Code to select a single security or index.
+	// Date filters by a specific date in YYYY-MM-DD format. It can be combined
+	// with Code, but not with From or To.
 	Date *string
-	// From specifies the start date for a date range query (used with Code).
+	// From specifies the start date for a date range query (used with Code, not Date).
 	From *string
-	// To specifies the end date for a date range query (used with Code).
+	// To specifies the end date for a date range query (used with Code, not Date).
 	To *string
 }
 
@@ -455,11 +456,12 @@ func (m *MinuteStockPrice) UnmarshalJSON(b []byte) error {
 type MinuteStockPriceRequest struct {
 	// Code filters by security code. Required if Date is not specified.
 	Code *string
-	// Date filters by a specific date in YYYY-MM-DD format. Can be combined with Code to select a single security or index.
+	// Date filters by a specific date in YYYY-MM-DD format. It can be combined
+	// with Code, but not with From or To.
 	Date *string
-	// From specifies the start date for a date range query (used with Code).
+	// From specifies the start date for a date range query (used with Code, not Date).
 	From *string
-	// To specifies the end date for a date range query (used with Code).
+	// To specifies the end date for a date range query (used with Code, not Date).
 	To *string
 }
 

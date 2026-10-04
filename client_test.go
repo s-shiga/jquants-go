@@ -326,6 +326,10 @@ func TestCodeDateRangeValues(t *testing.T) {
 		{name: "date", date: ptr("2026-07-17"), want: "date=2026-07-17"},
 		{name: "code and date", code: ptr("86970"), date: ptr("2026-07-17"), want: "code=86970&date=2026-07-17"},
 		{name: "range", code: ptr("86970"), from: ptr("2026-07-01"), to: ptr("2026-07-17"), want: "code=86970&from=2026-07-01&to=2026-07-17"},
+		{name: "range without code", from: ptr("2026-07-01"), to: ptr("2026-07-17"), invalid: true},
+		// The API would apply from/to and ignore date, so the client refuses.
+		{name: "date and from", code: ptr("86970"), date: ptr("2026-07-17"), from: ptr("2026-07-01"), invalid: true},
+		{name: "date and to", date: ptr("2026-07-17"), to: ptr("2026-07-17"), invalid: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got, err := codeDateRangeValues(tc.code, tc.date, tc.from, tc.to, ptr("next+/="))

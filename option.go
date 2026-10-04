@@ -3,6 +3,7 @@ package jquants
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -170,6 +171,9 @@ type indexOptionPriceParameters struct {
 }
 
 func (p indexOptionPriceParameters) values() (url.Values, error) {
+	if p.Date == "" {
+		return nil, errors.New("date is required")
+	}
 	v := url.Values{}
 	v.Add("date", p.Date)
 	if p.PaginationKey != nil {
@@ -392,6 +396,9 @@ type optionPriceParameters struct {
 }
 
 func (p optionPriceParameters) values() (url.Values, error) {
+	if p.Date == "" {
+		return nil, errors.New("date is required")
+	}
 	v := url.Values{}
 	v.Add("date", p.Date)
 	if p.Category != nil {

@@ -3,6 +3,7 @@ package jquants
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 )
@@ -164,6 +165,9 @@ type futuresPriceParameters struct {
 }
 
 func (p futuresPriceParameters) values() (url.Values, error) {
+	if p.Date == "" {
+		return nil, errors.New("date is required")
+	}
 	v := url.Values{}
 	v.Add("date", p.Date)
 	if p.Category != nil {

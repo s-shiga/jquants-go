@@ -18,3 +18,10 @@ func TestClient_FuturesPriceWithChannel(t *testing.T) {
 		return collectChannel(func(ch chan<- FuturesPrice) error { return c.FuturesPriceWithChannel(t.Context(), req, ch) })
 	})
 }
+
+func TestFuturesPriceParametersRequireDate(t *testing.T) {
+	checkValues(t, []valuesCase{
+		{futuresPriceParameters{FuturesPriceRequest: FuturesPriceRequest{Date: "2026-07-17"}}, "date=2026-07-17"},
+		{futuresPriceParameters{}, rejected},
+	})
+}

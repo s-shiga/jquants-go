@@ -3,6 +3,7 @@ package jquants
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 )
@@ -547,6 +548,9 @@ type financialSummaryParameters struct {
 }
 
 func (p financialSummaryParameters) values() (url.Values, error) {
+	if p.Code == nil && p.Date == nil {
+		return nil, errors.New("code or date is required")
+	}
 	v := url.Values{}
 	if p.Code != nil {
 		v.Add("code", *p.Code)
@@ -626,6 +630,9 @@ type financialDetailsParameters struct {
 }
 
 func (p financialDetailsParameters) values() (url.Values, error) {
+	if p.Code == nil && p.Date == nil {
+		return nil, errors.New("code or date is required")
+	}
 	v := url.Values{}
 	if p.Code != nil {
 		v.Add("code", *p.Code)
@@ -784,11 +791,12 @@ func (d *Dividend) UnmarshalJSON(b []byte) error {
 type DividendRequest struct {
 	// Code filters by security code.
 	Code *string
-	// Date filters by disclosure date in YYYYMMDD or YYYY-MM-DD format.
+	// Date filters by disclosure date in YYYYMMDD or YYYY-MM-DD format. It can be
+	// combined with Code, but not with From or To.
 	Date *string
-	// From is the start of the disclosure date range (used with Code).
+	// From is the start of the disclosure date range (used with Code, not Date).
 	From *string
-	// To is the end of the disclosure date range (used with Code).
+	// To is the end of the disclosure date range (used with Code, not Date).
 	To *string
 }
 

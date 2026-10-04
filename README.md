@@ -249,6 +249,8 @@ calendar, err := client.TradingCalendar(ctx, jquants.TradingCalendarRequest{
 #### Outstanding Short Positions
 
 Retrieves outstanding short selling position reports from the `/markets/short-sale-report` endpoint (Standard plan or above).
+Specify at least one of `Code`, `DisclosureDate`, or `CalculationDate`. Use only one of `DisclosureDate`,
+the `DisclosureDateFrom`/`DisclosureDateTo` range, or `CalculationDate`; the range requires `Code`.
 See [API reference](https://jpx-jquants.com/en/spec/mkt-short-sale) for details.
 
 ```go
@@ -261,6 +263,7 @@ positions, err := client.OutstandingShortPosition(ctx, jquants.OutstandingShortP
 #### Margin Alert
 
 Retrieves issues under margin trading restrictions from the `/markets/margin-alert` endpoint (Standard plan or above).
+Specify `Code` or `Date`; `From`/`To` require `Code` and cannot be combined with `Date`.
 See [API reference](https://jpx-jquants.com/en/spec/mkt-margin-alert) for details.
 
 Change and ratio fields may be `nil` when the API reports them as unavailable (`"-"`) or not applicable for ETFs (`"*"`).
@@ -581,6 +584,8 @@ if errors.As(err, &httpErr) {
     log.Println("HTTP status:", httpErr.StatusCode)
 }
 ```
+
+Filter combinations that the API documents as invalid are rejected before any request is sent, so they return an ordinary error rather than a `BadRequest`. On every endpoint that accepts both, `Date` cannot be combined with `From`/`To`. Otherwise the API would apply the range and ignore the date.
 
 A `NoContent` error (HTTP 210) is returned by endpoints that have no data for the requested window, such as morning session prices outside publication hours; it is not retried.
 

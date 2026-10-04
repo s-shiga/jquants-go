@@ -71,3 +71,13 @@ func TestMajorShareholder_DecimalSharesHeld(t *testing.T) {
 		t.Errorf("SharesHeld = %v, want 140365.3", got.SharesHeld)
 	}
 }
+
+func TestEdinetParameters(t *testing.T) {
+	checkValues(t, []valuesCase{
+		{majorShareholdersParameters{}, ""},
+		{majorShareholdersParameters{EdinetRequest: EdinetRequest{EdinetCode: ptr("E03814"), Date: ptr("2026-07-17")}}, "date=2026-07-17&edinet_code=E03814"},
+		{majorShareholdersParameters{EdinetRequest: EdinetRequest{EdinetCode: ptr("E03814"), Code: ptr("86970")}}, rejected},
+		{crossShareholdingsParameters{EdinetRequest: EdinetRequest{EdinetCode: ptr("E03814"), Code: ptr("86970")}}, rejected},
+		{largeVolumeShareholdersParameters{EdinetRequest: EdinetRequest{EdinetCode: ptr("E03814"), Code: ptr("86970")}}, rejected},
+	})
+}

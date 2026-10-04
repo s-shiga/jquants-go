@@ -186,11 +186,12 @@ func (sst *ShortSellingValue) UnmarshalJSON(b []byte) error {
 type ShortSellingValueRequest struct {
 	// Sector33Code filters by 33-sector classification code.
 	Sector33Code *string
-	// Date filters by a specific date in YYYY-MM-DD format.
+	// Date filters by a specific date in YYYY-MM-DD format. It can be combined
+	// with Sector33Code, but not with From or To.
 	Date *string
-	// From specifies the start date for a date range query (used with Sector33Code).
+	// From specifies the start date for a date range query (used with Sector33Code, not Date).
 	From *string
-	// To specifies the end date for a date range query (used with Sector33Code).
+	// To specifies the end date for a date range query (used with Sector33Code, not Date).
 	To *string
 }
 
@@ -200,24 +201,24 @@ type shortSellingValueParameters struct {
 }
 
 func (p shortSellingValueParameters) values() (url.Values, error) {
+	if p.Sector33Code == nil && p.Date == nil {
+		return nil, errors.New("sector33code or date is required")
+	}
+	if p.Date != nil && (p.From != nil || p.To != nil) {
+		return nil, errors.New("date cannot be combined with from or to")
+	}
 	v := url.Values{}
 	if p.Sector33Code != nil {
 		v.Add("s33", *p.Sector33Code)
-		if p.Date != nil {
-			v.Add("date", *p.Date)
-		} else {
-			if p.From != nil {
-				v.Add("from", *p.From)
-			}
-			if p.To != nil {
-				v.Add("to", *p.To)
-			}
-		}
-	} else {
-		if p.Date == nil {
-			return nil, errors.New("sector33code or date is required")
-		}
+	}
+	if p.Date != nil {
 		v.Add("date", *p.Date)
+	}
+	if p.From != nil {
+		v.Add("from", *p.From)
+	}
+	if p.To != nil {
+		v.Add("to", *p.To)
 	}
 	if p.PaginationKey != nil {
 		v.Add("pagination_key", *p.PaginationKey)
@@ -329,11 +330,12 @@ func (bt *BreakdownTrading) UnmarshalJSON(b []byte) error {
 type BreakdownTradingRequest struct {
 	// Code filters by security code. Required if Date is not specified.
 	Code *string
-	// Date filters by a specific date in YYYY-MM-DD format. Can be combined with Code to select a single security or index.
+	// Date filters by a specific date in YYYY-MM-DD format. It can be combined
+	// with Code, but not with From or To.
 	Date *string
-	// From specifies the start date for a date range query (used with Code).
+	// From specifies the start date for a date range query (used with Code, not Date).
 	From *string
-	// To specifies the end date for a date range query (used with Code).
+	// To specifies the end date for a date range query (used with Code, not Date).
 	To *string
 }
 
@@ -447,7 +449,9 @@ func (o *OutstandingShortPosition) UnmarshalJSON(b []byte) error {
 }
 
 // OutstandingShortPositionRequest specifies filter parameters for the OutstandingShortPosition API.
-// All parameters are optional.
+// At least one of Code, DisclosureDate, or CalculationDate must be provided.
+// DisclosureDate, the DisclosureDateFrom/DisclosureDateTo range, and
+// CalculationDate cannot be combined with each other, and the range requires Code.
 type OutstandingShortPositionRequest struct {
 	// Code filters by security code.
 	Code *string
@@ -467,6 +471,22 @@ type outstandingShortPositionParameters struct {
 }
 
 func (p outstandingShortPositionParameters) values() (url.Values, error) {
+	if p.Code == nil && p.DisclosureDate == nil && p.CalculationDate == nil {
+		return nil, errors.New("code, disc_date, or calc_date is required")
+	}
+	hasRange := p.DisclosureDateFrom != nil || p.DisclosureDateTo != nil
+	if hasRange && p.Code == nil {
+		return nil, errors.New("disc_date_from and disc_date_to require code")
+	}
+	selectors := 0
+	for _, set := range []bool{p.DisclosureDate != nil, hasRange, p.CalculationDate != nil} {
+		if set {
+			selectors++
+		}
+	}
+	if selectors > 1 {
+		return nil, errors.New("disc_date, disc_date_from/disc_date_to, and calc_date cannot be combined")
+	}
 	v := url.Values{}
 	if p.Code != nil {
 		v.Add("code", *p.Code)
@@ -621,15 +641,16 @@ func (m *MarginAlert) UnmarshalJSON(b []byte) error {
 }
 
 // MarginAlertRequest specifies filter parameters for the MarginAlert API.
-// All parameters are optional.
+// Either Code or Date must be provided.
 type MarginAlertRequest struct {
-	// Code filters by security code.
+	// Code filters by security code. Required if Date is not specified.
 	Code *string
-	// Date filters by publication date.
+	// Date filters by publication date. It can be combined with Code, but not
+	// with From or To.
 	Date *string
-	// From specifies the start of a publication date range.
+	// From specifies the start of a publication date range (used with Code, not Date).
 	From *string
-	// To specifies the end of a publication date range.
+	// To specifies the end of a publication date range (used with Code, not Date).
 	To *string
 }
 
@@ -639,23 +660,7 @@ type marginAlertParameters struct {
 }
 
 func (p marginAlertParameters) values() (url.Values, error) {
-	v := url.Values{}
-	if p.Code != nil {
-		v.Add("code", *p.Code)
-	}
-	if p.Date != nil {
-		v.Add("date", *p.Date)
-	}
-	if p.From != nil {
-		v.Add("from", *p.From)
-	}
-	if p.To != nil {
-		v.Add("to", *p.To)
-	}
-	if p.PaginationKey != nil {
-		v.Add("pagination_key", *p.PaginationKey)
-	}
-	return v, nil
+	return codeDateRangeValues(p.Code, p.Date, p.From, p.To, p.PaginationKey)
 }
 
 // MarginAlert retrieves margin trading alert data from the /markets/margin-alert endpoint.

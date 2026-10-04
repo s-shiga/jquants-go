@@ -193,23 +193,27 @@ type parameters interface {
 
 // codeDateRangeValues builds query parameters for endpoints that require
 // either a code or a date, with an optional from/to range when querying by code.
+// A date cannot be combined with from or to: the API would apply the range and
+// ignore the date, so the request is rejected rather than silently narrowed.
 func codeDateRangeValues(code, date, from, to, paginationKey *string) (url.Values, error) {
 	v := url.Values{}
 	if code == nil && date == nil {
 		return nil, errors.New("code or date is required")
+	}
+	if date != nil && (from != nil || to != nil) {
+		return nil, errors.New("date cannot be combined with from or to")
 	}
 	if code != nil {
 		v.Add("code", *code)
 	}
 	if date != nil {
 		v.Add("date", *date)
-	} else {
-		if from != nil {
-			v.Add("from", *from)
-		}
-		if to != nil {
-			v.Add("to", *to)
-		}
+	}
+	if from != nil {
+		v.Add("from", *from)
+	}
+	if to != nil {
+		v.Add("to", *to)
 	}
 	if paginationKey != nil {
 		v.Add("pagination_key", *paginationKey)
