@@ -47,7 +47,7 @@ type IndexOptionPrice struct {
 	OpenInterest *int64
 	// TurnoverValue is the total trading value in yen. Nil when no data is available.
 	TurnoverValue *int64
-	// ContractMonth is the contract expiration month in YYYYMM format.
+	// ContractMonth is the contract month in YYYY-MM format (JSON key "CM").
 	ContractMonth string
 	// StrikePrice is the option strike price.
 	StrikePrice int32
@@ -252,7 +252,8 @@ type OptionPrice struct {
 	OpenInterest *int64
 	// TurnoverValue is the total trading value in yen. Nil when no data is available (JSON key "Va").
 	TurnoverValue *int64
-	// ContractMonth is the contract expiration month in YYYY-MM format (JSON key "CM").
+	// ContractMonth is the contract month in YYYY-MM format. For Nikkei 225 mini
+	// options it is a week of the year instead, such as "2024-51" (JSON key "CM").
 	ContractMonth string
 	// StrikePrice is the option strike price (JSON key "Strike").
 	StrikePrice float64

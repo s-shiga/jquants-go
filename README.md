@@ -165,6 +165,7 @@ for price := range ch {
 #### Investor Type Trading
 
 Retrieves weekly trading data by investor category from the `/equities/investor-types` endpoint.
+`TradingBalance` values are trading values in thousands of yen.
 See [API reference](https://jpx-jquants.com/en/spec/eq-investor-types) for details.
 
 ```go

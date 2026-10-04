@@ -2,6 +2,7 @@ package jquants
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 )
 
@@ -80,4 +81,34 @@ func TestEdinetParameters(t *testing.T) {
 		{crossShareholdingsParameters{EdinetRequest: EdinetRequest{EdinetCode: ptr("E03814"), Code: ptr("86970")}}, rejected},
 		{largeVolumeShareholdersParameters{EdinetRequest: EdinetRequest{EdinetCode: ptr("E03814"), Code: ptr("86970")}}, rejected},
 	})
+}
+
+func TestMajorShareholders_Periods(t *testing.T) {
+	var got MajorShareholders
+	if err := json.Unmarshal([]byte(`{"PerSt":"2025-04-01","PerEn":"2026-03-31","CurPerSt":"2025-07-01","CurPerEn":"2025-09-30"}`), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.PeriodStart != "2025-04-01" || got.PeriodEnd != "2026-03-31" || got.CurrentPeriodStart != "2025-07-01" || got.CurrentPeriodEnd != "2025-09-30" {
+		t.Fatalf("periods = %+v", got)
+	}
+}
+
+func TestLargeVolumeShareholders_AmendmentFields(t *testing.T) {
+	for _, tc := range []struct {
+		name, data string
+		parent     *string
+	}{
+		{"original report", `{"RptOblgDate":"2025-06-30","ParDocId":null}`, nil},
+		{"amendment", `{"RptOblgDate":"2025-06-30","ParDocId":"S100ABCD"}`, ptr("S100ABCD")},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var got LargeVolumeShareholders
+			if err := json.Unmarshal([]byte(tc.data), &got); err != nil {
+				t.Fatal(err)
+			}
+			if got.ReportingObligationDate != "2025-06-30" || !reflect.DeepEqual(got.ParentDocumentID, tc.parent) {
+				t.Fatalf("RptOblgDate = %q, ParDocId = %v; want 2025-06-30, %v", got.ReportingObligationDate, got.ParentDocumentID, tc.parent)
+			}
+		})
+	}
 }

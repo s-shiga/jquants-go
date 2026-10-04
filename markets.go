@@ -677,7 +677,9 @@ func (c *Client) MarginAlert(ctx context.Context, req MarginAlertRequest) ([]Mar
 type TradingCalendar struct {
 	// Date is the calendar date in YYYY-MM-DD format.
 	Date string
-	// DayType indicates the day type (0: holiday/non-trading day, 1: trading day, 2: half-day, 3: non-trading day).
+	// DayType indicates the day type (0: non-business day, 1: business day,
+	// 2: TSE half-day trading session, 3: non-business day with holiday trading
+	// of OSE derivatives).
 	DayType int8
 }
 
@@ -700,7 +702,9 @@ func (tc *TradingCalendar) UnmarshalJSON(b []byte) error {
 
 // TradingCalendarRequest specifies filter parameters for the TradingCalendar API.
 type TradingCalendarRequest struct {
-	// HolidayDivision filters by day type (0: holiday, 1: trading day, 2: half-day, 3: non-trading day).
+	// HolidayDivision filters by day type (0: non-business day, 1: business day,
+	// 2: TSE half-day trading session, 3: non-business day with holiday trading
+	// of OSE derivatives).
 	HolidayDivision *int8
 	// From specifies the start date for the query in YYYY-MM-DD format.
 	From *string

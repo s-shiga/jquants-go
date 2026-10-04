@@ -74,10 +74,16 @@ type MajorShareholders struct {
 	SubmissionDate string `json:"SubDate"`
 	// SubmissionTime is the filing submission time (JSON key "SubTime").
 	SubmissionTime string `json:"SubTime"`
-	// PeriodStart is the reporting period start date (JSON key "PerSt").
+	// PeriodStart is the start date of the fiscal year the filing covers (JSON key "PerSt").
 	PeriodStart string `json:"PerSt"`
-	// PeriodEnd is the reporting period end date (JSON key "PerEn").
+	// PeriodEnd is the end date of the fiscal year the filing covers (JSON key "PerEn").
 	PeriodEnd string `json:"PerEn"`
+	// CurrentPeriodStart is the start date of the accounting period the filing
+	// covers, such as a quarter or half year (JSON key "CurPerSt").
+	CurrentPeriodStart string `json:"CurPerSt"`
+	// CurrentPeriodEnd is the end date of the accounting period the filing
+	// covers, such as a quarter or half year (JSON key "CurPerEn").
+	CurrentPeriodEnd string `json:"CurPerEn"`
 	// Holders is the list of major shareholders (JSON key "Hldrs").
 	Holders []MajorShareholder `json:"Hldrs"`
 }
@@ -199,9 +205,9 @@ type CrossShareholdings struct {
 	SubmissionDate string `json:"SubDate"`
 	// SubmissionTime is the filing submission time (JSON key "SubTime").
 	SubmissionTime string `json:"SubTime"`
-	// PeriodStart is the reporting period start date (JSON key "PerSt").
+	// PeriodStart is the start date of the fiscal year the filing covers (JSON key "PerSt").
 	PeriodStart string `json:"PerSt"`
-	// PeriodEnd is the reporting period end date (JSON key "PerEn").
+	// PeriodEnd is the end date of the fiscal year the filing covers (JSON key "PerEn").
 	PeriodEnd string `json:"PerEn"`
 	// Report is the reporting company's cross-shareholding block (JSON key "Report").
 	Report CrossShareholdingEntry `json:"Report"`
@@ -347,6 +353,11 @@ type LargeVolumeShareholders struct {
 	SubmissionDate string `json:"SubDate"`
 	// SubmissionTime is the filing submission time (JSON key "SubTime").
 	SubmissionTime string `json:"SubTime"`
+	// ReportingObligationDate is the date the reporting obligation arose (JSON key "RptOblgDate").
+	ReportingObligationDate string `json:"RptOblgDate"`
+	// ParentDocumentID is the EDINET document ID of the report being amended,
+	// or nil when the report is not an amendment (JSON key "ParDocId").
+	ParentDocumentID *string `json:"ParDocId"`
 	// LargeHoldingTypeCode is the coded report type
 	// ("1": report, "2": change, "3": short-term, "4": special, "5": special change, "0": unknown) (JSON key "LargeHldgTypeCode").
 	LargeHoldingTypeCode string `json:"LargeHldgTypeCode"`

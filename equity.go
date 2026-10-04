@@ -151,6 +151,11 @@ type StockPrice struct {
 	TurnoverValue *int64
 	// AdjustmentFactor is the cumulative adjustment factor for stock splits.
 	AdjustmentFactor json.Number
+	// ExRightsType is the ex-rights type on an ex-rights date ("1": stock split,
+	// including bonus share allotments, "2": reverse stock split, "3": rights
+	// issue), or nil on other days (JSON key "ExRT"). Adjusted volumes treat the
+	// adjustment factor as 1 on rights-issue days.
+	ExRightsType *string
 	// AdjustedOpen is the split-adjusted opening price.
 	AdjustedOpen *json.Number
 	// AdjustedHigh is the split-adjusted highest price.
@@ -231,6 +236,7 @@ func (sp *StockPrice) UnmarshalJSON(b []byte) error {
 		Volume                  nullableNumber `json:"Vo"`
 		TurnoverValue           nullableNumber `json:"Va"`
 		AdjustmentFactor        json.Number    `json:"AdjFactor"`
+		ExRightsType            *string        `json:"ExRT"`
 		AdjustedOpen            nullableNumber `json:"AdjO"`
 		AdjustedHigh            nullableNumber `json:"AdjH"`
 		AdjustedLow             nullableNumber `json:"AdjL"`
@@ -302,6 +308,7 @@ func (sp *StockPrice) UnmarshalJSON(b []byte) error {
 	sp.Volume = u.volume(raw.Volume)
 	sp.TurnoverValue = u.volume(raw.TurnoverValue)
 	sp.AdjustmentFactor = raw.AdjustmentFactor
+	sp.ExRightsType = raw.ExRightsType
 	sp.AdjustedOpen = u.jsonNumber(raw.AdjustedOpen)
 	sp.AdjustedHigh = u.jsonNumber(raw.AdjustedHigh)
 	sp.AdjustedLow = u.jsonNumber(raw.AdjustedLow)
@@ -649,16 +656,16 @@ func (c *Client) EarningsCalendar(ctx context.Context, req EarningsCalendarReque
 	})
 }
 
-// TradingBalance represents trading activity metrics for a specific investor type.
-// All values are in units of 1,000 shares.
+// TradingBalance represents the trading value for a specific investor type.
+// All values are in thousands of yen.
 type TradingBalance struct {
-	// Sales is the total sell volume.
+	// Sales is the total sell value.
 	Sales int64
-	// Purchases is the total buy volume.
+	// Purchases is the total buy value.
 	Purchases int64
 	// Total is the sum of sales and purchases.
 	Total int64
-	// Balance is the net position (Purchases - Sales).
+	// Balance is the net value (Purchases - Sales).
 	Balance int64
 }
 

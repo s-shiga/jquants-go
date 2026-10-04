@@ -127,3 +127,23 @@ func TestInvestorTypeRejectsFractionalInteger(t *testing.T) {
 		t.Fatal("json.Unmarshal accepted a fractional trading balance")
 	}
 }
+
+func TestStockPrice_ExRightsType(t *testing.T) {
+	for _, tc := range []struct {
+		name, data string
+		want       *string
+	}{
+		{"rights issue", `{"UL":"0","LL":"0","ExRT":"3"}`, ptr("3")},
+		{"no corporate action", `{"UL":"0","LL":"0","ExRT":null}`, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var got StockPrice
+			if err := json.Unmarshal([]byte(tc.data), &got); err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(got.ExRightsType, tc.want) {
+				t.Fatalf("ExRightsType = %v, want %v", got.ExRightsType, tc.want)
+			}
+		})
+	}
+}
