@@ -52,7 +52,7 @@ APIs that return large datasets use pagination. The client automatically fetches
 
 ### Error Types
 
-Custom error types in `client.go` wrap HTTP status codes: `NoContent` (210), `BadRequest`, `Unauthorized`, `Forbidden`, `PayloadTooLarge`, `TooManyRequests`, `InternalServerError`, `BadGateway`, `ServiceUnavailable`, `GatewayTimeout`. The client auto-retries on 429/500/502/503/504, honoring `Retry-After` for 429.
+Custom error types in `client.go` wrap HTTP status codes: `NoContent` (210), `BadRequest`, `Unauthorized`, `Forbidden`, `PayloadTooLarge`, `TooManyRequests`, `InternalServerError`, `BadGateway`, `ServiceUnavailable`, `GatewayTimeout`. The client auto-retries on 429/500/502/503/504, honoring `Retry-After` (seconds or HTTP date) for 429. Every typed error also matches `HTTPError` via `errors.As`.
 
 ### Module Organization
 

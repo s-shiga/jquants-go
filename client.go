@@ -27,6 +27,7 @@ import (
 	"net/url"
 	"runtime"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -35,6 +36,13 @@ const Version = "2.3.5"
 
 // BaseURL is the default base URL for the J-Quants API v2.
 const BaseURL = "https://api.jquants.com/v2"
+
+const (
+	defaultRetryInterval = 5 * time.Second
+	defaultLoopTimeout   = 20 * time.Second
+	// maxRetryAfter caps a Retry-After delay so huge values cannot overflow.
+	maxRetryAfter = time.Hour
+)
 
 type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
@@ -62,6 +70,7 @@ func (p page[T]) NextPageKey() *string { return p.PaginationKey }
 // It holds the HTTP client, authentication credentials, and configuration
 // for making requests to the J-Quants API.
 type Client struct {
+	// HTTPClient sends requests. Defaults to [http.DefaultClient] when nil.
 	HTTPClient HTTPClient
 
 	// BaseURL is the base URL for API requests. Defaults to BaseURL constant.
@@ -73,13 +82,64 @@ type Client struct {
 	UserAgent string
 
 	// RetryInterval is the duration to wait before retrying a transient failure.
-	// Defaults to 5 seconds.
+	// Defaults to 5 seconds, which is also used when the value is not positive.
 	RetryInterval time.Duration
 
 	// LoopTimeout is the maximum duration for an API call, including retries
-	// and all pages of a paginated request.
-	// Defaults to 20 seconds.
+	// and all pages of a paginated request. For the *WithChannel methods, time
+	// spent waiting for the receiver to accept records is not counted.
+	// Defaults to 20 seconds, which is also used when the value is not positive.
 	LoopTimeout time.Duration
+}
+
+func (c *Client) retryInterval() time.Duration {
+	if c.RetryInterval <= 0 {
+		return defaultRetryInterval
+	}
+	return c.RetryInterval
+}
+
+func (c *Client) loopTimeout() time.Duration {
+	if c.LoopTimeout <= 0 {
+		return defaultLoopTimeout
+	}
+	return c.LoopTimeout
+}
+
+// httpClient returns the client that sends requests. A standard [http.Client]
+// is wrapped so the API key is not forwarded to another origin on redirect.
+func (c *Client) httpClient() HTTPClient {
+	switch hc := c.HTTPClient.(type) {
+	case nil:
+		return withoutCrossOriginAPIKey(http.DefaultClient)
+	case *http.Client:
+		return withoutCrossOriginAPIKey(hc)
+	default:
+		return hc
+	}
+}
+
+// withoutCrossOriginAPIKey returns a shallow copy of hc that drops the
+// x-api-key header when a redirect leaves the original scheme and host.
+// net/http strips only Authorization, WWW-Authenticate and Cookie on such
+// redirects, so a custom key header would otherwise reach the new origin.
+func withoutCrossOriginAPIKey(hc *http.Client) *http.Client {
+	copied := *hc
+	next := hc.CheckRedirect
+	copied.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		if req.URL.Scheme != via[0].URL.Scheme || !strings.EqualFold(req.URL.Host, via[0].URL.Host) {
+			req.Header.Del("x-api-key")
+		}
+		if next != nil {
+			return next(req, via)
+		}
+		// Match net/http's default redirect policy.
+		if len(via) >= 10 {
+			return errors.New("stopped after 10 redirects")
+		}
+		return nil
+	}
+	return &copied
 }
 
 type Option func(*Client)
@@ -118,8 +178,8 @@ func NewClient(baseURL, apiKey string, opts ...Option) *Client {
 			runtime.GOOS,
 			runtime.GOARCH,
 		),
-		RetryInterval: 5 * time.Second,
-		LoopTimeout:   20 * time.Second,
+		RetryInterval: defaultRetryInterval,
+		LoopTimeout:   defaultLoopTimeout,
 	}
 	for _, opt := range opts {
 		opt(client)
@@ -158,7 +218,7 @@ func codeDateRangeValues(code, date, from, to, paginationKey *string) (url.Value
 }
 
 func (c *Client) sendRequest(ctx context.Context, urlPath string, param parameters) (*http.Response, error) {
-	u, err := url.Parse(c.BaseURL + urlPath)
+	u, err := url.Parse(strings.TrimRight(c.BaseURL, "/") + urlPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse URL: %w", err)
 	}
@@ -175,7 +235,7 @@ func (c *Client) sendRequest(ctx context.Context, urlPath string, param paramete
 	req.Header.Set("User-Agent", c.UserAgent)
 	req.Header.Set("x-api-key", c.APIKey)
 	req.Header.Set("Accept-Encoding", "gzip")
-	resp, err := c.HTTPClient.Do(req)
+	resp, err := c.httpClient().Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -195,6 +255,17 @@ func (e HTTPError) Error() string {
 
 func (e HTTPError) Unwrap() error {
 	return e.Err
+}
+
+// As lets errors.As match an [HTTPError] target for every status-specific
+// error type. Those types embed HTTPError, but the Unwrap they promote returns
+// Err and skips the embedded HTTPError itself.
+func (e HTTPError) As(target any) bool {
+	if t, ok := target.(*HTTPError); ok {
+		*t = e
+		return true
+	}
+	return false
 }
 
 // NoContent represents an HTTP 210 response returned by some endpoints
@@ -219,10 +290,11 @@ type PayloadTooLarge struct{ HTTPError }
 
 // TooManyRequests represents an HTTP 429 error response.
 // The client automatically retries requests that receive this error, honoring
-// the Retry-After header (in seconds) when present.
+// the Retry-After header (in seconds or as an HTTP date) when present.
 type TooManyRequests struct {
 	HTTPError
-	// RetryAfter is the duration parsed from the Retry-After header, or 0 if absent.
+	// RetryAfter is the duration parsed from the Retry-After header, capped at
+	// one hour, or 0 if absent, invalid, or in the past.
 	RetryAfter time.Duration
 }
 
@@ -261,19 +333,27 @@ func (e TransientTransportError) Unwrap() error {
 
 // asTransientTransportError classifies err as a [TransientTransportError] when
 // it represents a retryable transport-level failure (a truncated response body,
-// a connection reset, or a network round-trip error). Caller cancellation and
-// deadlines (context.Canceled / context.DeadlineExceeded) must remain fatal, so
-// they are returned unchanged even though they may surface as network errors.
-// Errors that are not recognized as transient are returned unchanged and stay
-// fatal.
-func asTransientTransportError(err error) error {
+// a connection reset, a network round-trip error, or a single attempt timing
+// out). Cancellation and the deadline of ctx itself (the caller's or
+// LoopTimeout) must remain fatal, so they are returned unchanged even though
+// they may surface as network errors. Errors that are not recognized as
+// transient are returned unchanged and stay fatal.
+func asTransientTransportError(ctx context.Context, err error) error {
 	if err == nil {
 		return nil
 	}
 	// Caller cancellation must never be retried, even though it can surface
 	// wrapped in a *url.Error / *net.OpError.
-	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+	if errors.Is(err, context.Canceled) {
 		return err
+	}
+	// A deadline error while ctx is still live came from one attempt, such as
+	// http.Client.Timeout or Transport.ResponseHeaderTimeout.
+	if errors.Is(err, context.DeadlineExceeded) {
+		if ctx.Err() != nil {
+			return err
+		}
+		return TransientTransportError{Err: err}
 	}
 	if isTransientTransport(err) {
 		return TransientTransportError{Err: err}
@@ -342,7 +422,7 @@ func getJSON[R any](ctx context.Context, c *Client, urlPath string, param parame
 	if err != nil {
 		// A failed round trip (connection reset, network error) is classified
 		// as transient so the paginated fetch loop retries the same page.
-		return r, asTransientTransportError(fmt.Errorf("failed to send GET request: %w", err))
+		return r, asTransientTransportError(ctx, fmt.Errorf("failed to send GET request: %w", err))
 	}
 	defer func() {
 		if clsErr := resp.Body.Close(); clsErr != nil {
@@ -355,7 +435,7 @@ func getJSON[R any](ctx context.Context, c *Client, urlPath string, param parame
 	if err = decodeResponse(resp, &r); err != nil {
 		// A body truncated mid-stream (unexpected EOF while decoding, gzip read
 		// error) is classified as transient so the fetch loop retries the page.
-		return r, asTransientTransportError(fmt.Errorf("failed to decode HTTP response: %w", err))
+		return r, asTransientTransportError(ctx, fmt.Errorf("failed to decode HTTP response: %w", err))
 	}
 	return r, nil
 }
@@ -374,10 +454,10 @@ func withRetry[R any](ctx context.Context, c *Client, operation func(context.Con
 		if err == nil {
 			return r, nil
 		}
-		if isContextError(err) {
+		if isContextError(ctx, err) {
 			return zero, errors.Join(lastRetryErr, err)
 		}
-		delay, retry := retryDelay(err, c.RetryInterval)
+		delay, retry := retryDelay(err, c.retryInterval())
 		if !retry {
 			return zero, err
 		}
@@ -392,7 +472,7 @@ func withRetry[R any](ctx context.Context, c *Client, operation func(context.Con
 // getJSONWithRetry applies the bounded retry policy to endpoints that return a
 // single response. Paginated callers establish one deadline around all pages.
 func getJSONWithRetry[R any](ctx context.Context, c *Client, urlPath string, param parameters) (R, error) {
-	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
+	ctx, cancel := context.WithTimeout(ctx, c.loopTimeout())
 	defer cancel()
 	return withRetry(ctx, c, func(ctx context.Context) (R, error) {
 		return getJSON[R](ctx, c, urlPath, param)
@@ -436,18 +516,25 @@ func handleErrorResponse(resp *http.Response) error {
 	}
 }
 
-// parseRetryAfter parses the Retry-After header as a number of seconds.
-// It returns 0 if the header is absent or cannot be parsed.
+// parseRetryAfter parses the Retry-After header, given either as a number of
+// seconds or as an HTTP date. It returns 0 if the header is absent, cannot be
+// parsed, or is in the past, and caps the delay at maxRetryAfter.
 func parseRetryAfter(resp *http.Response) time.Duration {
 	v := resp.Header.Get("Retry-After")
 	if v == "" {
 		return 0
 	}
-	seconds, err := strconv.Atoi(v)
-	if err != nil || seconds < 0 {
-		return 0
+	var delay time.Duration
+	if seconds, err := strconv.ParseInt(v, 10, 64); err == nil {
+		// Compare in seconds so a huge value cannot overflow time.Duration.
+		if seconds > int64(maxRetryAfter/time.Second) {
+			return maxRetryAfter
+		}
+		delay = time.Duration(seconds) * time.Second
+	} else if date, err := http.ParseTime(v); err == nil {
+		delay = time.Until(date)
 	}
-	return time.Duration(seconds) * time.Second
+	return min(max(delay, 0), maxRetryAfter)
 }
 
 func decodeErrorResponse(resp *http.Response) error {
@@ -485,10 +572,12 @@ func retryDelay(err error, defaultInterval time.Duration) (time.Duration, bool) 
 	return 0, false
 }
 
-// isContextError reports whether err was caused by context cancellation or a
-// deadline (including the LoopTimeout deadline used to bound the retry loop).
-func isContextError(err error) bool {
-	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
+// isContextError reports whether err ends the retry loop: cancellation, or the
+// deadline of ctx itself (the caller's or the LoopTimeout deadline). A deadline
+// error while ctx is still live came from a single attempt and is retried as a
+// [TransientTransportError].
+func isContextError(ctx context.Context, err error) bool {
+	return errors.Is(err, context.Canceled) || (ctx.Err() != nil && errors.Is(err, context.DeadlineExceeded))
 }
 
 // sleep waits for the given duration or until the context is cancelled,
@@ -512,7 +601,8 @@ func fetchAllPages[T any](
 ) ([]T, error) {
 	data := make([]T, 0)
 	var paginationKey *string
-	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
+	keys := pageKeys{}
+	ctx, cancel := context.WithTimeout(ctx, c.loopTimeout())
 	defer cancel()
 	for {
 		resp, err := withRetry(ctx, c, func(ctx context.Context) (page[T], error) {
@@ -522,8 +612,10 @@ func fetchAllPages[T any](
 			return nil, err
 		}
 		data = append(data, resp.Data...)
-		paginationKey = resp.PaginationKey
-		if paginationKey == nil || *paginationKey == "" {
+		if paginationKey, err = keys.next(resp.PaginationKey); err != nil {
+			return nil, err
+		}
+		if paginationKey == nil {
 			break
 		}
 	}
@@ -540,12 +632,18 @@ func fetchAllPagesWithChannel[T any](
 ) error {
 	defer close(ch)
 	var paginationKey *string
-	ctx, cancel := context.WithTimeout(ctx, c.LoopTimeout)
-	defer cancel()
+	keys := pageKeys{}
+	// LoopTimeout budgets only the time spent fetching, so a slow receiver is
+	// not cut off mid-stream. The caller's ctx still bounds each send.
+	remaining := c.loopTimeout()
 	for {
-		resp, err := withRetry(ctx, c, func(ctx context.Context) (page[T], error) {
+		start := time.Now()
+		fetchCtx, cancel := context.WithTimeout(ctx, remaining)
+		resp, err := withRetry(fetchCtx, c, func(ctx context.Context) (page[T], error) {
 			return fetchPage(ctx, paginationKey)
 		})
+		cancel()
+		remaining -= time.Since(start)
 		if err != nil {
 			return err
 		}
@@ -556,10 +654,28 @@ func fetchAllPagesWithChannel[T any](
 				return ctx.Err()
 			}
 		}
-		paginationKey = resp.PaginationKey
-		if paginationKey == nil || *paginationKey == "" {
-			break
+		if paginationKey, err = keys.next(resp.PaginationKey); err != nil {
+			return err
+		}
+		if paginationKey == nil {
+			return nil
 		}
 	}
-	return nil
+}
+
+// pageKeys records the pagination keys a paginated request has followed.
+type pageKeys map[string]struct{}
+
+// next returns the key for the following page, or nil after the final page. A
+// key the server already returned is an error: following it would refetch the
+// same pages, with no delay, until LoopTimeout expired.
+func (seen pageKeys) next(key *string) (*string, error) {
+	if key == nil || *key == "" {
+		return nil, nil
+	}
+	if _, ok := seen[*key]; ok {
+		return nil, fmt.Errorf("pagination key %q was already returned", *key)
+	}
+	seen[*key] = struct{}{}
+	return key, nil
 }

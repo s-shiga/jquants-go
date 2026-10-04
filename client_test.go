@@ -143,6 +143,10 @@ func TestGetJSON_HTTPError(t *testing.T) {
 			if !errors.As(err, tc.target) || !strings.Contains(err.Error(), "fixture error") {
 				t.Fatalf("error = %v, want %T", err, tc.target)
 			}
+			var httpErr HTTPError
+			if !errors.As(err, &httpErr) || httpErr.StatusCode != tc.status {
+				t.Fatalf("errors.As(%T, *HTTPError) = %+v, want status %d", err, httpErr, tc.status)
+			}
 			if rateLimit, ok := tc.target.(*TooManyRequests); ok && rateLimit.RetryAfter != 2*time.Second {
 				t.Fatalf("RetryAfter = %v", rateLimit.RetryAfter)
 			}
@@ -467,4 +471,167 @@ func TestSingleResponse_TransientBodyAndCancellation(t *testing.T) {
 			t.Fatalf("expected cancellation, got %v", err)
 		}
 	})
+}
+
+// transportFunc lets tests drive a real *http.Client, including its timeout and
+// redirect handling, without opening sockets.
+type transportFunc func(*http.Request) (*http.Response, error)
+
+func (f transportFunc) RoundTrip(req *http.Request) (*http.Response, error) { return f(req) }
+
+func okResponse() *http.Response {
+	return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(fullBody))}
+}
+
+// LoopTimeout budgets fetching only, so a receiver slower than the whole budget
+// still gets every record.
+func TestChannel_SlowReceiverNotCutOff(t *testing.T) {
+	c := fixtureClient(t,
+		fixtureResponse{path: "/test", body: `{"data":[{"value":"a"},{"value":"b"}],"pagination_key":"next"}`},
+		fixtureResponse{path: "/test", query: "pagination_key=next", body: `{"data":[{"value":"c"}]}`},
+	)
+	c.LoopTimeout = 50 * time.Millisecond
+	ch := make(chan transientTestItem)
+	done := make(chan error, 1)
+	go func() {
+		done <- fetchAllPagesWithChannel(t.Context(), c, ch, func(ctx context.Context, key *string) (page[transientTestItem], error) {
+			return getJSON[page[transientTestItem]](ctx, c, "/test", transientTestParams{key})
+		})
+	}()
+	var got []string
+	for item := range ch {
+		time.Sleep(40 * time.Millisecond)
+		got = append(got, item.Value)
+	}
+	if err := <-done; err != nil || !reflect.DeepEqual(got, []string{"a", "b", "c"}) {
+		t.Fatalf("records = %v, error = %v", got, err)
+	}
+}
+
+// A timeout on a single attempt, such as http.Client.Timeout, is retried while
+// the LoopTimeout budget remains.
+func TestFetch_RetriesPerAttemptTimeout(t *testing.T) {
+	var calls atomic.Int32
+	hc := &http.Client{Timeout: 20 * time.Millisecond, Transport: transportFunc(func(req *http.Request) (*http.Response, error) {
+		if calls.Add(1) == 1 {
+			<-req.Context().Done()
+			return nil, req.Context().Err()
+		}
+		return okResponse(), nil
+	})}
+	c := NewClient("https://fixture.invalid", "fixture-key", WithHTTPClient(hc), WithRetryInterval(time.Millisecond), WithLoopTimeout(time.Second))
+	got, err := fetchTransientTest(t.Context(), c)
+	if err != nil || len(got) != 1 || calls.Load() != 2 {
+		t.Fatalf("items = %v, error = %v, requests = %d", got, err, calls.Load())
+	}
+}
+
+// A server that keeps returning the same pagination key must not be followed
+// until LoopTimeout; the fixture's request count proves the loop stopped.
+func TestFetch_RepeatedPaginationKeyFails(t *testing.T) {
+	repeating := func(t *testing.T) *Client {
+		return fixtureClient(t,
+			fixtureResponse{path: "/test", body: `{"data":[{"value":"a"}],"pagination_key":"same"}`},
+			fixtureResponse{path: "/test", query: "pagination_key=same", body: `{"data":[{"value":"a"}],"pagination_key":"same"}`},
+		)
+	}
+	t.Run("slice", func(t *testing.T) {
+		_, err := fetchTransientTest(t.Context(), repeating(t))
+		if err == nil || !strings.Contains(err.Error(), "already returned") {
+			t.Fatalf("error = %v, want repeated pagination key error", err)
+		}
+	})
+	t.Run("channel", func(t *testing.T) {
+		c := repeating(t)
+		_, err := collectChannel(func(ch chan<- transientTestItem) error {
+			return fetchAllPagesWithChannel(t.Context(), c, ch, func(ctx context.Context, key *string) (page[transientTestItem], error) {
+				return getJSON[page[transientTestItem]](ctx, c, "/test", transientTestParams{key})
+			})
+		})
+		if err == nil || !strings.Contains(err.Error(), "already returned") {
+			t.Fatalf("error = %v, want repeated pagination key error", err)
+		}
+	})
+}
+
+func TestParseRetryAfter(t *testing.T) {
+	future := time.Now().Add(30 * time.Second).UTC().Format(http.TimeFormat)
+	past := time.Now().Add(-time.Minute).UTC().Format(http.TimeFormat)
+	for _, tc := range []struct {
+		name, header string
+		min, max     time.Duration
+	}{
+		{"absent", "", 0, 0},
+		{"seconds", "2", 2 * time.Second, 2 * time.Second},
+		{"negative", "-1", 0, 0},
+		{"invalid", "soon", 0, 0},
+		{"overflowing seconds", "18446744074", maxRetryAfter, maxRetryAfter},
+		{"future date", future, 28 * time.Second, 30 * time.Second},
+		{"past date", past, 0, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			resp := &http.Response{Header: http.Header{}}
+			if tc.header != "" {
+				resp.Header.Set("Retry-After", tc.header)
+			}
+			if got := parseRetryAfter(resp); got < tc.min || got > tc.max {
+				t.Fatalf("parseRetryAfter(%q) = %v, want between %v and %v", tc.header, got, tc.min, tc.max)
+			}
+		})
+	}
+}
+
+func TestClient_NonPositiveSettingsUseDefaults(t *testing.T) {
+	c := fixtureClient(t, fixtureResponse{path: "/test", body: fullBody})
+	c.LoopTimeout, c.RetryInterval = 0, -time.Second
+	if c.loopTimeout() != defaultLoopTimeout || c.retryInterval() != defaultRetryInterval {
+		t.Fatalf("loopTimeout = %v, retryInterval = %v", c.loopTimeout(), c.retryInterval())
+	}
+	// A zero LoopTimeout used to expire before the first request was sent.
+	if _, err := fetchTransientTest(t.Context(), c); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := (&Client{}).httpClient().(*http.Client); !ok || http.DefaultClient.CheckRedirect != nil {
+		t.Fatal("nil HTTPClient must use an unmodified copy of http.DefaultClient")
+	}
+}
+
+func TestSendRequest_TrailingSlashBaseURL(t *testing.T) {
+	c := fixtureClient(t, fixtureResponse{path: "/test", body: fullBody})
+	c.BaseURL += "/"
+	if _, err := fetchTransientTest(t.Context(), c); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// net/http forwards custom headers on redirect, so the client must drop the API
+// key itself when a redirect leaves the API's origin.
+func TestSendRequest_RedirectAPIKey(t *testing.T) {
+	for _, tc := range []struct{ name, location, wantKey string }{
+		{"same origin", "https://fixture.invalid/moved", "fixture-key"},
+		{"other host", "https://elsewhere.invalid/moved", ""},
+		{"scheme downgrade", "http://fixture.invalid/moved", ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var redirected bool
+			var gotKey string
+			hc := &http.Client{Transport: transportFunc(func(req *http.Request) (*http.Response, error) {
+				if req.URL.Path == "/test" {
+					return &http.Response{StatusCode: http.StatusFound, Header: http.Header{"Location": {tc.location}}, Body: http.NoBody}, nil
+				}
+				redirected, gotKey = true, req.Header.Get("x-api-key")
+				return okResponse(), nil
+			})}
+			c := NewClient("https://fixture.invalid", "fixture-key", WithHTTPClient(hc))
+			if _, err := fetchTransientTest(t.Context(), c); err != nil {
+				t.Fatal(err)
+			}
+			if !redirected || gotKey != tc.wantKey {
+				t.Fatalf("redirected = %v, x-api-key = %q; want %q", redirected, gotKey, tc.wantKey)
+			}
+			if hc.CheckRedirect != nil {
+				t.Fatal("caller's http.Client was modified")
+			}
+		})
+	}
 }

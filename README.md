@@ -53,8 +53,8 @@ client := jquants.NewClient(
     jquants.BaseURL,
     os.Getenv("J_QUANTS_API_KEY"),
     jquants.WithHTTPClient(customHTTPClient),       // custom *http.Client (default: http.DefaultClient)
-    jquants.WithRetryInterval(10 * time.Second),    // retry interval for retryable errors (default: 5s)
-    jquants.WithLoopTimeout(60 * time.Second),      // timeout per API call, including retries (default: 20s)
+    jquants.WithRetryInterval(10 * time.Second),    // retry interval for retryable errors (default: 5s; also used for values <= 0)
+    jquants.WithLoopTimeout(60 * time.Second),      // timeout per API call, including retries (default: 20s; also used for values <= 0)
 )
 ```
 
@@ -514,7 +514,7 @@ Methods with a `WithChannel` suffix (`StockPriceWithChannel`, `MinuteStockPriceW
 
 - The caller must create the channel and pass it in.
 - The channel is **automatically closed** when all pages have been sent or when an error occurs.
-- The method respects context cancellation via the `loopTimeout` setting.
+- `LoopTimeout` bounds the time spent fetching pages; time spent waiting for the receiver is not counted, so a slow consumer is not cut off. Cancel `ctx` to stop a stream whose receiver has stopped reading.
 - Errors are returned from the goroutine; use a separate goroutine to call the method and check the error after the channel is drained.
 
 ## Codes Package
@@ -573,11 +573,22 @@ if err != nil {
 }
 ```
 
+Every status-specific error also matches `jquants.HTTPError`, so `StatusCode` can be read generically:
+
+```go
+var httpErr jquants.HTTPError
+if errors.As(err, &httpErr) {
+    log.Println("HTTP status:", httpErr.StatusCode)
+}
+```
+
 A `NoContent` error (HTTP 210) is returned by endpoints that have no data for the requested window, such as morning session prices outside publication hours; it is not retried.
 
-The client automatically retries on HTTP 429, 500, 502, 503, and 504 errors with a configurable interval (`TooManyRequests`, `InternalServerError`, `BadGateway`, `ServiceUnavailable`, `GatewayTimeout`). For 429 responses, a `Retry-After` header is honored when present.
+The client automatically retries on HTTP 429, 500, 502, 503, and 504 errors with a configurable interval (`TooManyRequests`, `InternalServerError`, `BadGateway`, `ServiceUnavailable`, `GatewayTimeout`). For 429 responses, a `Retry-After` header (in seconds or as an HTTP date) is honored when present.
 
-Transient transport-level failures are retried under the same policy and surface as `TransientTransportError`: a response body truncated mid-stream (unexpected EOF while decoding a very large page), a connection reset, or a network error from the HTTP round trip itself. Only the failing page is re-requested (with the same pagination key). Retries are bounded by `WithLoopTimeout`; caller cancellation (`context.Canceled` / `context.DeadlineExceeded`) is never retried and remains fatal.
+Transient transport-level failures are retried under the same policy and surface as `TransientTransportError`: a response body truncated mid-stream (unexpected EOF while decoding a very large page), a connection reset, a network error from the HTTP round trip itself, or a single attempt timing out (for example `http.Client.Timeout`). Only the failing page is re-requested (with the same pagination key). Retries are bounded by `WithLoopTimeout`; cancellation and the deadline of the caller's context or `WithLoopTimeout` are never retried and remain fatal. A server that repeats a pagination key it already returned is reported as an error rather than followed.
+
+When a standard `*http.Client` follows a redirect to a different scheme or host, the client drops the `x-api-key` header so the API key is not sent to another origin.
 
 ## License
 
