@@ -48,6 +48,9 @@ func main() {
 
 `NewClient` accepts functional options to customize behavior:
 
+An empty base URL passed to `NewClient`, or an empty `Client.BaseURL` field,
+uses `jquants.BaseURL`.
+
 ```go
 client := jquants.NewClient(
     jquants.BaseURL,

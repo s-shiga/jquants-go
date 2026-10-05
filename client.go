@@ -73,7 +73,7 @@ type Client struct {
 	// HTTPClient sends requests. Defaults to [http.DefaultClient] when nil.
 	HTTPClient HTTPClient
 
-	// BaseURL is the base URL for API requests. Defaults to BaseURL constant.
+	// BaseURL is the base URL for API requests. An empty value uses [BaseURL].
 	BaseURL string
 
 	// APIKey is the J-Quants API key for authentication.
@@ -163,10 +163,13 @@ func WithLoopTimeout(loopTimeout time.Duration) Option {
 }
 
 // NewClient creates a new J-Quants API client.
-// BaseURL is the API base URL (use [BaseURL] for the default).
+// BaseURL is the API base URL (use [BaseURL] or an empty string for the default).
 // APIKey is the J-Quants API key for authentication.
 // Optional [Option] functions can be used to customize the client (e.g., [WithHTTPClient], [WithRetryInterval], [WithLoopTimeout]).
 func NewClient(baseURL, apiKey string, opts ...Option) *Client {
+	if baseURL == "" {
+		baseURL = BaseURL
+	}
 	client := &Client{
 		HTTPClient: http.DefaultClient,
 		BaseURL:    baseURL,
@@ -222,7 +225,11 @@ func codeDateRangeValues(code, date, from, to, paginationKey *string) (url.Value
 }
 
 func (c *Client) sendRequest(ctx context.Context, urlPath string, param parameters) (*http.Response, error) {
-	u, err := url.Parse(strings.TrimRight(c.BaseURL, "/") + urlPath)
+	baseURL := c.BaseURL
+	if baseURL == "" {
+		baseURL = BaseURL
+	}
+	u, err := url.Parse(strings.TrimRight(baseURL, "/") + urlPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse URL: %w", err)
 	}

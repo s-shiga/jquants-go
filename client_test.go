@@ -608,6 +608,39 @@ func TestSendRequest_TrailingSlashBaseURL(t *testing.T) {
 	}
 }
 
+func TestClient_DefaultBaseURL(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		newClient func(HTTPClient) *Client
+		wantURL   string
+	}{
+		{"struct literal", func(hc HTTPClient) *Client { return &Client{APIKey: "fixture-key", HTTPClient: hc} }, BaseURL + "/equities/master?code=86970"},
+		{"constructor", func(hc HTTPClient) *Client { return NewClient("", "fixture-key", WithHTTPClient(hc)) }, BaseURL + "/equities/master?code=86970"},
+		{"custom URL", func(hc HTTPClient) *Client {
+			return NewClient("https://fixture.invalid/prefix/", "fixture-key", WithHTTPClient(hc))
+		}, "https://fixture.invalid/prefix/equities/master?code=86970"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			calls := 0
+			hc := &http.Client{Transport: transportFunc(func(req *http.Request) (*http.Response, error) {
+				calls++
+				if req.URL.String() != tc.wantURL || req.Header.Get("x-api-key") != "fixture-key" {
+					t.Errorf("request = %s, key = %q; want %s and fixture-key", req.URL, req.Header.Get("x-api-key"), tc.wantURL)
+				}
+				return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(`{"data":[]}`))}, nil
+			})}
+			c := tc.newClient(hc)
+			before := c.BaseURL
+			if _, err := c.IssueInformation(t.Context(), IssueInformationRequest{Code: ptr("86970")}); err != nil {
+				t.Fatal(err)
+			}
+			if calls != 1 || c.BaseURL != before {
+				t.Fatalf("requests = %d, BaseURL = %q; want 1 and unchanged %q", calls, c.BaseURL, before)
+			}
+		})
+	}
+}
+
 // net/http forwards custom headers on redirect, so the client must drop the API
 // key itself when a redirect leaves the API's origin.
 func TestSendRequest_RedirectAPIKey(t *testing.T) {
