@@ -69,6 +69,7 @@ func (td *TimelyDisclosure) UnmarshalJSON(b []byte) error {
 	td.DisclosureTime = raw.DiscTime
 	td.Title = raw.Title
 	td.DisclosureStatus = raw.DiscStatus
+	td.RevisionNumber = ""
 	if revNo := raw.RevNo.jsonNumber(); revNo != nil {
 		td.RevisionNumber = revNo.String()
 	}

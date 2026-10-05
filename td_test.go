@@ -38,6 +38,31 @@ func TestTimelyDisclosureRevisionNumber(t *testing.T) {
 	}
 }
 
+func TestTimelyDisclosureRevisionNumberReusedTargets(t *testing.T) {
+	for _, tc := range []struct{ name, data string }{
+		{"null", `{"DiscNo":"second","RevNo":null}`},
+		{"omitted", `{"DiscNo":"second"}`},
+	} {
+		for _, target := range []string{"record", "slice"} {
+			t.Run(tc.name+"/"+target, func(t *testing.T) {
+				records := []TimelyDisclosure{{DisclosureNumber: "first", RevisionNumber: "2"}}
+				var destination any = &records[0]
+				data := tc.data
+				if target == "slice" {
+					destination = &records
+					data = "[" + data + "]"
+				}
+				if err := json.Unmarshal([]byte(data), destination); err != nil {
+					t.Fatal(err)
+				}
+				if len(records) != 1 || records[0].DisclosureNumber != "second" || records[0].RevisionNumber != "" {
+					t.Fatalf("reused target retained stale disclosure data: %#v", records)
+				}
+			})
+		}
+	}
+}
+
 func TestTimelyDisclosureParametersRejectInvalidCombinations(t *testing.T) {
 	for _, req := range []TimelyDisclosureRequest{
 		{},
