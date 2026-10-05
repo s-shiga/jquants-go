@@ -49,9 +49,7 @@ type MarginTradingOutstanding struct {
 }
 
 func (mtv *MarginTradingOutstanding) UnmarshalJSON(b []byte) error {
-	type StoredRecord MarginTradingOutstanding
 	var raw struct {
-		*StoredRecord
 		PublicationDate                    *string        `json:"PubDate"`
 		Date                               string         `json:"Date"`
 		Code                               string         `json:"Code"`
@@ -72,10 +70,12 @@ func (mtv *MarginTradingOutstanding) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal margin trading outstanding: %w", err)
 	}
-	if raw.StoredRecord != nil && isStoredRecord(&raw) {
-		raw.StoredRecord.Date = raw.Date
-		raw.StoredRecord.Code = raw.Code
-		*mtv = MarginTradingOutstanding(*raw.StoredRecord)
+	if isStoredRecord[MarginTradingOutstanding](&raw) {
+		type record MarginTradingOutstanding // no UnmarshalJSON method, so decoding it does not recurse
+		*mtv = MarginTradingOutstanding{}
+		if err := json.Unmarshal(b, (*record)(mtv)); err != nil {
+			return fmt.Errorf("failed to unmarshal margin trading outstanding: %w", err)
+		}
 		return nil
 	}
 	mtv.PublicationDate = raw.PublicationDate
@@ -170,9 +170,7 @@ type ShortSellingValue struct {
 }
 
 func (sst *ShortSellingValue) UnmarshalJSON(b []byte) error {
-	type StoredRecord ShortSellingValue
 	var raw struct {
-		*StoredRecord
 		Date                                         string         `json:"Date"`
 		Sector33Code                                 string         `json:"S33"`
 		SellingExcludingShortSellingTurnoverValue    nullableNumber `json:"SellExShortVa"`
@@ -182,9 +180,12 @@ func (sst *ShortSellingValue) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal short selling value: %w", err)
 	}
-	if raw.StoredRecord != nil && isStoredRecord(&raw) {
-		raw.StoredRecord.Date = raw.Date
-		*sst = ShortSellingValue(*raw.StoredRecord)
+	if isStoredRecord[ShortSellingValue](&raw) {
+		type record ShortSellingValue // no UnmarshalJSON method, so decoding it does not recurse
+		*sst = ShortSellingValue{}
+		if err := json.Unmarshal(b, (*record)(sst)); err != nil {
+			return fmt.Errorf("failed to unmarshal short selling value: %w", err)
+		}
 		return nil
 	}
 	sst.Date = raw.Date
@@ -299,9 +300,7 @@ type BreakdownTrading struct {
 }
 
 func (bt *BreakdownTrading) UnmarshalJSON(b []byte) error {
-	type StoredRecord BreakdownTrading
 	var raw struct {
-		*StoredRecord
 		Date            string         `json:"Date"`
 		Code            string         `json:"Code"`
 		LongSellVa      float64        `json:"LongSellVa"`
@@ -322,10 +321,12 @@ func (bt *BreakdownTrading) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal breakdown trading: %w", err)
 	}
-	if raw.StoredRecord != nil && isStoredRecord(&raw) {
-		raw.StoredRecord.Date = raw.Date
-		raw.StoredRecord.Code = raw.Code
-		*bt = BreakdownTrading(*raw.StoredRecord)
+	if isStoredRecord[BreakdownTrading](&raw) {
+		type record BreakdownTrading // no UnmarshalJSON method, so decoding it does not recurse
+		*bt = BreakdownTrading{}
+		if err := json.Unmarshal(b, (*record)(bt)); err != nil {
+			return fmt.Errorf("failed to unmarshal breakdown trading: %w", err)
+		}
 		return nil
 	}
 	bt.Date = raw.Date
@@ -435,9 +436,7 @@ type OutstandingShortPosition struct {
 }
 
 func (o *OutstandingShortPosition) UnmarshalJSON(b []byte) error {
-	type StoredRecord OutstandingShortPosition
 	var raw struct {
-		*StoredRecord
 		DiscDate      string  `json:"DiscDate"`
 		CalcDate      string  `json:"CalcDate"`
 		Code          string  `json:"Code"`
@@ -456,11 +455,12 @@ func (o *OutstandingShortPosition) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal outstanding short position: %w", err)
 	}
-	if raw.StoredRecord != nil && isStoredRecord(&raw) {
-		raw.StoredRecord.Code = raw.Code
-		raw.StoredRecord.FundName = raw.FundName
-		raw.StoredRecord.Notes = raw.Notes
-		*o = OutstandingShortPosition(*raw.StoredRecord)
+	if isStoredRecord[OutstandingShortPosition](&raw) {
+		type record OutstandingShortPosition // no UnmarshalJSON method, so decoding it does not recurse
+		*o = OutstandingShortPosition{}
+		if err := json.Unmarshal(b, (*record)(o)); err != nil {
+			return fmt.Errorf("failed to unmarshal outstanding short position: %w", err)
+		}
 		return nil
 	}
 	o.DisclosureDate = raw.DiscDate
@@ -615,9 +615,7 @@ type MarginAlert struct {
 }
 
 func (m *MarginAlert) UnmarshalJSON(b []byte) error {
-	type StoredRecord MarginAlert
 	var raw struct {
-		*StoredRecord
 		PubDate       string                       `json:"PubDate"`
 		Code          string                       `json:"Code"`
 		AppDate       string                       `json:"AppDate"`
@@ -642,9 +640,12 @@ func (m *MarginAlert) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal margin alert: %w", err)
 	}
-	if raw.StoredRecord != nil && isStoredRecord(&raw) {
-		raw.StoredRecord.Code = raw.Code
-		*m = MarginAlert(*raw.StoredRecord)
+	if isStoredRecord[MarginAlert](&raw) {
+		type record MarginAlert // no UnmarshalJSON method, so decoding it does not recurse
+		*m = MarginAlert{}
+		if err := json.Unmarshal(b, (*record)(m)); err != nil {
+			return fmt.Errorf("failed to unmarshal margin alert: %w", err)
+		}
 		return nil
 	}
 	a := &floatAccumulator{}
@@ -723,18 +724,19 @@ type TradingCalendar struct {
 }
 
 func (tc *TradingCalendar) UnmarshalJSON(b []byte) error {
-	type StoredRecord TradingCalendar
 	var raw struct {
-		*StoredRecord
 		Date            string `json:"Date"`
 		HolidayDivision string `json:"HolDiv"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal trading calendar: %w", err)
 	}
-	if raw.StoredRecord != nil && isStoredRecord(&raw) {
-		raw.StoredRecord.Date = raw.Date
-		*tc = TradingCalendar(*raw.StoredRecord)
+	if isStoredRecord[TradingCalendar](&raw) {
+		type record TradingCalendar // no UnmarshalJSON method, so decoding it does not recurse
+		*tc = TradingCalendar{}
+		if err := json.Unmarshal(b, (*record)(tc)); err != nil {
+			return fmt.Errorf("failed to unmarshal trading calendar: %w", err)
+		}
 		return nil
 	}
 	tc.Date = raw.Date

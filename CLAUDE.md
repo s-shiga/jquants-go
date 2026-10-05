@@ -98,3 +98,5 @@ Custom error types in `client.go` wrap HTTP status codes: `NoContent` (210), `Ba
 ### JSON Unmarshaling
 
 The J-Quants API returns some numeric fields as strings and uses abbreviated JSON keys (e.g., `"O"`, `"H"`, `"L"`, `"C"` for OHLC prices, `"CoName"` for company name). Custom `UnmarshalJSON` methods translate these to proper Go types with descriptive field names. Price fields use `*json.Number` and volume fields may be `nil` when no trading occurred.
+
+Records must also reload from their own `json.Marshal` output, which uses the descriptive field names. Each custom `UnmarshalJSON` first decodes the API's keys into a local wire struct, then calls `isStoredRecord[T](&raw)` (`client.go`). When every API-only wire field is empty, the input is a saved record, and the method decodes it again into a method-less local copy of `T`. Plain `json.Number` fields need `json:",omitempty"`, since `json.Marshal` writes an empty one as `0`. `checkEndpoint` enforces both directions for every endpoint fixture: an API → `json.Marshal` → reload round trip, and API records carrying keys spelled like Go field names.

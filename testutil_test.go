@@ -107,28 +107,36 @@ func checkEndpoint[T any](t *testing.T, path, query, item string, paginated bool
 	if !reflect.DeepEqual(reloaded, got) {
 		t.Fatalf("cached records = %#v, want %#v", reloaded, got)
 	}
-	// An API key spelled like a Go field name must not divert an API record to
-	// the stored-record path, so add every field name the fixture lacks as null.
-	var keys map[string]json.RawMessage
-	if err := json.Unmarshal([]byte(item), &keys); err != nil {
-		t.Fatalf("fixture item: %v", err)
-	}
-	for _, field := range reflect.VisibleFields(reflect.TypeFor[T]()) {
-		present := false
-		for key := range keys {
-			present = present || strings.EqualFold(key, field.Name)
+	// An API key spelled like a Go field name must neither divert an API record
+	// to the stored-record path nor break decoding, whatever its value. Add each
+	// field name the fixture lacks as null, then as "-", an API placeholder that
+	// fits no non-string Go type. "-" skips fields that may be real API keys:
+	// strings, which include the keys both formats share (Date, Code, ...), and
+	// fields whose JSON tag names their key, as on types decoded by tags alone.
+	for _, value := range []string{"null", `"-"`} {
+		var keys map[string]json.RawMessage
+		if err := json.Unmarshal([]byte(item), &keys); err != nil {
+			t.Fatalf("fixture item: %v", err)
 		}
-		if field.IsExported() && !present {
-			keys[field.Name] = json.RawMessage("null")
+		for _, field := range reflect.VisibleFields(reflect.TypeFor[T]()) {
+			present := false
+			for key := range keys {
+				present = present || strings.EqualFold(key, field.Name)
+			}
+			isString := field.Type == reflect.TypeFor[string]() || field.Type == reflect.TypeFor[*string]()
+			tagName, _, _ := strings.Cut(field.Tag.Get("json"), ",")
+			if field.IsExported() && !present && (value == "null" || !isString && tagName == "") {
+				keys[field.Name] = json.RawMessage(value)
+			}
 		}
-	}
-	colliding, err := json.Marshal(keys)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var fromAPI T
-	if err := json.Unmarshal(colliding, &fromAPI); err != nil || !reflect.DeepEqual(fromAPI, want) {
-		t.Fatalf("API record with Go field names = %#v, %v; want %#v", fromAPI, err, want)
+		colliding, err := json.Marshal(keys)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var fromAPI T
+		if err := json.Unmarshal(colliding, &fromAPI); err != nil || !reflect.DeepEqual(fromAPI, want) {
+			t.Fatalf("API record with Go field names set to %s = %#v, %v; want %#v", value, fromAPI, err, want)
+		}
 	}
 }
 

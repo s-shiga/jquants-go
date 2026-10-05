@@ -42,12 +42,7 @@ type IssueInformation struct {
 }
 
 func (ii *IssueInformation) UnmarshalJSON(b []byte) error {
-	// The local type is exported so encoding/json can allocate its embedded
-	// pointer for descriptive field names emitted by json.Marshal. Defining a
-	// distinct type avoids recursively calling UnmarshalJSON.
-	type StoredRecord IssueInformation
 	var raw struct {
-		*StoredRecord
 		Date               string  `json:"Date"`
 		Code               string  `json:"Code"`
 		CompanyName        string  `json:"CoName"`
@@ -66,11 +61,12 @@ func (ii *IssueInformation) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return err
 	}
-	if raw.StoredRecord != nil && isStoredRecord(&raw) {
-		// Shared names are decoded into the explicit wire fields above.
-		raw.StoredRecord.Date = raw.Date
-		raw.StoredRecord.Code = raw.Code
-		*ii = IssueInformation(*raw.StoredRecord)
+	if isStoredRecord[IssueInformation](&raw) {
+		type record IssueInformation // no UnmarshalJSON method, so decoding it does not recurse
+		*ii = IssueInformation{}
+		if err := json.Unmarshal(b, (*record)(ii)); err != nil {
+			return err
+		}
 		return nil
 	}
 	ii.Date = raw.Date
@@ -238,9 +234,7 @@ type StockPrice struct {
 }
 
 func (sp *StockPrice) UnmarshalJSON(b []byte) error {
-	type StoredRecord StockPrice
 	var raw struct {
-		*StoredRecord
 		Date                    string         `json:"Date"`
 		Code                    string         `json:"Code"`
 		Open                    nullableNumber `json:"O"`
@@ -288,10 +282,12 @@ func (sp *StockPrice) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return err
 	}
-	if raw.StoredRecord != nil && isStoredRecord(&raw) {
-		raw.StoredRecord.Date = raw.Date
-		raw.StoredRecord.Code = raw.Code
-		*sp = StockPrice(*raw.StoredRecord)
+	if isStoredRecord[StockPrice](&raw) {
+		type record StockPrice // no UnmarshalJSON method, so decoding it does not recurse
+		*sp = StockPrice{}
+		if err := json.Unmarshal(b, (*record)(sp)); err != nil {
+			return err
+		}
 		return nil
 	}
 	u := &unmarshaler{}
@@ -453,9 +449,7 @@ type MinuteStockPrice struct {
 }
 
 func (m *MinuteStockPrice) UnmarshalJSON(b []byte) error {
-	type StoredRecord MinuteStockPrice
 	var raw struct {
-		*StoredRecord
 		Date string         `json:"Date"`
 		Time string         `json:"Time"`
 		Code string         `json:"Code"`
@@ -469,11 +463,12 @@ func (m *MinuteStockPrice) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal minute stock price: %w", err)
 	}
-	if raw.StoredRecord != nil && isStoredRecord(&raw) {
-		raw.StoredRecord.Date = raw.Date
-		raw.StoredRecord.Time = raw.Time
-		raw.StoredRecord.Code = raw.Code
-		*m = MinuteStockPrice(*raw.StoredRecord)
+	if isStoredRecord[MinuteStockPrice](&raw) {
+		type record MinuteStockPrice // no UnmarshalJSON method, so decoding it does not recurse
+		*m = MinuteStockPrice{}
+		if err := json.Unmarshal(b, (*record)(m)); err != nil {
+			return fmt.Errorf("failed to unmarshal minute stock price: %w", err)
+		}
 		return nil
 	}
 	u := &unmarshaler{}
@@ -558,9 +553,7 @@ type MorningSessionStockPrice struct {
 }
 
 func (m *MorningSessionStockPrice) UnmarshalJSON(b []byte) error {
-	type StoredRecord MorningSessionStockPrice
 	var raw struct {
-		*StoredRecord
 		Date string         `json:"Date"`
 		Code string         `json:"Code"`
 		Open nullableNumber `json:"MO"`
@@ -573,10 +566,12 @@ func (m *MorningSessionStockPrice) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal morning session stock price: %w", err)
 	}
-	if raw.StoredRecord != nil && isStoredRecord(&raw) {
-		raw.StoredRecord.Date = raw.Date
-		raw.StoredRecord.Code = raw.Code
-		*m = MorningSessionStockPrice(*raw.StoredRecord)
+	if isStoredRecord[MorningSessionStockPrice](&raw) {
+		type record MorningSessionStockPrice // no UnmarshalJSON method, so decoding it does not recurse
+		*m = MorningSessionStockPrice{}
+		if err := json.Unmarshal(b, (*record)(m)); err != nil {
+			return fmt.Errorf("failed to unmarshal morning session stock price: %w", err)
+		}
 		return nil
 	}
 	u := &unmarshaler{}
@@ -646,9 +641,7 @@ type EarningsCalendar struct {
 }
 
 func (e *EarningsCalendar) UnmarshalJSON(b []byte) error {
-	type StoredRecord EarningsCalendar
 	var raw struct {
-		*StoredRecord
 		Date     string `json:"Date"`
 		Code     string `json:"Code"`
 		CoName   string `json:"CoName"`
@@ -660,11 +653,12 @@ func (e *EarningsCalendar) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal earnings calendar: %w", err)
 	}
-	if raw.StoredRecord != nil && isStoredRecord(&raw) {
-		raw.StoredRecord.Date = raw.Date
-		raw.StoredRecord.Code = raw.Code
-		raw.StoredRecord.Section = raw.Section
-		*e = EarningsCalendar(*raw.StoredRecord)
+	if isStoredRecord[EarningsCalendar](&raw) {
+		type record EarningsCalendar // no UnmarshalJSON method, so decoding it does not recurse
+		*e = EarningsCalendar{}
+		if err := json.Unmarshal(b, (*record)(e)); err != nil {
+			return fmt.Errorf("failed to unmarshal earnings calendar: %w", err)
+		}
 		return nil
 	}
 	e.Date = raw.Date
@@ -766,9 +760,7 @@ type InvestorType struct {
 }
 
 func (it *InvestorType) UnmarshalJSON(b []byte) error {
-	type StoredRecord InvestorType
 	var raw struct {
-		*StoredRecord
 		PubDate     string         `json:"PubDate"`
 		StDate      string         `json:"StDate"`
 		EnDate      string         `json:"EnDate"`
@@ -829,9 +821,12 @@ func (it *InvestorType) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return err
 	}
-	if raw.StoredRecord != nil && isStoredRecord(&raw) {
-		raw.StoredRecord.Section = raw.Section
-		*it = InvestorType(*raw.StoredRecord)
+	if isStoredRecord[InvestorType](&raw) {
+		type record InvestorType // no UnmarshalJSON method, so decoding it does not recurse
+		*it = InvestorType{}
+		if err := json.Unmarshal(b, (*record)(it)); err != nil {
+			return err
+		}
 		return nil
 	}
 	it.PublishedDate = raw.PubDate

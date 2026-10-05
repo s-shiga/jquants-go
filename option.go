@@ -76,9 +76,7 @@ type IndexOptionPrice struct {
 }
 
 func (iop *IndexOptionPrice) UnmarshalJSON(b []byte) error {
-	type StoredRecord IndexOptionPrice
 	var raw struct {
-		*StoredRecord
 		Date                           string         `json:"Date"`
 		Code                           string         `json:"Code"`
 		WholeDayOpen                   nullableNumber `json:"O"`
@@ -113,10 +111,12 @@ func (iop *IndexOptionPrice) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal index option price: %w", err)
 	}
-	if raw.StoredRecord != nil && isStoredRecord(&raw) {
-		raw.StoredRecord.Date = raw.Date
-		raw.StoredRecord.Code = raw.Code
-		*iop = IndexOptionPrice(*raw.StoredRecord)
+	if isStoredRecord[IndexOptionPrice](&raw) {
+		type record IndexOptionPrice // no UnmarshalJSON method, so decoding it does not recurse
+		*iop = IndexOptionPrice{}
+		if err := json.Unmarshal(b, (*record)(iop)); err != nil {
+			return fmt.Errorf("failed to unmarshal index option price: %w", err)
+		}
 		return nil
 	}
 	putCallDivision, err := strconv.ParseInt(raw.PutCallDivision, 10, 8)
@@ -297,9 +297,7 @@ type OptionPrice struct {
 // abbreviated J-Quants JSON keys into descriptive fields and normalizing
 // numeric fields that may arrive as floats, strings, or null.
 func (op *OptionPrice) UnmarshalJSON(b []byte) error {
-	type StoredRecord OptionPrice
 	var raw struct {
-		*StoredRecord
 		Date                           string         `json:"Date"`
 		Code                           string         `json:"Code"`
 		ProductCategory                string         `json:"ProdCat"`
@@ -341,10 +339,12 @@ func (op *OptionPrice) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal option price: %w", err)
 	}
-	if raw.StoredRecord != nil && isStoredRecord(&raw) {
-		raw.StoredRecord.Date = raw.Date
-		raw.StoredRecord.Code = raw.Code
-		*op = OptionPrice(*raw.StoredRecord)
+	if isStoredRecord[OptionPrice](&raw) {
+		type record OptionPrice // no UnmarshalJSON method, so decoding it does not recurse
+		*op = OptionPrice{}
+		if err := json.Unmarshal(b, (*record)(op)); err != nil {
+			return fmt.Errorf("failed to unmarshal option price: %w", err)
+		}
 		return nil
 	}
 	putCallDivision, err := strconv.ParseInt(raw.PutCallDivision, 10, 8)

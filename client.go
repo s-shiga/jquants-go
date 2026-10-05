@@ -72,17 +72,18 @@ func (p page[T]) NextPageKey() *string { return p.PaginationKey }
 // fields whose JSON keys only the API format uses.
 var apiOnlyFields sync.Map // map[reflect.Type][]int
 
-// isStoredRecord reports whether raw, a pointer to an UnmarshalJSON wire struct
-// that embeds *StoredRecord, holds a record saved with json.Marshal rather than
-// an API response. encoding/json allocates the embedded pointer as soon as any
-// key matches one of the record's Go field names, which a key the API adds
-// later could also do. A saved record never carries the API's own keys, so an
-// API-only wire field that is set marks an API response.
-func isStoredRecord(raw any) bool {
+// isStoredRecord reports whether raw, a pointer to the wire struct an
+// UnmarshalJSON method decoded its input into, holds a record of type R saved
+// with json.Marshal rather than an API response. A saved record never carries
+// the API's own keys, so it is one exactly when every API-only wire field is
+// empty; the caller then decodes the input again in R's stored format. Keys
+// spelled like R's Go field names are ignored by the wire struct, so an API
+// response carrying one, whatever its value, stays on the API path.
+func isStoredRecord[R any](raw any) bool {
 	v := reflect.ValueOf(raw).Elem()
 	indexes, ok := apiOnlyFields.Load(v.Type())
 	if !ok {
-		indexes, _ = apiOnlyFields.LoadOrStore(v.Type(), apiOnlyFieldIndexes(v.Type()))
+		indexes, _ = apiOnlyFields.LoadOrStore(v.Type(), apiOnlyFieldIndexes(v.Type(), reflect.TypeFor[R]()))
 	}
 	for _, i := range indexes.([]int) {
 		if !v.Field(i).IsZero() {
@@ -93,25 +94,17 @@ func isStoredRecord(raw any) bool {
 }
 
 // apiOnlyFieldIndexes returns the fields of wire struct t whose JSON keys do
-// not match, case-insensitively as encoding/json does, a key of the embedded
-// stored record. Matching keys (such as "Date" and "Code") are shared by both
-// formats and say nothing about which one the input is.
-func apiOnlyFieldIndexes(t reflect.Type) []int {
+// not match, case-insensitively as encoding/json does, a JSON key of record.
+// Matching keys (such as "Date" and "Code") are shared by both formats and say
+// nothing about which one the input is.
+func apiOnlyFieldIndexes(t, record reflect.Type) []int {
 	var storedKeys []string
-	for i := range t.NumField() {
-		if field := t.Field(i); field.Anonymous {
-			for _, stored := range reflect.VisibleFields(field.Type.Elem()) {
-				storedKeys = append(storedKeys, jsonKey(stored))
-			}
-		}
+	for _, field := range reflect.VisibleFields(record) {
+		storedKeys = append(storedKeys, jsonKey(field))
 	}
 	var indexes []int
 	for i := range t.NumField() {
-		field := t.Field(i)
-		if field.Anonymous {
-			continue
-		}
-		key := jsonKey(field)
+		key := jsonKey(t.Field(i))
 		shared := false
 		for _, stored := range storedKeys {
 			shared = shared || strings.EqualFold(key, stored)
