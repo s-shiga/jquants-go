@@ -521,6 +521,13 @@ Methods with a `WithChannel` suffix (`StockPriceWithChannel`, `MinuteStockPriceW
 - `LoopTimeout` bounds the time spent fetching pages; time spent waiting for the receiver is not counted, so a slow consumer is not cut off. Cancel `ctx` to stop a stream whose receiver has stopped reading.
 - Errors are returned from the goroutine; use a separate goroutine to call the method and check the error after the channel is drained.
 
+## JSON Caching
+
+Response records can be saved with `json.Marshal` and restored with
+`json.Unmarshal`. Marshaling uses the descriptive Go field names; unmarshaling
+accepts both this stored format and the API's abbreviated keys. This preserves
+nil pointers, nested records, and numeric precision when caching API results.
+
 ## Codes Package
 
 The `codes` package provides constants for market sections, sector codes, and index codes.

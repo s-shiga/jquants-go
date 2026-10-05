@@ -274,7 +274,9 @@ type FinancialSummary struct {
 }
 
 func (fs *FinancialSummary) UnmarshalJSON(b []byte) error {
+	type StoredRecord FinancialSummary
 	var raw struct {
+		*StoredRecord
 		DiscDate    string `json:"DiscDate"`
 		DiscTime    string `json:"DiscTime"`
 		Code        string `json:"Code"`
@@ -403,6 +405,11 @@ func (fs *FinancialSummary) UnmarshalJSON(b []byte) error {
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal financial summary: %w", err)
+	}
+	if raw.StoredRecord != nil {
+		raw.StoredRecord.Code = raw.Code
+		*fs = FinancialSummary(*raw.StoredRecord)
+		return nil
 	}
 
 	a := &floatAccumulator{}
@@ -595,7 +602,9 @@ type FinancialDetails struct {
 }
 
 func (fd *FinancialDetails) UnmarshalJSON(b []byte) error {
+	type StoredRecord FinancialDetails
 	var raw struct {
+		*StoredRecord
 		DiscDate string            `json:"DiscDate"`
 		DiscTime string            `json:"DiscTime"`
 		Code     string            `json:"Code"`
@@ -605,6 +614,11 @@ func (fd *FinancialDetails) UnmarshalJSON(b []byte) error {
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal financial details: %w", err)
+	}
+	if raw.StoredRecord != nil {
+		raw.StoredRecord.Code = raw.Code
+		*fd = FinancialDetails(*raw.StoredRecord)
+		return nil
 	}
 	fd.DisclosureDate = raw.DiscDate
 	fd.DisclosureTime = raw.DiscTime
@@ -712,7 +726,9 @@ type Dividend struct {
 }
 
 func (d *Dividend) UnmarshalJSON(b []byte) error {
+	type StoredRecord Dividend
 	var raw struct {
+		*StoredRecord
 		PubDate          string         `json:"PubDate"`
 		PubTime          string         `json:"PubTime"`
 		Code             string         `json:"Code"`
@@ -739,6 +755,13 @@ func (d *Dividend) UnmarshalJSON(b []byte) error {
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal dividend: %w", err)
+	}
+	if raw.StoredRecord != nil {
+		raw.StoredRecord.Code = raw.Code
+		raw.StoredRecord.ExDate = raw.ExDate
+		raw.StoredRecord.PayDate = raw.PayDate
+		*d = Dividend(*raw.StoredRecord)
+		return nil
 	}
 
 	d.PublicationDate = raw.PubDate

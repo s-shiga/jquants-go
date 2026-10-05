@@ -2,6 +2,7 @@ package jquants
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
@@ -93,6 +94,18 @@ func checkEndpoint[T any](t *testing.T, path, query, item string, paginated bool
 	}
 	if !reflect.DeepEqual(got, expected) {
 		t.Fatalf("items = %#v, want %#v", got, expected)
+	}
+	// Exercise the complete API decode -> cache -> reload path for each fixture.
+	stored, err := json.Marshal(got)
+	if err != nil {
+		t.Fatalf("cache API records: %v", err)
+	}
+	var reloaded []T
+	if err := json.Unmarshal(stored, &reloaded); err != nil {
+		t.Fatalf("reload cached API records: %v", err)
+	}
+	if !reflect.DeepEqual(reloaded, got) {
+		t.Fatalf("cached records = %#v, want %#v", reloaded, got)
 	}
 }
 

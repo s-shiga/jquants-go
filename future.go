@@ -79,7 +79,9 @@ type FuturesPrice struct {
 // abbreviated J-Quants JSON keys into descriptive fields and normalizing
 // numeric fields that may arrive as floats, strings, or null.
 func (fp *FuturesPrice) UnmarshalJSON(b []byte) error {
+	type StoredRecord FuturesPrice
 	var raw struct {
+		*StoredRecord
 		Date                           string         `json:"Date"`
 		Code                           string         `json:"Code"`
 		ProductCategory                string         `json:"ProdCat"`
@@ -112,6 +114,12 @@ func (fp *FuturesPrice) UnmarshalJSON(b []byte) error {
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal futures price: %w", err)
+	}
+	if raw.StoredRecord != nil {
+		raw.StoredRecord.Date = raw.Date
+		raw.StoredRecord.Code = raw.Code
+		*fp = FuturesPrice(*raw.StoredRecord)
+		return nil
 	}
 
 	u := &unmarshaler{}

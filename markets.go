@@ -49,7 +49,9 @@ type MarginTradingOutstanding struct {
 }
 
 func (mtv *MarginTradingOutstanding) UnmarshalJSON(b []byte) error {
+	type StoredRecord MarginTradingOutstanding
 	var raw struct {
+		*StoredRecord
 		PublicationDate                    *string        `json:"PubDate"`
 		Date                               string         `json:"Date"`
 		Code                               string         `json:"Code"`
@@ -69,6 +71,12 @@ func (mtv *MarginTradingOutstanding) UnmarshalJSON(b []byte) error {
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal margin trading outstanding: %w", err)
+	}
+	if raw.StoredRecord != nil {
+		raw.StoredRecord.Date = raw.Date
+		raw.StoredRecord.Code = raw.Code
+		*mtv = MarginTradingOutstanding(*raw.StoredRecord)
+		return nil
 	}
 	mtv.PublicationDate = raw.PublicationDate
 	mtv.Date = raw.Date
@@ -162,7 +170,9 @@ type ShortSellingValue struct {
 }
 
 func (sst *ShortSellingValue) UnmarshalJSON(b []byte) error {
+	type StoredRecord ShortSellingValue
 	var raw struct {
+		*StoredRecord
 		Date                                         string         `json:"Date"`
 		Sector33Code                                 string         `json:"S33"`
 		SellingExcludingShortSellingTurnoverValue    nullableNumber `json:"SellExShortVa"`
@@ -171,6 +181,11 @@ func (sst *ShortSellingValue) UnmarshalJSON(b []byte) error {
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal short selling value: %w", err)
+	}
+	if raw.StoredRecord != nil {
+		raw.StoredRecord.Date = raw.Date
+		*sst = ShortSellingValue(*raw.StoredRecord)
+		return nil
 	}
 	sst.Date = raw.Date
 	sst.Sector33Code = raw.Sector33Code
@@ -284,7 +299,9 @@ type BreakdownTrading struct {
 }
 
 func (bt *BreakdownTrading) UnmarshalJSON(b []byte) error {
+	type StoredRecord BreakdownTrading
 	var raw struct {
+		*StoredRecord
 		Date            string         `json:"Date"`
 		Code            string         `json:"Code"`
 		LongSellVa      float64        `json:"LongSellVa"`
@@ -304,6 +321,12 @@ func (bt *BreakdownTrading) UnmarshalJSON(b []byte) error {
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal breakdown trading: %w", err)
+	}
+	if raw.StoredRecord != nil {
+		raw.StoredRecord.Date = raw.Date
+		raw.StoredRecord.Code = raw.Code
+		*bt = BreakdownTrading(*raw.StoredRecord)
+		return nil
 	}
 	bt.Date = raw.Date
 	bt.Code = raw.Code
@@ -412,7 +435,9 @@ type OutstandingShortPosition struct {
 }
 
 func (o *OutstandingShortPosition) UnmarshalJSON(b []byte) error {
+	type StoredRecord OutstandingShortPosition
 	var raw struct {
+		*StoredRecord
 		DiscDate      string  `json:"DiscDate"`
 		CalcDate      string  `json:"CalcDate"`
 		Code          string  `json:"Code"`
@@ -430,6 +455,13 @@ func (o *OutstandingShortPosition) UnmarshalJSON(b []byte) error {
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal outstanding short position: %w", err)
+	}
+	if raw.StoredRecord != nil {
+		raw.StoredRecord.Code = raw.Code
+		raw.StoredRecord.FundName = raw.FundName
+		raw.StoredRecord.Notes = raw.Notes
+		*o = OutstandingShortPosition(*raw.StoredRecord)
+		return nil
 	}
 	o.DisclosureDate = raw.DiscDate
 	o.CalculationDate = raw.CalcDate
@@ -583,7 +615,9 @@ type MarginAlert struct {
 }
 
 func (m *MarginAlert) UnmarshalJSON(b []byte) error {
+	type StoredRecord MarginAlert
 	var raw struct {
+		*StoredRecord
 		PubDate       string                       `json:"PubDate"`
 		Code          string                       `json:"Code"`
 		AppDate       string                       `json:"AppDate"`
@@ -607,6 +641,11 @@ func (m *MarginAlert) UnmarshalJSON(b []byte) error {
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal margin alert: %w", err)
+	}
+	if raw.StoredRecord != nil {
+		raw.StoredRecord.Code = raw.Code
+		*m = MarginAlert(*raw.StoredRecord)
+		return nil
 	}
 	a := &floatAccumulator{}
 	fromNumber := func(v nullableNumber) *float64 {
@@ -684,12 +723,19 @@ type TradingCalendar struct {
 }
 
 func (tc *TradingCalendar) UnmarshalJSON(b []byte) error {
+	type StoredRecord TradingCalendar
 	var raw struct {
+		*StoredRecord
 		Date            string `json:"Date"`
 		HolidayDivision string `json:"HolDiv"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal trading calendar: %w", err)
+	}
+	if raw.StoredRecord != nil {
+		raw.StoredRecord.Date = raw.Date
+		*tc = TradingCalendar(*raw.StoredRecord)
+		return nil
 	}
 	tc.Date = raw.Date
 	hd, err := strconv.ParseInt(raw.HolidayDivision, 10, 8)

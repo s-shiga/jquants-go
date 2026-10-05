@@ -27,7 +27,9 @@ type IndexPrice struct {
 }
 
 func (ip *IndexPrice) UnmarshalJSON(b []byte) error {
+	type StoredRecord IndexPrice
 	var raw struct {
+		*StoredRecord
 		Date  string         `json:"Date"`
 		Code  string         `json:"Code"`
 		Open  nullableNumber `json:"O"`
@@ -37,6 +39,12 @@ func (ip *IndexPrice) UnmarshalJSON(b []byte) error {
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal index price: %w", err)
+	}
+	if raw.StoredRecord != nil {
+		raw.StoredRecord.Date = raw.Date
+		raw.StoredRecord.Code = raw.Code
+		*ip = IndexPrice(*raw.StoredRecord)
+		return nil
 	}
 	ip.Date = raw.Date
 	ip.Code = raw.Code
@@ -95,7 +103,9 @@ type TopixPrice struct {
 }
 
 func (p *TopixPrice) UnmarshalJSON(b []byte) error {
+	type StoredRecord TopixPrice
 	var raw struct {
+		*StoredRecord
 		Date  string      `json:"Date"`
 		Open  json.Number `json:"O"`
 		High  json.Number `json:"H"`
@@ -104,6 +114,11 @@ func (p *TopixPrice) UnmarshalJSON(b []byte) error {
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal topix price: %w", err)
+	}
+	if raw.StoredRecord != nil {
+		raw.StoredRecord.Date = raw.Date
+		*p = TopixPrice(*raw.StoredRecord)
+		return nil
 	}
 	p.Date = raw.Date
 	p.Open = raw.Open

@@ -39,7 +39,9 @@ type TimelyDisclosure struct {
 }
 
 func (td *TimelyDisclosure) UnmarshalJSON(b []byte) error {
+	type StoredRecord TimelyDisclosure
 	var raw struct {
+		*StoredRecord
 		DiscNo     string         `json:"DiscNo"`
 		Code       string         `json:"Code"`
 		Name       string         `json:"Name"`
@@ -53,6 +55,12 @@ func (td *TimelyDisclosure) UnmarshalJSON(b []byte) error {
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal timely disclosure: %w", err)
+	}
+	if raw.StoredRecord != nil {
+		raw.StoredRecord.Code = raw.Code
+		raw.StoredRecord.Title = raw.Title
+		*td = TimelyDisclosure(*raw.StoredRecord)
+		return nil
 	}
 	td.DisclosureNumber = raw.DiscNo
 	td.Code = raw.Code
