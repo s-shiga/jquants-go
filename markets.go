@@ -72,7 +72,7 @@ func (mtv *MarginTradingOutstanding) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal margin trading outstanding: %w", err)
 	}
-	if raw.StoredRecord != nil {
+	if raw.StoredRecord != nil && isStoredRecord(&raw) {
 		raw.StoredRecord.Date = raw.Date
 		raw.StoredRecord.Code = raw.Code
 		*mtv = MarginTradingOutstanding(*raw.StoredRecord)
@@ -182,7 +182,7 @@ func (sst *ShortSellingValue) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal short selling value: %w", err)
 	}
-	if raw.StoredRecord != nil {
+	if raw.StoredRecord != nil && isStoredRecord(&raw) {
 		raw.StoredRecord.Date = raw.Date
 		*sst = ShortSellingValue(*raw.StoredRecord)
 		return nil
@@ -322,7 +322,7 @@ func (bt *BreakdownTrading) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal breakdown trading: %w", err)
 	}
-	if raw.StoredRecord != nil {
+	if raw.StoredRecord != nil && isStoredRecord(&raw) {
 		raw.StoredRecord.Date = raw.Date
 		raw.StoredRecord.Code = raw.Code
 		*bt = BreakdownTrading(*raw.StoredRecord)
@@ -456,7 +456,7 @@ func (o *OutstandingShortPosition) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal outstanding short position: %w", err)
 	}
-	if raw.StoredRecord != nil {
+	if raw.StoredRecord != nil && isStoredRecord(&raw) {
 		raw.StoredRecord.Code = raw.Code
 		raw.StoredRecord.FundName = raw.FundName
 		raw.StoredRecord.Notes = raw.Notes
@@ -642,7 +642,7 @@ func (m *MarginAlert) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal margin alert: %w", err)
 	}
-	if raw.StoredRecord != nil {
+	if raw.StoredRecord != nil && isStoredRecord(&raw) {
 		raw.StoredRecord.Code = raw.Code
 		*m = MarginAlert(*raw.StoredRecord)
 		return nil
@@ -732,7 +732,7 @@ func (tc *TradingCalendar) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal trading calendar: %w", err)
 	}
-	if raw.StoredRecord != nil {
+	if raw.StoredRecord != nil && isStoredRecord(&raw) {
 		raw.StoredRecord.Date = raw.Date
 		*tc = TradingCalendar(*raw.StoredRecord)
 		return nil

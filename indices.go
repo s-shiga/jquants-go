@@ -40,7 +40,7 @@ func (ip *IndexPrice) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal index price: %w", err)
 	}
-	if raw.StoredRecord != nil {
+	if raw.StoredRecord != nil && isStoredRecord(&raw) {
 		raw.StoredRecord.Date = raw.Date
 		raw.StoredRecord.Code = raw.Code
 		*ip = IndexPrice(*raw.StoredRecord)
@@ -115,7 +115,7 @@ func (p *TopixPrice) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal topix price: %w", err)
 	}
-	if raw.StoredRecord != nil {
+	if raw.StoredRecord != nil && isStoredRecord(&raw) {
 		raw.StoredRecord.Date = raw.Date
 		*p = TopixPrice(*raw.StoredRecord)
 		return nil

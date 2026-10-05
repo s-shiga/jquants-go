@@ -66,7 +66,7 @@ func (ii *IssueInformation) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return err
 	}
-	if raw.StoredRecord != nil {
+	if raw.StoredRecord != nil && isStoredRecord(&raw) {
 		// Shared names are decoded into the explicit wire fields above.
 		raw.StoredRecord.Date = raw.Date
 		raw.StoredRecord.Code = raw.Code
@@ -286,7 +286,7 @@ func (sp *StockPrice) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return err
 	}
-	if raw.StoredRecord != nil {
+	if raw.StoredRecord != nil && isStoredRecord(&raw) {
 		raw.StoredRecord.Date = raw.Date
 		raw.StoredRecord.Code = raw.Code
 		*sp = StockPrice(*raw.StoredRecord)
@@ -467,7 +467,7 @@ func (m *MinuteStockPrice) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal minute stock price: %w", err)
 	}
-	if raw.StoredRecord != nil {
+	if raw.StoredRecord != nil && isStoredRecord(&raw) {
 		raw.StoredRecord.Date = raw.Date
 		raw.StoredRecord.Time = raw.Time
 		raw.StoredRecord.Code = raw.Code
@@ -571,7 +571,7 @@ func (m *MorningSessionStockPrice) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal morning session stock price: %w", err)
 	}
-	if raw.StoredRecord != nil {
+	if raw.StoredRecord != nil && isStoredRecord(&raw) {
 		raw.StoredRecord.Date = raw.Date
 		raw.StoredRecord.Code = raw.Code
 		*m = MorningSessionStockPrice(*raw.StoredRecord)
@@ -658,7 +658,7 @@ func (e *EarningsCalendar) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal earnings calendar: %w", err)
 	}
-	if raw.StoredRecord != nil {
+	if raw.StoredRecord != nil && isStoredRecord(&raw) {
 		raw.StoredRecord.Date = raw.Date
 		raw.StoredRecord.Code = raw.Code
 		raw.StoredRecord.Section = raw.Section
@@ -827,7 +827,7 @@ func (it *InvestorType) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return err
 	}
-	if raw.StoredRecord != nil {
+	if raw.StoredRecord != nil && isStoredRecord(&raw) {
 		raw.StoredRecord.Section = raw.Section
 		*it = InvestorType(*raw.StoredRecord)
 		return nil

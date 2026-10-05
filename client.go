@@ -25,9 +25,11 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -65,6 +67,69 @@ type page[T any] struct {
 
 func (p page[T]) Items() []T           { return p.Data }
 func (p page[T]) NextPageKey() *string { return p.PaginationKey }
+
+// apiOnlyFields caches, per UnmarshalJSON wire struct type, the indexes of the
+// fields whose JSON keys only the API format uses.
+var apiOnlyFields sync.Map // map[reflect.Type][]int
+
+// isStoredRecord reports whether raw, a pointer to an UnmarshalJSON wire struct
+// that embeds *StoredRecord, holds a record saved with json.Marshal rather than
+// an API response. encoding/json allocates the embedded pointer as soon as any
+// key matches one of the record's Go field names, which a key the API adds
+// later could also do. A saved record never carries the API's own keys, so an
+// API-only wire field that is set marks an API response.
+func isStoredRecord(raw any) bool {
+	v := reflect.ValueOf(raw).Elem()
+	indexes, ok := apiOnlyFields.Load(v.Type())
+	if !ok {
+		indexes, _ = apiOnlyFields.LoadOrStore(v.Type(), apiOnlyFieldIndexes(v.Type()))
+	}
+	for _, i := range indexes.([]int) {
+		if !v.Field(i).IsZero() {
+			return false
+		}
+	}
+	return true
+}
+
+// apiOnlyFieldIndexes returns the fields of wire struct t whose JSON keys do
+// not match, case-insensitively as encoding/json does, a key of the embedded
+// stored record. Matching keys (such as "Date" and "Code") are shared by both
+// formats and say nothing about which one the input is.
+func apiOnlyFieldIndexes(t reflect.Type) []int {
+	var storedKeys []string
+	for i := range t.NumField() {
+		if field := t.Field(i); field.Anonymous {
+			for _, stored := range reflect.VisibleFields(field.Type.Elem()) {
+				storedKeys = append(storedKeys, jsonKey(stored))
+			}
+		}
+	}
+	var indexes []int
+	for i := range t.NumField() {
+		field := t.Field(i)
+		if field.Anonymous {
+			continue
+		}
+		key := jsonKey(field)
+		shared := false
+		for _, stored := range storedKeys {
+			shared = shared || strings.EqualFold(key, stored)
+		}
+		if !shared {
+			indexes = append(indexes, i)
+		}
+	}
+	return indexes
+}
+
+// jsonKey returns the object key encoding/json uses for field.
+func jsonKey(field reflect.StructField) string {
+	if name, _, _ := strings.Cut(field.Tag.Get("json"), ","); name != "" {
+		return name
+	}
+	return field.Name
+}
 
 // Client is the J-Quants API client.
 // It holds the HTTP client, authentication credentials, and configuration

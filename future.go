@@ -115,7 +115,7 @@ func (fp *FuturesPrice) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal futures price: %w", err)
 	}
-	if raw.StoredRecord != nil {
+	if raw.StoredRecord != nil && isStoredRecord(&raw) {
 		raw.StoredRecord.Date = raw.Date
 		raw.StoredRecord.Code = raw.Code
 		*fp = FuturesPrice(*raw.StoredRecord)

@@ -113,7 +113,7 @@ func (iop *IndexOptionPrice) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal index option price: %w", err)
 	}
-	if raw.StoredRecord != nil {
+	if raw.StoredRecord != nil && isStoredRecord(&raw) {
 		raw.StoredRecord.Date = raw.Date
 		raw.StoredRecord.Code = raw.Code
 		*iop = IndexOptionPrice(*raw.StoredRecord)
@@ -341,7 +341,7 @@ func (op *OptionPrice) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal option price: %w", err)
 	}
-	if raw.StoredRecord != nil {
+	if raw.StoredRecord != nil && isStoredRecord(&raw) {
 		raw.StoredRecord.Date = raw.Date
 		raw.StoredRecord.Code = raw.Code
 		*op = OptionPrice(*raw.StoredRecord)

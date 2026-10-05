@@ -56,7 +56,7 @@ func (td *TimelyDisclosure) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal timely disclosure: %w", err)
 	}
-	if raw.StoredRecord != nil {
+	if raw.StoredRecord != nil && isStoredRecord(&raw) {
 		raw.StoredRecord.Code = raw.Code
 		raw.StoredRecord.Title = raw.Title
 		*td = TimelyDisclosure(*raw.StoredRecord)

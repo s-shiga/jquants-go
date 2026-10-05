@@ -406,7 +406,7 @@ func (fs *FinancialSummary) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal financial summary: %w", err)
 	}
-	if raw.StoredRecord != nil {
+	if raw.StoredRecord != nil && isStoredRecord(&raw) {
 		raw.StoredRecord.Code = raw.Code
 		*fs = FinancialSummary(*raw.StoredRecord)
 		return nil
@@ -615,7 +615,7 @@ func (fd *FinancialDetails) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal financial details: %w", err)
 	}
-	if raw.StoredRecord != nil {
+	if raw.StoredRecord != nil && isStoredRecord(&raw) {
 		raw.StoredRecord.Code = raw.Code
 		*fd = FinancialDetails(*raw.StoredRecord)
 		return nil
@@ -756,7 +756,7 @@ func (d *Dividend) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return fmt.Errorf("failed to unmarshal dividend: %w", err)
 	}
-	if raw.StoredRecord != nil {
+	if raw.StoredRecord != nil && isStoredRecord(&raw) {
 		raw.StoredRecord.Code = raw.Code
 		raw.StoredRecord.ExDate = raw.ExDate
 		raw.StoredRecord.PayDate = raw.PayDate

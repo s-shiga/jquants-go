@@ -107,6 +107,29 @@ func checkEndpoint[T any](t *testing.T, path, query, item string, paginated bool
 	if !reflect.DeepEqual(reloaded, got) {
 		t.Fatalf("cached records = %#v, want %#v", reloaded, got)
 	}
+	// An API key spelled like a Go field name must not divert an API record to
+	// the stored-record path, so add every field name the fixture lacks as null.
+	var keys map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(item), &keys); err != nil {
+		t.Fatalf("fixture item: %v", err)
+	}
+	for _, field := range reflect.VisibleFields(reflect.TypeFor[T]()) {
+		present := false
+		for key := range keys {
+			present = present || strings.EqualFold(key, field.Name)
+		}
+		if field.IsExported() && !present {
+			keys[field.Name] = json.RawMessage("null")
+		}
+	}
+	colliding, err := json.Marshal(keys)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fromAPI T
+	if err := json.Unmarshal(colliding, &fromAPI); err != nil || !reflect.DeepEqual(fromAPI, want) {
+		t.Fatalf("API record with Go field names = %#v, %v; want %#v", fromAPI, err, want)
+	}
 }
 
 // Await the producer's returned error as well as channel closure so tests never
