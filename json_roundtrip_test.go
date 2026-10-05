@@ -11,11 +11,10 @@ import (
 // loss when callers cache API results with encoding/json.
 func populateJSONRecord(v reflect.Value, path string, populated bool) {
 	if v.Type() == reflect.TypeFor[json.Number]() {
-		value := "0"
+		// An unpopulated json.Number stays empty, which must not reload as "0".
 		if populated {
-			value = "9007199254740993.1250"
+			v.SetString("9007199254740993.1250")
 		}
-		v.SetString(value)
 		return
 	}
 	if !populated && v.Kind() != reflect.Struct {

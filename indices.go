@@ -22,8 +22,9 @@ type IndexPrice struct {
 	// Low is the lowest value of the index for the day, or nil for indices that
 	// publish only a closing value.
 	Low *json.Number
-	// Close is the closing value of the index.
-	Close json.Number
+	// Close is the closing value of the index. json.Marshal omits it when
+	// empty, since an empty json.Number would otherwise be written as 0.
+	Close json.Number `json:",omitempty"`
 }
 
 func (ip *IndexPrice) UnmarshalJSON(b []byte) error {
@@ -89,17 +90,19 @@ func (c *Client) IndexPrice(ctx context.Context, req IndexPriceRequest) ([]Index
 }
 
 // TopixPrice represents daily OHLC (Open, High, Low, Close) data for the TOPIX index.
+// json.Marshal omits an empty price, since an empty json.Number would otherwise
+// be written as 0.
 type TopixPrice struct {
 	// Date is the trading date in YYYY-MM-DD format.
 	Date string
 	// Open is the opening value of TOPIX.
-	Open json.Number
+	Open json.Number `json:",omitempty"`
 	// High is the highest value of TOPIX for the day.
-	High json.Number
+	High json.Number `json:",omitempty"`
 	// Low is the lowest value of TOPIX for the day.
-	Low json.Number
+	Low json.Number `json:",omitempty"`
 	// Close is the closing value of TOPIX.
-	Close json.Number
+	Close json.Number `json:",omitempty"`
 }
 
 func (p *TopixPrice) UnmarshalJSON(b []byte) error {

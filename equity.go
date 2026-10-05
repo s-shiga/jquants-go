@@ -162,7 +162,9 @@ type StockPrice struct {
 	// TurnoverValue is the total trading value in yen (nil if no trading occurred).
 	TurnoverValue *int64
 	// AdjustmentFactor is the cumulative adjustment factor for stock splits.
-	AdjustmentFactor json.Number
+	// json.Marshal omits it when empty, since an empty json.Number would
+	// otherwise be written as 0.
+	AdjustmentFactor json.Number `json:",omitempty"`
 	// ExRightsType is the ex-rights type on an ex-rights date ("1": stock split,
 	// including bonus share allotments, "2": reverse stock split, "3": rights
 	// issue), or nil on other days (JSON key "ExRT"). Adjusted volumes treat the

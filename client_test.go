@@ -354,7 +354,7 @@ func TestStockPrice_CodeAndDate(t *testing.T) {
 	for _, stream := range []bool{false, true} {
 		t.Run(fmt.Sprint(stream), func(t *testing.T) {
 			req := StockPriceRequest{Code: ptr("86970"), Date: ptr("2026-07-17")}
-			checkEndpoint(t, "/equities/bars/daily", "code=86970&date=2026-07-17", `{"Code":"86970","UL":"0","LL":"0","AdjFactor":1}`, true, StockPrice{Code: "86970", AdjustmentFactor: "1"}, func(c *Client) ([]StockPrice, error) {
+			checkEndpoint(t, "/equities/bars/daily", "code=86970&date=2026-07-17", `{"Code":"86970","UL":"0","LL":"0"}`, true, StockPrice{Code: "86970"}, func(c *Client) ([]StockPrice, error) {
 				if stream {
 					return collectChannel(func(ch chan<- StockPrice) error { return c.StockPriceWithChannel(t.Context(), req, ch) })
 				}

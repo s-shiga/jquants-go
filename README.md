@@ -530,6 +530,8 @@ Response records can be saved with `json.Marshal` and restored with
 `json.Unmarshal`. Marshaling uses the descriptive Go field names; unmarshaling
 accepts both this stored format and the API's abbreviated keys. This preserves
 nil pointers, nested records, and numeric precision when caching API results.
+Empty `json.Number` fields (such as `StockPrice.AdjustmentFactor`) are omitted
+from the marshaled output so they reload as empty rather than as `0`.
 
 ## Codes Package
 
